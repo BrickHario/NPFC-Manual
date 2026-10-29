@@ -34,7 +34,7 @@ export function LoadingBig() {
       }}
     >
       <Image
-        src="/loading-Big.gif"
+        src="/loading-big.gif"
         alt=""
         width={256}
         height={32}
