@@ -1,0 +1,458 @@
+.toolbar {
+  position: relative;
+  z-index: 1000;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  margin: var(--space-md) 0;
+  border: 3px solid var(--dark);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--font_black);
+  box-shadow: var(--shadow-offset);
+  font-family: var(--font-body);
+}
+
+
+.control {
+  box-sizing: border-box;
+  height: 44px;
+  min-width: 0;
+  border: 2px solid var(--dark);
+  border-radius: 6px;
+  padding: 8px 11px;
+  background: var(--color-surface);
+  color: var(--font_black);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  box-shadow: 3px 3px 0 var(--dark);
+  transition:
+    background var(--anim),
+    border-color var(--anim),
+    box-shadow var(--anim),
+    transform var(--anim);
+}
+
+.control:hover {
+  background: var(--color-table-hover);
+}
+
+.control:focus-visible,
+.applyButton:focus-visible,
+.resetLink:focus-visible,
+.suggestionButton:focus-visible,
+.optionLabel:focus-within {
+  outline: 3px solid var(--color-highlight);
+  outline-offset: 2px;
+}
+
+.searchWrap {
+  position: relative;
+  flex: 1 1 190px;
+  min-width: 160px;
+  max-width: 280px;
+}
+
+.searchInput {
+  width: 100%;
+  padding-left: 13px;
+  border-left: 5px solid var(--color-physical);
+}
+
+.searchInput::placeholder,
+.priceInput::placeholder {
+  color: var(--button_grey);
+  opacity: 1;
+}
+
+.suggestions,
+.filterMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  z-index: 50;
+  margin: 0;
+  overflow-y: auto;
+  border: 2px solid var(--dark);
+  border-top: 5px solid var(--color-physical);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--font_black);
+  box-shadow: 5px 5px 0 var(--dark);
+}
+
+.suggestions {
+  left: 0;
+  right: 0;
+  max-height: 320px;
+  padding: 5px;
+  list-style: none;
+}
+
+.suggestionButton {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 3px;
+  padding: 9px 12px;
+  background: transparent;
+  color: var(--font_black);
+  font-family: var(--font-body);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.suggestionButton:hover {
+  background: var(--color-physical);
+  color: var(--font_white);
+}
+
+.multiFilter {
+  position: relative;
+  min-width: 120px;
+  flex: 0 0 auto;
+}
+
+.filterSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 120px;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.filterSummary::-webkit-details-marker {
+  display: none;
+}
+
+.filterSummary::after {
+  content: "";
+  display: block;
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform var(--anim);
+}
+
+.multiFilter[open] > .filterSummary {
+  background: var(--color-physical);
+  color: var(--font_white);
+}
+
+.multiFilter[open] > .filterSummary::after {
+  transform: rotate(225deg) translateY(-1px);
+}
+
+.counter {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 1px solid var(--dark);
+  border-radius: 3px;
+  background: var(--color-support);
+  color: var(--font_black);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.filterMenu {
+  left: 0;
+  min-width: 180px;
+  max-height: 265px;
+  padding: 8px;
+}
+
+.optionLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 4px;
+  color: var(--font_black);
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.optionLabel:hover {
+  background: var(--color-table-hover);
+}
+
+.checkbox {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--color-physical);
+  cursor: pointer;
+}
+
+.select {
+  min-width: 112px;
+  max-width: 100%;
+  cursor: pointer;
+}
+
+.sortSelect {
+  max-width: 235px;
+}
+
+.priceGroup {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.priceInput {
+  width: 115px;
+  padding: 8px;
+  border-bottom: 4px solid var(--color-physical);
+  font-variant-numeric: tabular-nums;
+}
+
+.rangeSeparator {
+  padding: 0 3px;
+  color: var(--font_black);
+  font-weight: 800;
+}
+
+.priceSortButton {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  padding: 0;
+  font-size: 23px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.priceSortActive {
+  background: var(--color-support);
+  color: var(--font_black);
+}
+
+.priceSortActive:hover {
+  background: var(--color-support);
+  filter: brightness(1.06);
+}
+
+.applyButton {
+  min-width: 136px;
+  height: 44px;
+  padding: 8px 22px;
+  border: 2px solid var(--dark);
+  border-radius: 6px;
+  background: var(--color-physical);
+  color: var(--font_white);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  box-shadow: 3px 3px 0 var(--dark);
+  cursor: pointer;
+  transition:
+    background var(--anim),
+    box-shadow var(--anim),
+    transform var(--anim);
+}
+
+.applyButton:hover {
+  background: var(--color-highlight);
+  box-shadow: 5px 5px 0 var(--dark);
+  transform: translate(-1px, -1px);
+}
+
+.applyButton:active,
+.priceSortButton:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--dark);
+}
+
+.resetLink {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 12px;
+  color: var(--font_black);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  transition: color var(--anim);
+}
+
+.resetLink:hover {
+  color: var(--color-highlight);
+}
+
+@media (max-width: 830px) {
+  .toolbar {
+    justify-content: center;
+    padding: 15px;
+  }
+  .searchWrap {
+    flex: 1 1 210px;
+    max-width: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .toolbar {
+    gap: 12px;
+    padding: 14px 12px;
+  }
+  .searchWrap {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+  .multiFilter {
+    flex: 1 1 calc(50% - 12px);
+    min-width: 0;
+  }
+  .filterSummary {
+    min-width: 0;
+  }
+  .select {
+    flex: 1 1 calc(50% - 12px);
+    min-width: 0;
+  }
+  .priceGroup {
+    width: 100%;
+    justify-content: center;
+  }
+  .priceInput {
+    width: min(35%, 150px);
+  }
+  .sortSelect {
+    max-width: none;
+  }
+  .applyButton {
+    flex: 1 1 auto;
+  }
+  .resetLink {
+    flex: 0 0 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .control,
+  .applyButton,
+  .filterSummary::after,
+  .resetLink {
+    transition: none;
+  }
+}
+
+.toolbar:has([data-open="true"]) {
+  z-index: 1000;
+}
+
+.searchWrap[data-open="true"],
+.multiFilter[data-open="true"] {
+  z-index: 10;
+}
+
+.multiFilter[data-open="true"] > .filterSummary {
+  background: var(--color-physical);
+  color: var(--font_white);
+}
+
+.multiFilter[data-open="true"] > .filterSummary::after {
+  transform: rotate(225deg) translateY(-1px);
+}
+
+.singleFilter {
+  min-width: 112px;
+  max-width: 235px;
+}
+
+.singleFilter > .filterSummary {
+  width: 100%;
+  appearance: none;
+  text-align: left;
+}
+
+.filterText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.optionButton {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--font_black);
+  font-family: var(--font-body);
+  font-size: 14px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.optionButton:hover,
+.optionButton:focus-visible {
+  background: var(--color-table-hover);
+}
+
+.optionSelected {
+  background: var(--color-physical);
+  color: var(--font_white);
+}
+
+.optionSelected:hover,
+.optionSelected:focus-visible {
+  background: var(--color-physical);
+  color: var(--font_white);
+  filter: brightness(1.05);
+}
+
+.sortFilter {
+  width: 180px;
+}
+
+.sortFilter .filterMenu {
+  left: auto;
+  right: 0;
+  min-width: 215px;
+  max-width: min(300px, 90vw);
+}
+
+.optionButton:focus-visible,
+.singleFilter > .filterSummary:focus-visible {
+  outline: 3px solid var(--color-highlight);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .singleFilter {
+    flex: 1 1 calc(50% - 12px);
+    max-width: none;
+  }
+  .sortFilter {
+    width: auto;
+  }
+}

@@ -1,0 +1,411 @@
+.page {
+  width: 100%;
+  max-width: 1140px;
+  margin: 50px auto calc(var(--space-md) * 2);
+}
+
+.backLink {
+  display: inline-block;
+  margin: 0 0 var(--space-sm);
+  color: var(--font_black);
+  text-decoration: none;
+  font-size: 25px;
+}
+
+.panel {
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--font_black);
+  font-family: var(--font-body);
+  box-shadow: black 10px 10px 0;
+}
+
+.topBar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  min-height: 80px;
+  gap: 16px;
+  padding: 18px 37px;
+  background: var(--color-physical);
+  color: var(--font_white);
+}
+
+.position {
+  color: var(--font_white);
+  font-size: clamp(30px, 3.9vw, 50px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 1px;
+}
+
+.footWrap {
+  display: flex;
+  justify-content: center;
+}
+
+.footBadge {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  color: var(--font_white);
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.leftFoot { background: var(--color-technical); }
+.rightFoot { background: #2041b0; }
+
+.marketWrap {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.marketBadge {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  min-width: 105px;
+  padding: 8px 19px;
+  border-radius: 10px;
+  color: var(--font_black);
+  text-align: center;
+  font-size: clamp(20px, 2.5vw, 25px);
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: var(--font_black) 3px solid;
+}
+
+.priceWrap {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 18px;
+  white-space: nowrap;
+}
+
+.price {
+  font-size: clamp(28px, 3.5vw, 47px);
+  font-weight: 800;
+  color: var(--font_white);
+  letter-spacing: 1px;
+}
+
+.coins {
+  display: block;
+  flex: 0 0 43px;
+  width: 43px;
+  height: 54px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 15px 24px;
+}
+
+.portraitPanel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 260px;
+  min-height: 0;
+  background: transparent;
+}
+
+.cardStage {
+  position: relative;
+  width: 256px;
+  height: 320px;
+  flex-shrink: 0;
+}
+
+.scaledCard {
+  width: 128px;
+  height: 160px;
+  transform: scale(2);
+  transform-origin: top left;
+}
+
+.scaledCard :global(img) {
+  image-rendering: pixelated;
+}
+
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.attributes {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 0;
+  min-width: 0;
+}
+
+.attributeLayout {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  justify-content: space-around;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+.attributeBadges {
+  display: flex;
+  flex: 0 0 125px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.attributeGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  flex: 0 1 400px;
+  width: min(100%, 400px);
+  min-width: 0;
+  gap: 0;
+}
+
+.attributeItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  overflow: visible;
+}
+
+.attributeIcon {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: fill;
+  image-rendering: pixelated;
+}
+
+.gradeSlot {
+  display: grid;
+  place-items: center;
+  width: 80%;
+  min-height: 45px;
+  padding-top: 5px;
+  margin-left: 5px;
+}
+
+.gradeImage {
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.gradeText {
+  font-size: clamp(17px, 3vw, 35px);
+  font-family: monospace;
+  font-weight: 1000;
+  line-height: 1;
+  color: var(--color-support);
+  -webkit-text-stroke: 1.5px var(--font_black);
+  text-shadow: 3px 3px 0 #989898;
+}
+
+.potentialPanel {
+  width: 100%;
+  min-width: 0;
+  padding: 4px;
+  background: transparent;
+  overflow: hidden;
+}
+
+.potentialPanel :global(canvas),
+.potentialPanel :global(svg) {
+  max-width: 100%;
+}
+
+.potentialPanel :global(.recharts-responsive-container) {
+  height: 190px !important;
+}
+
+.empty {
+  margin: 16px;
+  font-size: 14px;
+  color: var(--button_grey);
+}
+
+@media (max-width: 830px) {
+  .topBar {
+    grid-template-columns: 1fr auto;
+    padding: 15px 20px;
+    min-height: 95px;
+    gap: 10px;
+  }
+
+  .footBadge {
+    width: 55px;
+    height: 55px;
+    border-radius: 12px;
+    font-size: 35px;
+  }
+
+  .marketBadge {
+    min-width: 0;
+    padding: 10px 15px;
+  }
+
+  .priceWrap {
+    gap: 8px;
+  }
+
+  .content {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 15px;
+    gap: 12px;
+  }
+
+  .portraitPanel {
+    width: 260px;
+    min-height: 0;
+    margin: auto;
+    max-width: 100%;
+  }
+
+  .cardStage {
+    width: 256px;
+    height: 320px;
+  }
+
+  .scaledCard {
+    transform: scale(2);
+  }
+
+  .attributes {
+    min-height: 0;
+  }
+
+  .rightColumn {
+    gap: 10px;
+  }
+
+  .attributeBadges {
+    flex-basis: 115px;
+  }
+
+  .potentialPanel {
+    padding: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .topBar {
+    grid-template-columns: 1fr auto;
+    gap: 6px;
+    padding: 12px;
+    min-height: 76px;
+  }
+
+  .position {
+    font-size: 27px;
+  }
+
+  .footBadge {
+    width: 40px;
+    height: 43px;
+    border-radius: 9px;
+    font-size: 27px;
+  }
+
+  .marketBadge {
+    padding: 9px 7px;
+    border-radius: 9px;
+    font-size: 15px;
+  }
+
+  .price {
+    font-size: 19px;
+    letter-spacing: 0;
+  }
+
+  .priceWrap {
+    gap: 4px;
+  }
+
+  .coins {
+    flex-basis: 24px;
+    transform: scale(0.65);
+    transform-origin: left center;
+  }
+
+  .content {
+    padding: 12px 10px;
+    gap: 10px;
+  }
+
+  .portraitPanel {
+    width: 224px;
+    min-height: 0;
+  }
+
+  .cardStage {
+    width: 224px;
+    height: 280px;
+  }
+
+  .scaledCard {
+    transform: scale(1.75);
+  }
+
+  .rightColumn {
+    gap: 8px;
+  }
+
+  .attributeLayout {
+    gap: 6px;
+  }
+
+  .attributeGrid {
+    width: min(100%, 350px);
+  }
+
+  .attributeBadges {
+    flex-basis: 83px;
+    gap: 8px;
+  }
+
+  .gradeSlot {
+    min-height: 40px;
+    padding-top: 2px;
+  }
+
+  .gradeText {
+    font-size: 20px;
+    -webkit-text-stroke: 1px var(--font_black);
+  }
+
+  .potentialPanel {
+    padding: 2px;
+  }
+
+  .potentialPanel :global(.recharts-responsive-container) {
+    height: 170px !important;
+  }
+}
