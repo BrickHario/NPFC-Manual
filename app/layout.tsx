@@ -17,13 +17,13 @@ export default function RootLayout({
           <Link className="site-brand" href="/">NPFC Manual</Link>
           <div className="site-nav-links">
             <Link href="/marketplace">Marketplace</Link>
-            <Link href="/combo-maker">Combo Maker</Link>
+            {/* <Link href="/combo-maker">Combo Maker</Link> */}
           </div>
         </nav>
 
         {children}
 
-        <footer className="site-footer" />
+        <footer className="site-footer"><p>© Brickhario</p></footer>
       </body>
     </html>
   );
