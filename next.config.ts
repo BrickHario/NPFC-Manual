@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   devIndicators: false,
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
@@ -18,4 +19,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-
