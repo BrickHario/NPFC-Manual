@@ -17,13 +17,16 @@ export default function RootLayout({
           <Link className="site-brand" href="/">NPFC Manual</Link>
           <div className="site-nav-links">
             <Link href="/marketplace">Marketplace</Link>
-            {/* <Link href="/combo-maker">Combo Maker</Link> */}
+            <Link href="/combo-maker">Cards and Combos</Link>
           </div>
         </nav>
 
         {children}
 
-        <footer className="site-footer"><p>© Brickhario</p></footer>
+        <footer className="site-footer">
+          <p>© Brickhario</p>
+          <a href="https://youtu.be/nC17KBb68ns?si=Z_u-KDu1CzXaZWLb" target="_blank">Was ist NPFC?</a>
+        </footer>
       </body>
     </html>
   );
