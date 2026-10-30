@@ -12,6 +12,10 @@
   font-size: 25px;
 }
 
+.backLink:hover {
+  text-decoration: underline;
+}
+
 .panel {
   overflow: hidden;
   border-radius: var(--radius);
@@ -64,6 +68,7 @@
   display: flex;
   justify-content: center;
   min-width: 0;
+  width: 100%;
 }
 
 .marketBadge {
@@ -205,18 +210,49 @@
 }
 
 .gradeSlot {
-  display: grid;
-  place-items: center;
-  width: 80%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
   min-height: 45px;
   padding-top: 5px;
-  margin-left: 5px;
+}
+
+.gradeValue {
+  display: grid;
+  place-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .gradeImage {
+  display: block;
   width: 100%;
   height: auto;
   image-rendering: pixelated;
+}
+
+.levelTrack {
+  position: relative;
+  flex: 0 0 3px;
+  width: 3px;
+  height: 44px;
+  margin: 0 5px 0 0;
+  border-radius: 2px;
+  background: var(--button_grey);
+}
+
+.levelDot {
+  position: absolute;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--dark);
+  border-radius: 50%;
+  background: var(--color-physical);
+  transform: translate(-50%, 50%);
 }
 
 .gradeText {
@@ -392,8 +428,19 @@
   }
 
   .gradeSlot {
+    gap: 2px;
     min-height: 40px;
     padding-top: 2px;
+  }
+
+  .levelTrack {
+    height: 30px;
+    margin-right: 4px;
+  }
+
+  .levelDot {
+    width: 8px;
+    height: 8px;
   }
 
   .gradeText {

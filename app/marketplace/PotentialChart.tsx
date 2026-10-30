@@ -77,7 +77,7 @@ export default function PotentialChart({
       ))}
 
       <text x={395} y={250} textAnchor="middle" fontSize="12">
-        Years
+        Potential / Years
       </text>
     </svg>
   );
