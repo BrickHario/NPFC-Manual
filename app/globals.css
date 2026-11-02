@@ -84,7 +84,6 @@ tr:hover td {
   justify-content: space-between;
   gap: 25px;
   width: 100%;
-  min-height: 90px;
   padding: var(--space-md) var(--space-lg);
   border-bottom: 1px solid var(--button_grey);
   background: var(--dark);
@@ -302,7 +301,6 @@ tr:hover td {
 
 @media (max-width: 700px) {
   .site-nav {
-    min-height: 80px;
     padding: 15px 28px;
   }
 

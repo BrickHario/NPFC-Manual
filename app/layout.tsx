@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import SiteNavigation from "./SiteNavigation";
 import "./globals.css";
+import PageBackground from "./PageBackground";
 
 export const metadata: Metadata = {
   title: "NPFC Manual",
@@ -17,6 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <PageBackground />
         <nav
           className="site-nav"
           aria-label="Main navigation"
