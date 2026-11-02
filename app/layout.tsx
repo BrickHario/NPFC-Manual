@@ -36,7 +36,7 @@ export default function RootLayout({
         {children}
 
         <footer className="site-footer">
-          <p>© Brickhario</p>
+          <p>© BrickHario</p>
 
           <a
             href="https://youtu.be/nC17KBb68ns?si=Z_u-KDu1CzXaZWLb"
