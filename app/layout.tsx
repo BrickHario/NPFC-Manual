@@ -1,5 +1,7 @@
+
 import type { Metadata } from "next";
 import Link from "next/link";
+import SiteNavigation from "./SiteNavigation";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,23 +11,38 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="de">
+    <html lang="en">
       <body>
-        <nav className="site-nav" aria-label="Hauptnavigation">
-          <Link className="site-brand" href="/">NPFC Manual</Link>
-          <div className="site-nav-links">
-            <Link href="/marketplace">Marketplace</Link>
-            <Link href="/combo-maker">Cards and Combos</Link>
-          </div>
+        <nav
+          className="site-nav"
+          aria-label="Main navigation"
+        >
+          <Link
+            className="site-brand"
+            href="/"
+          >
+            NPFC Manual
+          </Link>
+
+          <SiteNavigation />
         </nav>
 
         {children}
 
         <footer className="site-footer">
           <p>© Brickhario</p>
-          <a href="https://youtu.be/nC17KBb68ns?si=Z_u-KDu1CzXaZWLb" target="_blank">Was ist NPFC?</a>
+
+          <a
+            href="https://youtu.be/nC17KBb68ns?si=Z_u-KDu1CzXaZWLb"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Was ist NPFC?
+          </a>
         </footer>
       </body>
     </html>

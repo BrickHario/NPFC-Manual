@@ -1,0 +1,72 @@
+
+.wrapper {
+  width: 100%;
+  min-width: 0;
+}
+
+.scrollArea {
+  width: 100%;
+  min-width: 0;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  padding-bottom: 0;
+
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  -webkit-overflow-scrolling: touch;
+}
+
+.scrollArea::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.scrollIndicator {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .scrollIndicator {
+    position: relative;
+    display: block;
+
+    width: calc(100% - 40px);
+    height: 20px;
+
+    margin: 12px auto 0;
+
+    box-sizing: border-box;
+    background: #e8e8e8;
+    border: 2px solid #111811;
+    border-radius: 999px;
+    overflow: hidden;
+
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .scrollThumb {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    height: 100%;
+    background: #686868;
+    border-radius: 999px;
+  }
+}
+
+@media (max-width: 600px) {
+  .scrollIndicator {
+    width: calc(100% - 24px);
+  }
+}
+
+@media (max-width: 700px) {
+  .scrollIndicator {
+    margin-top: 15px;
+  }
+}

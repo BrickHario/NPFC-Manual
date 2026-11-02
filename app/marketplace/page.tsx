@@ -428,7 +428,7 @@ async function Players({
 
         {filtered.length === 0 && (
           <p style={{ textAlign: "center", marginTop: 40 }}>
-            Keine Spieler mit diesen Filtern gefunden.
+            No player found with these filters.
           </p>
         )}
 

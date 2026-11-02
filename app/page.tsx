@@ -8,7 +8,7 @@ export default function Home() {
         <Link className="home-button" href="/marketplace">
           Marketplace
         </Link>
-        <Link className="home-button" href="/combo-maker">
+        <Link className="home-button" href="/cards-and-combos">
           Cards and Combos
         </Link>
       </div>

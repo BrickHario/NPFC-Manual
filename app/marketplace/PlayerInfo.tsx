@@ -70,7 +70,23 @@ export default async function PlayerInfo({ id, backHref }: PlayerInfoProps) {
     .maybeSingle();
 
   if (error) return <p>{error.message}</p>;
-  if (!player) return <p>Player not found</p>;
+  
+if (!player) {
+  return (
+    <div className="notFound">
+      <Image
+        src="/unhappy.png"
+        alt="Unhappy"
+        width={220}
+        height={220}
+        className="notFoundImage"
+      />
+      <h2 className="notFoundText">
+        Player not found.
+      </h2>
+    </div>
+  );
+}
 
   const skills = Array.isArray(player.Player_Skills)
     ? player.Player_Skills[0]

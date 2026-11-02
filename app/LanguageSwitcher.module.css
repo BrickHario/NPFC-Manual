@@ -1,0 +1,101 @@
+
+.container {
+  position: relative;
+  z-index: 10000;
+  flex-shrink: 0;
+  width: 65px;
+  overflow: visible;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 65px;
+  height: 40px;
+  min-width: 0;
+  padding: 5px 7px;
+  border: 2px solid var(--font_white);
+  border-radius: 8px;
+  background: #263023;
+  color: var(--font_white);
+  cursor: pointer;
+  box-shadow: none;
+  transform: none;
+}
+
+.trigger:hover,
+.trigger[aria-expanded="true"] {
+  background: #354531;
+}
+
+.flag {
+  display: block;
+  width: 28px;
+  height: 19px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  object-fit: cover;
+}
+
+.chevron {
+  display: block;
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+}
+
+.trigger[aria-expanded="true"] .chevron {
+  transform: rotate(225deg) translateY(-1px);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 49px;
+  padding: 4px;
+  border: 2px solid var(--font_white);
+  border-radius: 8px;
+  background: #263023;
+  box-shadow: 4px 4px 0 var(--dark);
+  overflow: visible;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 35px;
+  min-width: 0;
+  padding: 4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  box-shadow: none;
+  transform: none;
+}
+
+.option:hover {
+  background: #455943;
+}
+
+.active {
+  background: #526b4d;
+}
+
+.trigger:focus-visible,
+.option:focus-visible {
+  outline: 2px solid var(--color-highlight);
+  outline-offset: 2px;
+}
