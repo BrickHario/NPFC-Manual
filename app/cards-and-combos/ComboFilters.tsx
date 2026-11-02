@@ -1,11 +1,7 @@
 
 "use client";
 
-import {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   SORT_OPTIONS,
   type SortValue,
@@ -15,23 +11,15 @@ import styles from "./cards-and-combos.module.css";
 type Props = {
   query: string;
   onQueryChange: (value: string) => void;
-
   showSingleCards: boolean;
   onShowSingleCardsChange: (value: boolean) => void;
-
   twOnly: boolean;
   onTwOnlyChange: (value: boolean) => void;
-
   matchActionsOnly: boolean;
-  onMatchActionsOnlyChange: (
-    value: boolean
-  ) => void;
-
+  onMatchActionsOnlyChange: (value: boolean) => void;
   sort: SortValue;
   onSortChange: (value: SortValue) => void;
-
   onReset: () => void;
-
   showCardsFirst: boolean;
   onShowCardsFirstChange: (value: boolean) => void;
 };
@@ -79,9 +67,7 @@ export default function ComboFilters({
   showCardsFirst,
   onShowCardsFirstChange,
 }: Props) {
-  const [sortOpen, setSortOpen] =
-    useState(false);
-
+  const [sortOpen, setSortOpen] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -122,6 +108,26 @@ export default function ComboFilters({
     };
   }, []);
 
+  const handleShowSingleCardsChange = (
+    checked: boolean
+  ) => {
+    onShowSingleCardsChange(checked);
+
+    if (!checked && showCardsFirst) {
+      onShowCardsFirstChange(false);
+    }
+  };
+
+  const handleShowCardsFirstChange = (
+    checked: boolean
+  ) => {
+    if (checked && !showSingleCards) {
+      onShowSingleCardsChange(true);
+    }
+
+    onShowCardsFirstChange(checked);
+  };
+
   const sortLabel =
     SORT_OPTIONS.find(
       (option) => option.value === sort
@@ -132,9 +138,7 @@ export default function ComboFilters({
       <div className={styles.searchWrap}>
         <input
           type="search"
-          className={`${styles.control} ${
-            styles.searchInput
-          }`}
+          className={`${styles.control} ${styles.searchInput}`}
           placeholder="Search combos from table.."
           aria-label="Search combinations"
           value={query}
@@ -147,13 +151,13 @@ export default function ComboFilters({
       <FilterSwitch
         label="Show single cards"
         checked={showSingleCards}
-        onChange={onShowSingleCardsChange}
+        onChange={handleShowSingleCardsChange}
       />
 
       <FilterSwitch
         label="Show cards first"
         checked={showCardsFirst}
-        onChange={onShowCardsFirstChange}
+        onChange={handleShowCardsFirstChange}
       />
 
       <FilterSwitch
@@ -175,9 +179,7 @@ export default function ComboFilters({
       >
         <button
           type="button"
-          className={`${styles.control} ${
-            styles.dropdownButton
-          }`}
+          className={`${styles.control} ${styles.dropdownButton}`}
           aria-haspopup="listbox"
           aria-expanded={sortOpen}
           onClick={() =>
@@ -201,9 +203,7 @@ export default function ComboFilters({
                 aria-selected={
                   sort === option.value
                 }
-                className={`${
-                  styles.optionButton
-                } ${
+                className={`${styles.optionButton} ${
                   sort === option.value
                     ? styles.optionSelected
                     : ""
