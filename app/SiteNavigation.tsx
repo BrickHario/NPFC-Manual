@@ -74,6 +74,10 @@ export default function SiteNavigation() {
         <Link href="/cards-and-combos">
           Cards and Combos
         </Link>
+
+          <Link href="/player-types">
+          Player Types
+        </Link>
       </div>
 
       {/* Mobile Burger */}
@@ -116,6 +120,12 @@ export default function SiteNavigation() {
           onClick={() => setIsOpen(false)}
         >
           Cards and Combos
+        </Link>
+                <Link
+          href="/player-types"
+          onClick={() => setIsOpen(false)}
+        >
+          Player Types
         </Link>
       </div>
     </div>

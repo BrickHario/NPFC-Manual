@@ -252,6 +252,12 @@ tr:hover td {
     url("/training.png");
 }
 
+.home-button:nth-child(3)::before {
+  background-image:
+    linear-gradient(#12180f44, #12180f44),
+    url("/typebg.png");
+}
+
 .home-button::after {
   content: "";
   position: absolute;

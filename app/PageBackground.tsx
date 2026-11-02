@@ -13,10 +13,13 @@ export default function PageBackground() {
     if (pathname.startsWith("/marketplace")) {
       background = "/bg_pattern.png";
     } else if (
-      pathname.startsWith("/combo-maker") ||
       pathname.startsWith("/cards-and-combos")
     ) {
       background = "/bg_pattern2.png";
+    }  else if (
+      pathname.startsWith("/player-types")
+    ) {
+      background = "/bg_pattern3.png";
     }
 
     document.body.style.backgroundImage = `url("${background}")`;

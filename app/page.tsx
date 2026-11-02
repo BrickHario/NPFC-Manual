@@ -11,6 +11,9 @@ export default function Home() {
         <Link className="home-button" href="/cards-and-combos">
           Cards and Combos
         </Link>
+        <Link className="home-button" href="/player-types">
+          Player Types
+        </Link>
       </div>
     </main>
   );
