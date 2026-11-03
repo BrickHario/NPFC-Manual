@@ -1,0 +1,47 @@
+.chart {
+  display: block;
+  width: 100%;
+  max-width: min(680px, calc(100dvh - 115px));
+  height: auto;
+  overflow: visible;
+  flex-shrink: 1;
+}
+
+.grid {
+  fill: none;
+  stroke: #000;
+  stroke-width: 0.8;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.boundary {
+  fill: none;
+  stroke: #151515;
+  stroke-width: 1.4;
+  stroke-linejoin: miter;
+  pointer-events: none;
+}
+
+.frame {
+  fill: none;
+  stroke: #111;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.ticks {
+  fill: currentColor;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.labels {
+  fill: #111;
+  opacity: 0.52;
+  font-family: inherit;
+  font-size: 28px;
+  font-weight: 650;
+  pointer-events: none;
+}
