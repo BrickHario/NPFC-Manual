@@ -2,24 +2,25 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { DragEvent } from "react";
 import type { Language } from "../../lib/utils";
 import type {
+  SelectedTraining,
   TrainingEntry,
   TrainingKind,
 } from "./training-types";
 import styles from "./TrainingSelectFilter.module.css";
 
-type SelectedTraining = {
-  kind: TrainingKind;
-  id: number;
-  instanceId: number;
-};
-
 type TrainingSelectFilterProps = {
   language: Language;
   trainings: TrainingEntry[];
+  onSelectionChange: (selected: SelectedTraining[]) => void;
 };
 
 const labels = {
@@ -44,13 +45,17 @@ const sortOptions = [
 
 type Direction = (typeof sortOptions)[number]["value"];
 
-function entryKey(entry: { kind: TrainingKind; id: number }) {
+function entryKey(entry: {
+  kind: TrainingKind;
+  id: number;
+}) {
   return `${entry.kind}:${entry.id}`;
 }
 
 export default function TrainingSelectFilter({
   language,
   trainings,
+  onSelectionChange,
 }: TrainingSelectFilterProps) {
   const [search, setSearch] = useState("");
   const [showCards, setShowCards] = useState(true);
@@ -62,6 +67,10 @@ export default function TrainingSelectFilter({
   const sortRef = useRef<HTMLDetailsElement>(null);
   const draggedId = useRef<number | null>(null);
   const nextInstanceId = useRef(0);
+
+  useEffect(() => {
+    onSelectionChange(selected);
+  }, [selected, onSelectionChange]);
 
   const options = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
@@ -84,7 +93,10 @@ export default function TrainingSelectFilter({
   const catalog = useMemo(
     () =>
       new Map(
-        trainings.map((entry) => [entryKey(entry), entry])
+        trainings.map((entry) => [
+          entryKey(entry),
+          entry,
+        ])
       ),
     [trainings]
   );
@@ -104,15 +116,22 @@ export default function TrainingSelectFilter({
 
   function removeTraining(instanceId: number) {
     setSelected((current) =>
-      current.filter((item) => item.instanceId !== instanceId)
+      current.filter(
+        (item) => item.instanceId !== instanceId
+      )
     );
   }
+
+  function clearTrainings() {
+  setSelected([]);
+}
 
   function moveTraining(fromId: number, toId: number) {
     setSelected((current) => {
       const fromIndex = current.findIndex(
         (item) => item.instanceId === fromId
       );
+
       const toIndex = current.findIndex(
         (item) => item.instanceId === toId
       );
@@ -127,6 +146,7 @@ export default function TrainingSelectFilter({
 
       const updated = [...current];
       const [moved] = updated.splice(fromIndex, 1);
+
       updated.splice(toIndex, 0, moved);
 
       return updated;
@@ -139,7 +159,10 @@ export default function TrainingSelectFilter({
   ) {
     draggedId.current = instanceId;
     event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", String(instanceId));
+    event.dataTransfer.setData(
+      "text/plain",
+      String(instanceId)
+    );
   }
 
   function handleDragOver(
@@ -150,7 +173,9 @@ export default function TrainingSelectFilter({
     event.dataTransfer.dropEffect = "move";
 
     setDragOverId(
-      draggedId.current !== instanceId ? instanceId : null
+      draggedId.current !== instanceId
+        ? instanceId
+        : null
     );
   }
 
@@ -186,7 +211,9 @@ export default function TrainingSelectFilter({
 
   return (
     <aside className={styles.trainingPanel}>
-      <h2 className={styles.title}>{labels.heading}</h2>
+      <h2 className={styles.title}>
+        {labels.heading}
+      </h2>
 
       <div className={styles.filterBlock}>
         <div className={styles.toolbar}>
@@ -197,7 +224,9 @@ export default function TrainingSelectFilter({
               placeholder={labels.search}
               aria-label={labels.search}
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) =>
+                setSearch(event.target.value)
+              }
             />
 
             <label className={styles.optionLabel}>
@@ -234,7 +263,8 @@ export default function TrainingSelectFilter({
                 <span className={styles.filterText}>
                   {
                     sortOptions.find(
-                      (option) => option.value === direction
+                      (option) =>
+                        option.value === direction
                     )?.label
                   }
                 </span>
@@ -277,14 +307,16 @@ export default function TrainingSelectFilter({
         <div className={styles.availableShell}>
           <div className={styles.availableList}>
             {options.length === 0 && (
-              <p className={styles.empty}>{labels.noResults}</p>
+              <p className={styles.empty}>
+                {labels.noResults}
+              </p>
             )}
 
             {options.map((entry) => (
               <button
-                key={entryKey(entry)}
                 type="button"
                 className={styles.availableItem}
+                key={entryKey(entry)}
                 onClick={() => addTraining(entry)}
                 aria-label={entry.names[language]}
                 title={entry.names[language]}
@@ -307,37 +339,65 @@ export default function TrainingSelectFilter({
         </div>
       </div>
 
-      <h3 className={styles.playerTitle}>
-        Order for {labels.selected}:
-      </h3>
+     
+<div className={styles.selectedHeader}>
+  <h3 className={styles.playerTitle}>
+    Order for {labels.selected}:
+  </h3>
+
+  {selected.length > 0 && (
+    <button
+      type="button"
+      className={styles.deleteAllButton}
+      onClick={clearTrainings}
+    >
+      Delete All
+    </button>
+  )}
+</div>
+
 
       <div className={styles.selectedList}>
         {selected.length === 0 && (
-          <p className={styles.empty}>{labels.empty}</p>
+          <p className={styles.empty}>
+            {labels.empty}
+          </p>
         )}
 
-        {selected.map((item, index) => {
+        {selected
+  .map((item, index) => ({ item, index }))
+  .reverse()
+  .map(({ item, index }) => {
           const entry = catalog.get(entryKey(item));
 
           if (!entry) return null;
 
           return (
             <div
-              key={item.instanceId}
               className={`${styles.selectedItem} ${
                 dragOverId === item.instanceId
                   ? styles.dragOver
                   : ""
               }`}
+              key={item.instanceId}
               draggable
               onDragStart={(event) =>
-                handleDragStart(event, item.instanceId)
+                handleDragStart(
+                  event,
+                  item.instanceId
+                )
               }
               onDragOver={(event) =>
-                handleDragOver(event, item.instanceId)
+                handleDragOver(
+                  event,
+                  item.instanceId
+                )
               }
               onDrop={(event) =>
-                handleDrop(event, item.instanceId)
+                handleDrop(
+                  event,
+                  item.instanceId
+                )
               }
               onDragEnd={handleDragEnd}
             >
@@ -366,7 +426,9 @@ export default function TrainingSelectFilter({
                 type="button"
                 draggable={false}
                 aria-label={`${labels.remove}: ${entry.names[language]}`}
-                onClick={() => removeTraining(item.instanceId)}
+                onClick={() =>
+                  removeTraining(item.instanceId)
+                }
               >
                 ×
               </button>

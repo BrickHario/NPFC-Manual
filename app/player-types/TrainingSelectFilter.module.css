@@ -30,7 +30,7 @@
   border-radius: 18px;
   background: var(--color-surface);
   color: var(--font_black);
-  box-shadow: 12px 12px 0 var(--dark);
+  box-shadow: 6px 6px 0 var(--dark);
   font-family: var(--font-body);
   overflow: visible;
 }
@@ -382,7 +382,7 @@
 }
 
 .playerTitle {
-  margin: 20px 0 10px;
+  margin: 0;
 }
 
 .selectedList {
@@ -401,6 +401,7 @@
   border-radius: 12px;
   background: var(--color-surface);
   color: var(--font_black);
+  box-shadow: 6px 6px 0 var(--dark);
 }
 
 .empty {
@@ -576,3 +577,51 @@
     transition: none;
   }
 }
+
+
+.selectedHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 20px 0 10px;
+}
+
+.deleteAllButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 25px;
+  padding: 2px 14px;
+  border: 2px solid var(--dark);
+  border-radius: 6px;
+  background: #cf3434;
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--dark);
+  transition:
+    background var(--anim),
+    transform var(--anim),
+    box-shadow var(--anim);
+}
+
+.deleteAllButton:hover {
+  background: #ef4444;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--dark);
+}
+
+.deleteAllButton:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--dark);
+}
+
+.deleteAllButton:focus-visible {
+  outline: 3px solid var(--color-highlight);
+  outline-offset: 2px;
+}
+
