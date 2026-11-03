@@ -4,8 +4,10 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import styles from "./LanguageSwitcher.module.css";
-
-type Language = "en" | "de" | "es" | "it" | "fr";
+import {
+  getSavedLanguage,
+  type Language,
+} from "../lib/utils";
 
 const LANGUAGES = [
   { code: "en", flag: "gb", name: "English" },
@@ -14,18 +16,6 @@ const LANGUAGES = [
   { code: "it", flag: "it", name: "Italiano" },
   { code: "fr", flag: "fr", name: "Français" },
 ] as const;
-
-function getSavedLanguage(): Language {
-  const entry = document.cookie
-    .split("; ")
-    .find((cookie) => cookie.startsWith("npfc-language="));
-
-  const value = entry?.split("=")[1];
-
-  return LANGUAGES.some((item) => item.code === value)
-    ? (value as Language)
-    : "en";
-}
 
 export default function LanguageSwitcher() {
   const [language, setLanguage] = useState<Language>("en");

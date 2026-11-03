@@ -157,3 +157,119 @@ export const POTENTIAL_CURVE_ORDER = {
   development: ["55", "54", "45", "44", "43", "34", "33", "32"],
   best: ["14", "24", "34", "55", "45", "03", "13", "23", "33", "54", "44", "02", "12", "22", "32", "43", "01", "11", "00"],
 } as const;
+
+
+export type Language = "en" | "de" | "es" | "it" | "fr";
+
+export const PLAYER_TYPE_NAMES = {
+  en: [
+    "Balanced",
+    "Dynamo",
+    "Worker",
+    "Maverick",
+    "Stopper",
+    "Backup",
+    "Marker",
+    "Seeker",
+    "Explorer",
+    "Sprinter",
+    "Creator",
+    "Chancer",
+  ],
+  de: [
+    "Allrounder",
+    "Antreiber",
+    "Arbeiter",
+    "Solist",
+    "Stopper",
+    "Absicherer",
+    "Bewacher",
+    "Abfänger",
+    "Zuspieler",
+    "Sprinter",
+    "Vorbereiter",
+    "Schlitzohr",
+  ],
+  es: [
+    "Completo",
+    "Polivalente",
+    "Entregado",
+    "Explorador",
+    "Destructor",
+    "Centinela",
+    "Sombra",
+    "Recuperador",
+    "Cerebro",
+    "Relámpago",
+    "Creativo",
+    "Oportunista",
+  ],
+  it: [
+    "Versatile",
+    "Motorino",
+    "Dinamico",
+    "Incursore",
+    "Marcatore",
+    "Supporto",
+    "Mastino",
+    "Tenace",
+    "Regista",
+    "Scattante",
+    "Creativo",
+    "Bomber",
+  ],
+  fr: [
+    "Équilibré",
+    "Dynamique",
+    "Travailleur",
+    "Autonome",
+    "Capteur",
+    "Soutien",
+    "Colleur",
+    "Zonier",
+    "Meneur",
+    "Sprinteur",
+    "Stratège",
+    "Buteur",
+  ],
+} as const;
+
+export function getSavedLanguage(): Language {
+  if (typeof document === "undefined") return "en";
+
+  const entry = document.cookie
+    .split("; ")
+    .find((cookie) => cookie.startsWith("npfc-language="));
+
+  const value = entry?.split("=")[1];
+
+  if (
+    value === "en" ||
+    value === "de" ||
+    value === "es" ||
+    value === "it" ||
+    value === "fr"
+  ) {
+    return value;
+  }
+
+  return "en";
+}
+
+
+export const PLAYER_TYPE_COLORS = [
+  "#ffc400",
+  "#ff8700",
+  "#fff4a3",
+  "#fff100",
+  "#ff3030",
+  "#f020f5",
+  "#ff9198",
+  "#f7bcf4",
+  "#05ed00",
+  "#089cf4",
+  "#ffffff",
+  "#00c9ee",
+] as const;
+
+

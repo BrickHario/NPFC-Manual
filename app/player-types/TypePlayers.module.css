@@ -62,6 +62,7 @@
 .playerType {
   font-size: 20px;
   font-weight: 700;
+  filter: brightness(0.5) saturate(2);
 }
 
 @media (max-width: 960px) {

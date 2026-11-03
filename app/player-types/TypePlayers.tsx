@@ -8,6 +8,7 @@ type TypePlayersProps = {
   getPlayerType: (x: number, y: number) => string;
   x: number;
   y: number;
+  typeColor: string;
 };
 
 export function TypePlayers({
@@ -17,6 +18,7 @@ export function TypePlayers({
   getPlayerType,
   x,
   y,
+  typeColor,
 }: TypePlayersProps) {
   return (
     <aside className={styles.players}>
@@ -55,7 +57,12 @@ export function TypePlayers({
                 aria-label="Dummy Y-Koordinate"
               />
             </label>
-            <p className={styles.playerType}>{getPlayerType(x, y)}</p>
+            <p
+                className={styles.playerType}
+                style={{ color: typeColor }}
+            >
+                {getPlayerType(x, y)}
+            </p>
           </div>
         </li>
       </ul>
