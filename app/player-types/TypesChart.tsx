@@ -1,4 +1,3 @@
-
 import styles from "./TypesChart.module.css";
 import { playerTypeRows } from "./player-type-data";
 import {
@@ -12,6 +11,10 @@ type TypesChartProps = {
     x: number;
     y: number;
   };
+  path?: {
+    x: number;
+    y: number;
+  }[];
   language: Language;
 };
 
@@ -22,25 +25,10 @@ const plot = dimension * step;
 const canvas = plot + padding * 2;
 const ticks = Array.from({ length: 11 }, (_, i) => i * 10);
 
-const typeColors = [
-  "#ffc400",
-  "#ff8700",
-  "#fff4a3",
-  "#fff100",
-  "#ff3030",
-  "#f020f5",
-  "#ff9198",
-  "#f7bcf4",
-  "#05ed00",
-  "#089cf4",
-  "#ffffff",
-  "#00c9ee",
-] as const;
-
 function createChart() {
   const cells = new Uint8Array(dimension * dimension);
   const regions = Array.from(
-    { length: typeColors.length },
+    { length: PLAYER_TYPE_COLORS.length },
     () => ""
   );
 
@@ -55,8 +43,7 @@ function createChart() {
       const top = padding + (dimension - 1 - y) * step;
       const width = (end - start + 1) * step;
 
-      regions[type] +=
-        `M${x} ${top}h${width}v${step}h-${width}Z`;
+      regions[type] += `M${x} ${top}h${width}v${step}h-${width}Z`;
 
       cells.fill(
         type,
@@ -122,7 +109,6 @@ function createChart() {
   for (let y = 0; y < dimension; y++) {
     for (let x = 0; x < dimension; x++) {
       const sum = sums[cells[y * dimension + x]];
-
       sum.x += x;
       sum.y += y;
       sum.count++;
@@ -257,8 +243,21 @@ const chart = createChart();
 
 export default function TypesChart({
   player,
+  path = [],
   language,
 }: TypesChartProps) {
+  const allPoints = [player, ...path];
+
+  function chartX(value: number) {
+    return padding + (value + 0.5) * step;
+  }
+
+  function chartY(value: number) {
+    return padding + (100.5 - value) * step;
+  }
+
+  const dummyPosition =
+  path.length > 0 ? path[path.length - 1] : player;
 
   return (
     <svg
@@ -269,10 +268,10 @@ export default function TypesChart({
       xmlns="http://www.w3.org/2000/svg"
     >
       <g shapeRendering="crispEdges">
-        {chart.regions.map((path, type) => (
+        {chart.regions.map((pathData, type) => (
           <path
             key={type}
-            d={path}
+            d={pathData}
             style={{ fill: PLAYER_TYPE_COLORS[type] }}
           />
         ))}
@@ -349,18 +348,57 @@ export default function TypesChart({
         ))}
       </g>
 
+      {path.length > 0 &&
+        allPoints.slice(1).map((point, index) => {
+          const previous = allPoints[index];
+
+          return (
+            <g key={index}>
+              <line
+                x1={chartX(previous.x)}
+                y1={chartY(previous.y)}
+                x2={chartX(point.x)}
+                y2={chartY(point.y)}
+                stroke="#16a34a"
+                strokeWidth={5}
+                strokeLinecap="round"
+              />
+
+              <circle
+                cx={chartX(point.x)}
+                cy={chartY(point.y)}
+                r={8}
+                fill="#16a34a"
+                stroke="#000"
+                strokeWidth={2}
+              />
+
+              <text
+                x={chartX(point.x)}
+                y={chartY(point.y) - 14}
+                textAnchor="middle"
+                fontSize={16}
+                fontWeight={800}
+                fill="#0b6b1a"
+              >
+                {index + 1}
+              </text>
+            </g>
+          );
+        })}
+
       <g>
         <image
           href="/Dummy.png"
-          x={padding + (player.x + 0.5) * step - 37.5}
-          y={padding + (100.5 - player.y) * step - 37.5}
+           x={chartX(dummyPosition.x) - 37.5}
+          y={chartY(dummyPosition.y) - 37.5}
           width={75}
           height={75}
           preserveAspectRatio="xMidYMid meet"
         />
         <text
-          x={padding + (player.x + 0.5) * step}
-          y={padding + (100.5 - player.y) * step + 45}
+          x={chartX(dummyPosition.x)}
+    y={chartY(dummyPosition.y) + 45}
           textAnchor="middle"
           fontSize={25}
           fill="#000"

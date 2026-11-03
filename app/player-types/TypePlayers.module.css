@@ -80,3 +80,37 @@
     display: none;
   }
 }
+
+.coordinatesColumn,
+.typeColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+.coordinatesRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.resultCoordinates,
+.resultType {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 800;
+  text-align: center;
+  white-space: nowrap;
+  filter: brightness(0.5) saturate(2);
+}
+
+.downArrow {
+  display: block;
+  color: var(--dark);
+  font-family: Arial, sans-serif;
+}

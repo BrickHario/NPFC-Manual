@@ -1,7 +1,6 @@
-
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { connection } from "next/server";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import PlayerTypesClient from "./PlayerTypesClient";
 import type {
@@ -10,8 +9,10 @@ import type {
 } from "./training-types";
 import { LoadingBig } from "../Loading";
 import styles from "./TrainingSelectFilter.module.css";
+import type { Language } from "../../lib/utils";
+
 export const metadata: Metadata = {
-  title: "Player Types | NPFC Manual",
+  title: "Player Types",
 };
 
 type NameRow = {
@@ -30,6 +31,38 @@ type ComboNameRow = NameRow & {
   combo_id: number;
 };
 
+type TrainingRow = {
+  card_id?: number | null;
+  combo_id?: number | null;
+  pot_01: number | null;
+  pot_02: number | null;
+  pot_03: number | null;
+  pot_04: number | null;
+  pot_05: number | null;
+  pot_06: number | null;
+  pot_07: number | null;
+  pot_08: number | null;
+  pot_09: number | null;
+  pot_10: number | null;
+  pot_11: number | null;
+  pot_12: number | null;
+};
+
+const potColumns = Array.from(
+  { length: 12 },
+  (_, index) => `pot_${String(index + 1).padStart(2, "0")}`
+);
+
+const trainingSelect =
+  "pot_01,pot_02,pot_03,pot_04,pot_05,pot_06,pot_07,pot_08,pot_09,pot_10,pot_11,pot_12" as const;
+
+function getPotChanges(row: TrainingRow): number[] {
+  return potColumns.map((column) => {
+    const value = row[column as keyof TrainingRow];
+    return typeof value === "number" ? value : 0;
+  });
+}
+
 function namesOf(
   row: NameRow | undefined,
   fallback: string
@@ -45,8 +78,25 @@ function namesOf(
   };
 }
 
+function normalizeLanguage(value: string | undefined): Language {
+  if (
+    value === "de" ||
+    value === "en" ||
+    value === "es" ||
+    value === "it" ||
+    value === "fr"
+  ) {
+    return value;
+  }
+
+  return "en";
+}
+
 async function PlayerTypesData() {
-  await connection();
+  const cookieStore = await cookies();
+  const initialLanguage = normalizeLanguage(
+    cookieStore.get("npfc-language")?.value
+  );
 
   const supabase = await createClient();
 
@@ -58,7 +108,7 @@ async function PlayerTypesData() {
   ] = await Promise.all([
     supabase
       .from("Cards")
-      .select("card_id")
+      .select(`card_id,${trainingSelect}` as const)
       .order("card_id"),
 
     supabase
@@ -70,7 +120,7 @@ async function PlayerTypesData() {
 
     supabase
       .from("Combos")
-      .select("combo_id")
+      .select(`combo_id,${trainingSelect}` as const)
       .order("combo_id"),
 
     supabase
@@ -110,56 +160,65 @@ async function PlayerTypesData() {
   );
 
   const cards: TrainingEntry[] = (
-    cardsResult.data ?? []
-  ).map((row) => ({
-    kind: "card",
-    id: row.card_id,
-    names: namesOf(
-      cardNames.get(row.card_id),
-      `Card #${row.card_id}`
-    ),
-    imageUrl: supabase.storage
-      .from("card-images")
-      .getPublicUrl(
-        `${String(row.card_id).padStart(4, "0")}.png`
-      ).data.publicUrl,
-  }));
+    (cardsResult.data ?? []) as TrainingRow[]
+  ).map((row) => {
+    const id = Number(row.card_id);
+
+    return {
+      kind: "card",
+      id,
+      names: namesOf(
+        cardNames.get(id),
+        `Card #${id}`
+      ),
+      imageUrl: supabase.storage
+        .from("card-images")
+        .getPublicUrl(
+          `${String(id).padStart(4, "0")}.png`
+        ).data.publicUrl,
+      potChanges: getPotChanges(row),
+    };
+  });
 
   const combos: TrainingEntry[] = (
-    combosResult.data ?? []
-  ).map((row) => ({
-    kind: "combo",
-    id: row.combo_id,
-    names: namesOf(
-      comboNames.get(row.combo_id),
-      `Combo #${row.combo_id}`
-    ),
-    imageUrl: supabase.storage
-      .from("combo-images")
-      .getPublicUrl(
-        `${String(row.combo_id).padStart(4, "0")}.png`
-      ).data.publicUrl,
-  }));
+    (combosResult.data ?? []) as TrainingRow[]
+  ).map((row) => {
+    const id = Number(row.combo_id);
+
+    return {
+      kind: "combo",
+      id,
+      names: namesOf(
+        comboNames.get(id),
+        `Combo #${id}`
+      ),
+      imageUrl: supabase.storage
+        .from("combo-images")
+        .getPublicUrl(
+          `${String(id).padStart(4, "0")}.png`
+        ).data.publicUrl,
+      potChanges: getPotChanges(row),
+    };
+  });
 
   return (
     <PlayerTypesClient
       trainings={[...cards, ...combos]}
+      initialLanguage={initialLanguage}
     />
   );
 }
 
-
 export default function Home() {
   return (
-      <Suspense
-        fallback={
-          <div className={styles.loading}>
-            <LoadingBig />
-          </div>
-        }
-      >
-        <PlayerTypesData />
-      </Suspense>
+    <Suspense
+      fallback={
+        <div className={styles.loading}>
+          <LoadingBig />
+        </div>
+      }
+    >
+      <PlayerTypesData />
+    </Suspense>
   );
 }
-

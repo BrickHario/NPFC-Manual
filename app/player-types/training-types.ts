@@ -14,4 +14,11 @@ export type TrainingEntry = {
   id: number;
   names: TrainingNames;
   imageUrl: string;
+  potChanges: number[];
+};
+
+export type SelectedTraining = {
+  kind: TrainingKind;
+  id: number;
+  instanceId: number;
 };
