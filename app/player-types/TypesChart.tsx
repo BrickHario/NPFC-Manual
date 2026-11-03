@@ -134,13 +134,15 @@ function createChart() {
 
 const chart = createChart();
 
-export default function TypesChart() {
+type PlayerPosition = { x: number; y: number };
+
+export default function TypesChart({ player }: { player: PlayerPosition }) {
   return (
     <svg
       className={styles.chart}
       viewBox={`0 0 ${canvas} ${canvas}`}
       role="img"
-      aria-label="NPFC: Exakte Grenzen der zwölf Spielertypen im X-Y-Koordinatensystem von 0 bis 100"
+      aria-label="NPFC: Precise boundaries for the twelve player types within an X-Y coordinate system ranging from 0 to 100"
       xmlns="http://www.w3.org/2000/svg"
     >
       <g shapeRendering="crispEdges">
@@ -170,6 +172,25 @@ export default function TypesChart() {
         {chart.labels.map((label) => (
           <text key={label.name} x={label.x} y={label.y} textAnchor="middle" dominantBaseline="middle">{label.name}</text>
         ))}
+      </g>
+      <g>
+        <image
+          href="/Dummy.png"
+          x={padding + (player.x + 0.5) * step - 30}
+          y={padding + (100.5 - player.y) * step - 30}
+          width={60}
+          height={60}
+          preserveAspectRatio="xMidYMid meet"
+        />
+        <text
+          x={padding + (player.x + 0.5) * step}
+          y={padding + (100.5 - player.y) * step + 40}
+          textAnchor="middle"
+          fontSize={20}
+          fill="#000"
+        >
+          Dummy
+        </text>
       </g>
     </svg>
   );
