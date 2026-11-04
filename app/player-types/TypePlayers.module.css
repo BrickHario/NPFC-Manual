@@ -95,6 +95,10 @@
   gap: 8px;
 }
 
+.resultCoordinates {
+  margin-left: 12px;
+}
+
 .resultCoordinates,
 .resultType {
   display: flex;

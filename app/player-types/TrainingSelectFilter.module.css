@@ -188,7 +188,7 @@
   z-index: 101;
   min-width: 180px;
   max-width: min(300px, 90vw);
-  max-height: 265px;
+  max-height: 190px;
   padding: 8px;
   overflow-y: auto;
   border: 2px solid var(--dark);

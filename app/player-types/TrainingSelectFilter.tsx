@@ -16,6 +16,10 @@ import type {
   TrainingKind,
 } from "./training-types";
 import styles from "./TrainingSelectFilter.module.css";
+import {
+  applyTrainingPots,
+  calculatePlayerPosition,
+} from "./player-type-calculation";
 
 type TrainingSelectFilterProps = {
   language: Language;
@@ -35,15 +39,47 @@ const labels = {
   reset: "Reset filters",
 } as const;
 
-const sortOptions = [
-  { value: "all", label: "Sort by Direction" },
-  { value: "up", label: "Up" },
-  { value: "down", label: "Down" },
-  { value: "left", label: "Left" },
-  { value: "right", label: "Right" },
+const directions = [
+  { value: "right", label: "Right", dx: 1, dy: 0 },
+  { value: "up-right", label: "Up Right", dx: 1, dy: 1 },
+  { value: "up", label: "Up", dx: 0, dy: 1 },
+  { value: "up-left", label: "Up Left", dx: -1, dy: 1 },
+  { value: "left", label: "Left", dx: -1, dy: 0 },
+  { value: "down-left", label: "Down Left", dx: -1, dy: -1 },
+  { value: "down", label: "Down", dx: 0, dy: -1 },
+  { value: "down-right", label: "Down Right", dx: 1, dy: -1 },
 ] as const;
 
-type Direction = (typeof sortOptions)[number]["value"];
+const sortOptions = [
+  { value: "all", label: "Sort by Direction" },
+  { value: "zero", label: "No movement" },
+  ...directions,
+] as const;
+
+type Direction = "all" | "zero" | (typeof directions)[number]["value"];
+
+const initialPots = Array<number>(12).fill(50);
+const initialPosition = calculatePlayerPosition(initialPots);
+
+function getTrainingVector(potChanges: number[]) {
+  const updated = applyTrainingPots(initialPots, [potChanges]);
+  const position = calculatePlayerPosition(updated);
+  const dx = position.x - initialPosition.x;
+  const dy = position.y - initialPosition.y;
+
+  if (dx === 0 && dy === 0) {
+    return { direction: "zero" as Direction, dx, dy };
+  }
+
+  const sector =
+    (Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) + 8) % 8;
+
+  return {
+    direction: directions[sector].value as Direction,
+    dx,
+    dy,
+  };
+}
 
 function entryKey(entry: {
   kind: TrainingKind;
@@ -72,23 +108,66 @@ export default function TrainingSelectFilter({
     onSelectionChange(selected);
   }, [selected, onSelectionChange]);
 
+  const trainingVectors = useMemo(
+    () =>
+      new Map(
+        trainings.map((entry) => [
+          entryKey(entry),
+          getTrainingVector(entry.potChanges),
+        ])
+      ),
+    [trainings]
+  );
+
   const options = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
+    const selectedDirection = directions.find(
+      (option) => option.value === direction
+    );
+
+    const projection = (entry: TrainingEntry) => {
+      const vector = trainingVectors.get(entryKey(entry));
+      if (!vector || !selectedDirection) return 0;
+
+      return (
+        vector.dx * selectedDirection.dx +
+        vector.dy * selectedDirection.dy
+      ) / Math.hypot(selectedDirection.dx, selectedDirection.dy);
+    };
 
     return trainings
       .filter((entry) => {
         if (entry.kind === "card" && !showCards) return false;
         if (entry.kind === "combo" && !showCombos) return false;
+
+        if (direction !== "all") {
+          const vector = trainingVectors.get(entryKey(entry));
+          if (vector?.direction !== direction) return false;
+        }
+
         if (!query) return true;
 
         return Object.values(entry.names).some((name) =>
           name.toLocaleLowerCase().includes(query)
         );
       })
-      .sort((a, b) =>
-        a.names[language].localeCompare(b.names[language])
-      );
-  }, [trainings, language, search, showCards, showCombos]);
+      .sort((a, b) => {
+        if (selectedDirection) {
+          const difference = projection(b) - projection(a);
+          if (difference !== 0) return difference;
+        }
+
+        return a.names[language].localeCompare(b.names[language]);
+      });
+  }, [
+    trainings,
+    trainingVectors,
+    language,
+    search,
+    showCards,
+    showCombos,
+    direction,
+  ]);
 
   const catalog = useMemo(
     () =>
