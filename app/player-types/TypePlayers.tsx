@@ -24,6 +24,20 @@ finalAttributes: ReturnType<typeof calculateAttributes>;
 };
 
 
+const LEVEL_THRESHOLDS = [0, 50, 150, 350, 600, 1000] as const;
+
+function getLevelProgress(value: number, level: number): number {
+  if (level >= LEVEL_THRESHOLDS.length - 1) return 100;
+  if (level < 0 || !Number.isFinite(value)) return 0;
+
+  const min = LEVEL_THRESHOLDS[level];
+  const max = LEVEL_THRESHOLDS[level + 1];
+  if (min === undefined || max === undefined) return 0;
+
+  return Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+}
+
+
 function getAttributeImage(name: string, index: number): string {
   const value = name.toLowerCase().trim();
 
@@ -140,6 +154,19 @@ finalAttributes,
 
     const startImage = rankImages[startGrade];
     const finalImage = rankImages[finalGrade];
+    
+const finalAttribute = finalAttributes[index] ?? attribute;
+
+const startProgress = getLevelProgress(
+  attribute.value,
+  attribute.level
+);
+
+const finalProgress = getLevelProgress(
+  finalAttribute.value,
+  finalAttribute.level
+);
+
 
     return (
       <div
@@ -156,43 +183,79 @@ finalAttributes,
           className={styles.skillIcon}
         />
 
-        <div
-          className={styles.skillGrade}
-          title={`${attribute.name}: ${startGrade} (${attribute.value})`}
-        >
-          {startImage ? (
-            <Image
-              src={startImage}
-              alt={`Rating ${startGrade}`}
-              width={15}
-              height={15}
-              unoptimized
-              className={styles.rankImage}
-            />
-          ) : (
-            <span>{startGrade}</span>
-          )}
-        </div>
+
+<div className={styles.gradeSlot}>
+  <div
+    className={styles.skillGrade}
+    title={`${attribute.name}: ${startGrade} (${attribute.value})`}
+  >
+    {startImage ? (
+      <Image
+        src={startImage}
+        alt={`Rating ${startGrade}`}
+        width={15}
+        height={15}
+        unoptimized
+        className={styles.rankImage}
+      />
+    ) : (
+      <span>{startGrade}</span>
+    )}
+  </div>
+
+  <div
+    className={styles.levelTrack}
+    role="progressbar"
+    aria-label={`${attribute.name}: ${Math.round(startProgress)}%`}
+    aria-valuemin={0}
+    aria-valuemax={100}
+    aria-valuenow={Math.round(startProgress)}
+  >
+    <span
+      className={styles.levelDot}
+      style={{ bottom: `${startProgress}%` }}
+    />
+  </div>
+</div>
+
           <>
             <span className={styles.downArrow} style={{transform: "translateY(-7px)"}}>⌄</span>
 
-            <div
-              className={styles.skillGrade}
-              title={`${attribute.name}: ${finalGrade} (${finalAttributes[index]?.value ?? attribute.value})`}
-            >
-              {finalImage ? (
-                <Image
-                  src={finalImage}
-                  alt={`Rating ${finalGrade}`}
-                  width={15}
-                  height={15}
-                  unoptimized
-                  className={styles.rankImage}
-                />
-              ) : (
-                <span>{finalGrade}</span>
-              )}
-            </div>
+
+<div className={styles.gradeSlot}>
+  <div
+    className={styles.skillGrade}
+    title={`${attribute.name}: ${finalGrade} (${finalAttribute.value})`}
+  >
+    {finalImage ? (
+      <Image
+        src={finalImage}
+        alt={`Rating ${finalGrade}`}
+        width={15}
+        height={15}
+        unoptimized
+        className={styles.rankImage}
+      />
+    ) : (
+      <span>{finalGrade}</span>
+    )}
+  </div>
+
+  <div
+    className={styles.levelTrack}
+    role="progressbar"
+    aria-label={`${attribute.name}: ${Math.round(finalProgress)}%`}
+    aria-valuemin={0}
+    aria-valuemax={100}
+    aria-valuenow={Math.round(finalProgress)}
+  >
+    <span
+      className={styles.levelDot}
+      style={{ bottom: `${finalProgress}%` }}
+    />
+  </div>
+</div>
+
           </>
       </div>
     );

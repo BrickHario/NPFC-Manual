@@ -169,4 +169,34 @@
     flex-wrap: wrap;
   }
 }
+.gradeSlot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  min-height: 20px;
+}
+
+.levelTrack {
+  position: relative;
+  width: 3px;
+  height: 20px;
+  margin: 0 3px 0 0;
+  border-radius: 2px;
+  background: var(--button_grey);
+}
+
+.levelDot {
+  position: absolute;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--dark);
+  border-radius: 50%;
+  background: var(--color-physical);
+  transform: translate(-50%, 50%);
+}
+
 
