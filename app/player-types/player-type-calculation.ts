@@ -105,3 +105,19 @@ export function applyTrainingPots(
 
   return result;
 }
+
+export function calculateTrainingStep(
+  pots: number[],
+  potChanges: number[]
+) {
+  const start = calculatePlayerPosition(pots);
+  const nextPots = applyTrainingPots(pots, [potChanges]);
+  const position = calculatePlayerPosition(nextPots);
+
+  return {
+    nextPots,
+    position,
+    dx: position.x - start.x,
+    dy: position.y - start.y,
+  };
+}

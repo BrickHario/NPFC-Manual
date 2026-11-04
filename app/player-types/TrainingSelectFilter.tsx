@@ -16,15 +16,13 @@ import type {
   TrainingKind,
 } from "./training-types";
 import styles from "./TrainingSelectFilter.module.css";
-import {
-  applyTrainingPots,
-  calculatePlayerPosition,
-} from "./player-type-calculation";
+import { calculateTrainingStep } from "./player-type-calculation";
 
 type TrainingSelectFilterProps = {
   language: Language;
   trainings: TrainingEntry[];
   onSelectionChange: (selected: SelectedTraining[]) => void;
+  startPots: number[];
 };
 
 const labels = {
@@ -58,27 +56,29 @@ const sortOptions = [
 
 type Direction = "all" | "zero" | (typeof directions)[number]["value"];
 
-const initialPots = Array<number>(12).fill(50);
-const initialPosition = calculatePlayerPosition(initialPots);
-
-function getTrainingVector(potChanges: number[]) {
-  const updated = applyTrainingPots(initialPots, [potChanges]);
-  const position = calculatePlayerPosition(updated);
-  const dx = position.x - initialPosition.x;
-  const dy = position.y - initialPosition.y;
+function getTrainingVector(pots: number[], potChanges: number[]) {
+  const step = calculateTrainingStep(pots, potChanges);
+  const { dx, dy } = step;
 
   if (dx === 0 && dy === 0) {
-    return { direction: "zero" as Direction, dx, dy };
+    return { ...step, direction: "zero" as Direction };
   }
 
   const sector =
     (Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) + 8) % 8;
 
   return {
+    ...step,
     direction: directions[sector].value as Direction,
-    dx,
-    dy,
   };
+}
+
+function getVectorLabel(dx: number, dy: number) {
+
+  const signed = (value: number) =>
+    value > 0 ? `+${value}` : String(value);
+
+  return `X ${signed(dx)} / Y ${signed(dy)}`;
 }
 
 function entryKey(entry: {
@@ -92,6 +92,7 @@ export default function TrainingSelectFilter({
   language,
   trainings,
   onSelectionChange,
+  startPots,
 }: TrainingSelectFilterProps) {
   const [search, setSearch] = useState("");
   const [showCards, setShowCards] = useState(true);
@@ -108,15 +109,53 @@ export default function TrainingSelectFilter({
     onSelectionChange(selected);
   }, [selected, onSelectionChange]);
 
+  const catalog = useMemo(
+    () =>
+      new Map(
+        trainings.map((entry) => [
+          entryKey(entry),
+          entry,
+        ])
+      ),
+    [trainings]
+  );
+
+  const { selectedVectors, previewPots } = useMemo(() => {
+    const vectors = new Map<
+      number,
+      ReturnType<typeof getTrainingVector>
+    >();
+
+    let currentPots = [...startPots];
+
+    for (const item of selected) {
+      const entry = catalog.get(entryKey(item));
+      if (!entry) continue;
+
+      const vector = getTrainingVector(
+        currentPots,
+        entry.potChanges
+      );
+
+      vectors.set(item.instanceId, vector);
+      currentPots = vector.nextPots;
+    }
+
+    return {
+      selectedVectors: vectors,
+      previewPots: currentPots,
+    };
+  }, [selected, catalog, startPots]);
+
   const trainingVectors = useMemo(
     () =>
       new Map(
         trainings.map((entry) => [
           entryKey(entry),
-          getTrainingVector(entry.potChanges),
+          getTrainingVector(previewPots, entry.potChanges),
         ])
       ),
-    [trainings]
+    [trainings, previewPots]
   );
 
   const options = useMemo(() => {
@@ -168,17 +207,6 @@ export default function TrainingSelectFilter({
     showCombos,
     direction,
   ]);
-
-  const catalog = useMemo(
-    () =>
-      new Map(
-        trainings.map((entry) => [
-          entryKey(entry),
-          entry,
-        ])
-      ),
-    [trainings]
-  );
 
   function addTraining(entry: TrainingEntry) {
     const instanceId = nextInstanceId.current++;
@@ -410,6 +438,14 @@ export default function TrainingSelectFilter({
                   />
                   <span className={styles.availableName}>
                     {entry.names[language]}
+                  </span>       
+                  <span className={styles.availableVector}>
+                    {(() => {
+                      const vector = trainingVectors.get(entryKey(entry));
+                      return vector
+                        ? getVectorLabel(vector.dx, vector.dy)
+                        : "0 X 0 / Y 0";
+                    })()}
                   </span>
                 </span>
               </button>
@@ -496,6 +532,14 @@ export default function TrainingSelectFilter({
                   />
                   <span className={styles.availableName}>
                     {entry.names[language]}
+                  </span>               
+                  <span className={styles.availableVector}>
+                    {(() => {
+                      const vector = selectedVectors.get(item.instanceId);
+                      return vector
+                        ? getVectorLabel(vector.dx, vector.dy)
+                        : "X 0 / Y 0";
+                    })()}
                   </span>
                 </span>
               </div>
