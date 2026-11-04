@@ -117,3 +117,13 @@
     right: 8px;
   }
 }
+
+.chartDescription{
+  font-size: 14px;
+  margin-bottom: -20px;
+}
+
+.axisLabels {
+  font-size: 25px;
+  font-weight: 700;
+}
