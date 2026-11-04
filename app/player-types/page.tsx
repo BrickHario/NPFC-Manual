@@ -34,6 +34,16 @@ type ComboNameRow = NameRow & {
 type TrainingRow = {
   card_id?: number | null;
   combo_id?: number | null;
+  skill_01: number | null;
+  skill_02: number | null;
+  skill_03: number | null;
+  skill_04: number | null;
+  skill_05: number | null;
+  skill_06: number | null;
+  skill_07: number | null;
+  skill_08: number | null;
+  skill_09: number | null;
+  skill_10: number | null;
   pot_01: number | null;
   pot_02: number | null;
   pot_03: number | null;
@@ -54,7 +64,7 @@ const potColumns = Array.from(
 );
 
 const trainingSelect =
-  "pot_01,pot_02,pot_03,pot_04,pot_05,pot_06,pot_07,pot_08,pot_09,pot_10,pot_11,pot_12" as const;
+  "skill_01,skill_02,skill_03,skill_04,skill_05,skill_06,skill_07,skill_08,skill_09,skill_10,pot_01,pot_02,pot_03,pot_04,pot_05,pot_06,pot_07,pot_08,pot_09,pot_10,pot_11,pot_12" as const;
 
 function getPotChanges(row: TrainingRow): number[] {
   return potColumns.map((column) => {
@@ -62,6 +72,20 @@ function getPotChanges(row: TrainingRow): number[] {
     return typeof value === "number" ? value : 0;
   });
 }
+
+
+const skillColumns = Array.from(
+  { length: 10 },
+  (_, index) => `skill_${String(index + 1).padStart(2, "0")}`
+);
+
+function getSkillChanges(row: TrainingRow): number[] {
+  return skillColumns.map((column) => {
+    const value = row[column as keyof TrainingRow];
+    return typeof value === "number" ? value : 0;
+  });
+}
+
 
 function namesOf(
   row: NameRow | undefined,
@@ -167,6 +191,7 @@ async function PlayerTypesData() {
     return {
       kind: "card",
       id,
+      skillChanges: getSkillChanges(row),
       names: namesOf(
         cardNames.get(id),
         `Card #${id}`
@@ -192,6 +217,7 @@ async function PlayerTypesData() {
         comboNames.get(id),
         `Combo #${id}`
       ),
+      skillChanges: getSkillChanges(row),
       imageUrl: supabase.storage
         .from("combo-images")
         .getPublicUrl(

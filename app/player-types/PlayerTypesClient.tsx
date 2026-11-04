@@ -9,6 +9,7 @@ import TypesChart from "./TypesChart";
 import { playerTypeRows } from "./player-type-data";
 import {
   PLAYER_TYPE_COLORS,
+  calculateAttributes,
   PLAYER_TYPE_NAMES,
   type Language,
 } from "../../lib/utils";
@@ -129,6 +130,52 @@ const finalTypeId = getPlayerTypeId(
   finalPosition.y
 );
 
+
+
+const skillTotals = useMemo(() => {
+  const totals = Array<number>(10).fill(0);
+
+  for (const selected of selectedTrainings) {
+    const training = trainingCatalog.get(
+      `${selected.kind}:${selected.id}`
+    );
+
+    if (!training) continue;
+
+    for (let i = 0; i < 10; i++) {
+      totals[i] += Number(training.skillChanges[i] ?? 0);
+    }
+  }
+
+  return totals;
+}, [selectedTrainings, trainingCatalog]);
+
+const toSkillRow = (values: number[]) => {
+  const row: Record<string, number> = {};
+
+  for (let i = 0; i < 10; i++) {
+    const key = `skill_${String(i + 1).padStart(2, "0")}`;
+    row[key] = values[i] ?? 0;
+  }
+
+  return row as Parameters<typeof calculateAttributes>[0];
+};
+
+const startAttributes = useMemo(
+  () =>
+    calculateAttributes(
+      toSkillRow(Array<number>(10).fill(0)),
+      "points"
+    ),
+  []
+);
+
+const finalAttributes = useMemo(
+  () => calculateAttributes(toSkillRow(skillTotals), "points"),
+  [skillTotals]
+);
+
+
   return (
     <main className={styles.pageContent}>
       <Suspense>
@@ -153,6 +200,8 @@ const finalTypeId = getPlayerTypeId(
   finalY={finalPosition.y}
   finalType={getPlayerType(finalPosition.x, finalPosition.y)}
   finalTypeColor={PLAYER_TYPE_COLORS[finalTypeId]}
+  startAttributes={startAttributes}
+finalAttributes={finalAttributes}
 />
 
           <section className={styles.chartColumn}>

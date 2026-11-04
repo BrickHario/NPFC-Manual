@@ -11,10 +11,20 @@ export const getPosition = (id: number) =>
 const SKILL_VALUES = [0, 50, 150, 350, 600, 1000];
 const GRADES = ["E", "D", "C", "B", "A", "S"];
 
-export function calculateAttributes(skills: Record<string, number>) {
+
+export function calculateAttributes(
+  skills: Record<string, number>,
+  mode: "levels" | "points" = "levels"
+) {
   const s = (i: number) => {
     const key = `skill_${String(i).padStart(2, "0")}`;
-    return SKILL_VALUES[skills[key]] ?? 0;
+    const value = Number(skills[key] ?? 0);
+
+    if (mode === "points") {
+      return Math.max(0, value);
+    }
+
+    return SKILL_VALUES[value] ?? 0;
   };
 
   const attributes = {

@@ -9,16 +9,17 @@ export type TrainingNames = {
   fr: string;
 };
 
+export type SelectedTraining = {
+  kind: TrainingKind;
+  id: number;
+  instanceId: number;
+};
+
 export type TrainingEntry = {
   kind: TrainingKind;
   id: number;
   names: TrainingNames;
   imageUrl: string;
   potChanges: number[];
-};
-
-export type SelectedTraining = {
-  kind: TrainingKind;
-  id: number;
-  instanceId: number;
+  skillChanges: number[];
 };
