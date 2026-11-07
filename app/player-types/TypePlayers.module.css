@@ -1,112 +1,78 @@
-
-.players {
-  grid-column: 1;
-  grid-row: 2;
-  padding-top: 0;
-  min-width: 0;
-}
-
-.playerHeading {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-@media (max-width: 960px) {
-  .players {
-    grid-column: 1;
-    grid-row: 2;
-    width: fit-content;
-    max-width: 100%;
-    justify-self: center;
-  }
-}
-
 .players h2 {
   margin: 0 0 16px;
 }
 
 .playerList {
   margin: 0;
-  padding-left: 22px;
+  padding: 0 15px 15px 0;
+  list-style: none;
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+}
+
+.playerList > li {
+  flex: 0 0 auto;
 }
 
 .player {
-  padding: 4px 0;
-}
-
-.playerName {
-  font-weight: 600;
-}
-
-.coordinate {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-}
-
-.coordinate input {
   box-sizing: border-box;
-  width: 52px;
   min-width: 0;
-  padding: 3px 4px;
-  border: 1px solid currentColor;
-  border-radius: 4px;
-  color: inherit;
-  background: var(--color-surface);
-  font: inherit;
+  padding: 22px 18px 28px;
+  border: 3px solid #000;
+  border-radius: 24px;
+  background: #f1f1f1;
+  box-shadow: 6px 6px 0 #000;
+  min-height: 100%;
+}
+
+.playerHeading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
   text-align: center;
 }
 
-.playerType {
-  font-size: 20px;
-  font-weight: 700;
-  filter: brightness(0.5) saturate(2);
+.playerName {
+  color: #000;
+  font-family: var(--font-body);
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 800;
+  line-height: 1.15;
 }
 
-@media (max-width: 960px) {
-  .layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .players {
-    width: 100%;
-    max-width: 680px;
-    justify-self: center;
-  }
-
-  .balance {
-    display: none;
-  }
-}
-
-.coordinatesColumn,
-.typeColumn {
+.typeColumn,
+.coordinatesColumn {
   display: flex;
   flex-direction: column;
   align-items: center;
   min-width: 0;
+  width: 100%;
 }
 
-.coordinatesRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.typeColumn {
+  margin-bottom: 20px;
 }
 
+.playerType {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: clamp(15px, 2.2vw, 20px);
+  filter: brightness(0.5) saturate(2);
+}
+
+.resultType,
 .resultCoordinates {
-  margin-left: 12px;
-}
-
-.resultCoordinates,
-.resultType {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   font-family: var(--font-body);
-  font-size: 20px;
+  font-size: clamp(16px, 2vw, 22px);
   font-weight: 800;
   text-align: center;
   white-space: nowrap;
@@ -115,25 +81,62 @@
 
 .downArrow {
   display: block;
-  color: var(--dark);
+  color: #000;
   font-family: Arial, sans-serif;
+  font-size: 29px;
+  font-weight: 900;
+  line-height: 0.9;
 }
+.coordinatesColumn {
+  margin-bottom: 20px;
+}
+
+.coordinatesRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.coordinate {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #000;
+  font-size: 12px;
+}
+
+.coordinate input {
+  box-sizing: border-box;
+  width: 52px;
+  min-width: 0;
+  padding: 3px 4px;
+  border: 2px solid #000;
+  border-radius: 7px;
+  color: #000;
+  background: #f1f1f1;
+  font: inherit;
+  text-align: center;
+}
+
 .skillsGrid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  align-items: start;
-  min-width: 0;
-  margin-left: 12px;
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 10px;
+  grid-template-rows: auto auto 10px auto;
+  column-gap: 1px;
+  row-gap: 6px;
+  align-items: center;
+  width: 100%;
+  max-width: 180px;
 }
 
 .skillItem {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-row: 1 / 5;
+  grid-template-rows: subgrid;
+  justify-items: center;
   align-items: center;
-  gap: 5px;
   min-width: 0;
   text-align: center;
 }
@@ -142,33 +145,21 @@
   display: block;
   width: 100%;
   height: auto;
+  max-width: 46px;
   object-fit: contain;
   image-rendering: pixelated;
 }
 
-.skillGrade {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  color: var(--font_black);
-  font-family: var(--font-body);
-  font-size: 20px;
-  font-weight: 800;
+.downArrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  font-size: 23px;
+  line-height: 1;
+  transform: translateY(-7px);
 }
 
-.rankImage {
-  display: block;
-
-  height: auto;
-  object-fit: contain;
-  image-rendering: pixelated;
-}
-
-@media (max-width: 700px) {
-  .playerHeading {
-    flex-wrap: wrap;
-  }
-}
 .gradeSlot {
   display: flex;
   align-items: center;
@@ -176,14 +167,32 @@
   gap: 2px;
   width: 100%;
   min-width: 0;
-  min-height: 20px;
+  min-height: 25px;
+}
+
+.skillGrade {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  color: var(--font_black);
+  font-family: var(--font-body);
+  font-size: clamp(15px, 2vw, 23px);
+  font-weight: 800;
+}
+
+.rankImage {
+  display: block;
+  width: min(100%, 27px);
+  height: auto;
+  object-fit: contain;
+  image-rendering: pixelated;
 }
 
 .levelTrack {
   position: relative;
+  flex: 0 0 3px;
   width: 3px;
-  height: 20px;
-  margin: 0 3px 0 0;
+  height: 25px;
   border-radius: 2px;
   background: var(--button_grey);
 }
@@ -199,4 +208,31 @@
   transform: translate(-50%, 50%);
 }
 
+@media (max-width: 960px) {
+  .players {
+    grid-column: 1;
+    grid-row: 2;
+    width: min(100%, 370px);
+  }
+}
 
+@media (max-width: 360px) {
+  .player {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+}
+
+.playerHeading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.playerImage {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  margin-bottom: 10px;
+}

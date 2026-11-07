@@ -1,4 +1,3 @@
-
 import styles from "./TypePlayers.module.css";
 import Image from "next/image";
 import {
@@ -20,9 +19,8 @@ type TypePlayersProps = {
   finalType: string;
   finalTypeColor: string;
   startAttributes: ReturnType<typeof calculateAttributes>;
-finalAttributes: ReturnType<typeof calculateAttributes>;
+  finalAttributes: ReturnType<typeof calculateAttributes>;
 };
-
 
 const LEVEL_THRESHOLDS = [0, 50, 150, 350, 600, 1000] as const;
 
@@ -36,7 +34,6 @@ function getLevelProgress(value: number, level: number): number {
 
   return Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
 }
-
 
 function getAttributeImage(name: string, index: number): string {
   const value = name.toLowerCase().trim();
@@ -52,7 +49,6 @@ function getAttributeImage(name: string, index: number): string {
   return attributeImages[index] ?? "/will-icon.png";
 }
 
-
 export function TypePlayers({
   setX,
   setY,
@@ -66,7 +62,7 @@ export function TypePlayers({
   finalType,
   finalTypeColor,
   startAttributes,
-finalAttributes,
+  finalAttributes,
 }: TypePlayersProps) {
   return (
     <aside className={styles.players}>
@@ -76,6 +72,24 @@ finalAttributes,
         <li className={styles.player}>
           <div className={styles.playerHeading}>
             <span className={styles.playerName}>Dummy</span>
+                   <div className={styles.playerImage}>
+    <Image
+      src="/Dummy.png"
+      alt="Dummy"
+      fill
+      sizes="64px"
+      style={{ objectFit: "contain", imageRendering: "pixelated" }}
+    />
+  </div>
+            <div className={styles.typeColumn}>
+              <p className={styles.playerType} style={{ color: typeColor }}>
+                {getPlayerType(x, y)}
+              </p>
+              <div className={styles.resultType}>
+                <span className={styles.downArrow}>⌄</span>
+                <span style={{ color: finalTypeColor }}>{finalType}</span>
+              </div>
+            </div>
 
             <div className={styles.coordinatesColumn}>
               <div className={styles.coordinatesRow}>
@@ -115,153 +129,121 @@ finalAttributes,
                   />
                 </label>
               </div>
-
-                <div className={styles.resultCoordinates}>
-                  <span className={styles.downArrow}>⌄</span>
-                  <span>
-                    X {finalX} / Y {finalY}
-                  </span>
-                </div>
+              <div className={styles.resultCoordinates}>
+                <span className={styles.downArrow}>⌄</span>
+                <span>X {finalX} / Y {finalY}</span>
+              </div>
             </div>
 
-            <div className={styles.typeColumn}>
-              <p
-                className={styles.playerType}
-                style={{ color: typeColor }}
-              >
-                {getPlayerType(x, y)}
-              </p>
+            <div className={styles.skillsGrid}>
+              {startAttributes.slice(0, 7).map((attribute, index) => {
+                const startGrade = String(attribute.grade ?? "—")
+                  .trim()
+                  .toUpperCase();
+                const finalGrade = String(
+                  finalAttributes[index]?.grade ?? startGrade
+                )
+                  .trim()
+                  .toUpperCase();
 
-                <div className={styles.resultType}>
-                  <span className={styles.downArrow}>⌄</span>
-                  <span style={{ color: finalTypeColor }}>
-                    {finalType}
-                  </span>
-                </div>
+                const startImage = rankImages[startGrade];
+                const finalImage = rankImages[finalGrade];
+                const finalAttribute = finalAttributes[index] ?? attribute;
+                const startProgress = getLevelProgress(
+                  attribute.value,
+                  attribute.level
+                );
+                const finalProgress = getLevelProgress(
+                  finalAttribute.value,
+                  finalAttribute.level
+                );
+
+                return (
+                  <div
+                    className={styles.skillItem}
+                    key={`${attribute.name}-${index}`}
+                    title={String(attribute.name)}
+                  >
+                    <Image
+                      src={getAttributeImage(String(attribute.name), index)}
+                      alt={String(attribute.name)}
+                      width={46}
+                      height={46}
+                      unoptimized
+                      className={styles.skillIcon}
+                    />
+
+                    <div className={styles.gradeSlot}>
+                      <div
+                        className={styles.skillGrade}
+                        title={`${attribute.name}: ${startGrade} (${attribute.value})`}
+                      >
+                        {startImage ? (
+                          <Image
+                            src={startImage}
+                            alt={`Rating ${startGrade}`}
+                            width={15}
+                            height={15}
+                            unoptimized
+                            className={styles.rankImage}
+                          />
+                        ) : (
+                          <span>{startGrade}</span>
+                        )}
+                      </div>
+                      <div
+                        className={styles.levelTrack}
+                        role="progressbar"
+                        aria-label={`${attribute.name}: ${Math.round(startProgress)}%`}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={Math.round(startProgress)}
+                      >
+                        <span
+                          className={styles.levelDot}
+                          style={{ bottom: `${startProgress}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <span className={styles.downArrow}>⌄</span>
+
+                    <div className={styles.gradeSlot}>
+                      <div
+                        className={styles.skillGrade}
+                        title={`${attribute.name}: ${finalGrade} (${finalAttribute.value})`}
+                      >
+                        {finalImage ? (
+                          <Image
+                            src={finalImage}
+                            alt={`Rating ${finalGrade}`}
+                            width={15}
+                            height={15}
+                            unoptimized
+                            className={styles.rankImage}
+                          />
+                        ) : (
+                          <span>{finalGrade}</span>
+                        )}
+                      </div>
+                      <div
+                        className={styles.levelTrack}
+                        role="progressbar"
+                        aria-label={`${attribute.name}: ${Math.round(finalProgress)}%`}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={Math.round(finalProgress)}
+                      >
+                        <span
+                          className={styles.levelDot}
+                          style={{ bottom: `${finalProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-  
-<div className={styles.skillsGrid}>
-  {startAttributes.slice(0, 7).map((attribute, index) => {
-    const startGrade = String(attribute.grade ?? "—")
-      .trim()
-      .toUpperCase();
-
-    const finalGrade = String(
-      finalAttributes[index]?.grade ?? startGrade
-    )
-      .trim()
-      .toUpperCase();
-
-    const startImage = rankImages[startGrade];
-    const finalImage = rankImages[finalGrade];
-    
-const finalAttribute = finalAttributes[index] ?? attribute;
-
-const startProgress = getLevelProgress(
-  attribute.value,
-  attribute.level
-);
-
-const finalProgress = getLevelProgress(
-  finalAttribute.value,
-  finalAttribute.level
-);
-
-
-    return (
-      <div
-        className={styles.skillItem}
-        key={`${attribute.name}-${index}`}
-        title={String(attribute.name)}
-      >
-        <Image
-          src={getAttributeImage(String(attribute.name), index)}
-          alt={String(attribute.name)}
-          width={46}
-          height={46}
-          unoptimized
-          className={styles.skillIcon}
-        />
-
-
-<div className={styles.gradeSlot}>
-  <div
-    className={styles.skillGrade}
-    title={`${attribute.name}: ${startGrade} (${attribute.value})`}
-  >
-    {startImage ? (
-      <Image
-        src={startImage}
-        alt={`Rating ${startGrade}`}
-        width={15}
-        height={15}
-        unoptimized
-        className={styles.rankImage}
-      />
-    ) : (
-      <span>{startGrade}</span>
-    )}
-  </div>
-
-  <div
-    className={styles.levelTrack}
-    role="progressbar"
-    aria-label={`${attribute.name}: ${Math.round(startProgress)}%`}
-    aria-valuemin={0}
-    aria-valuemax={100}
-    aria-valuenow={Math.round(startProgress)}
-  >
-    <span
-      className={styles.levelDot}
-      style={{ bottom: `${startProgress}%` }}
-    />
-  </div>
-</div>
-
-          <>
-            <span className={styles.downArrow} style={{transform: "translateY(-7px)"}}>⌄</span>
-
-
-<div className={styles.gradeSlot}>
-  <div
-    className={styles.skillGrade}
-    title={`${attribute.name}: ${finalGrade} (${finalAttribute.value})`}
-  >
-    {finalImage ? (
-      <Image
-        src={finalImage}
-        alt={`Rating ${finalGrade}`}
-        width={15}
-        height={15}
-        unoptimized
-        className={styles.rankImage}
-      />
-    ) : (
-      <span>{finalGrade}</span>
-    )}
-  </div>
-
-  <div
-    className={styles.levelTrack}
-    role="progressbar"
-    aria-label={`${attribute.name}: ${Math.round(finalProgress)}%`}
-    aria-valuemin={0}
-    aria-valuemax={100}
-    aria-valuenow={Math.round(finalProgress)}
-  >
-    <span
-      className={styles.levelDot}
-      style={{ bottom: `${finalProgress}%` }}
-    />
-  </div>
-</div>
-
-          </>
-      </div>
-    );
-  })}
-</div>
-
           </div>
         </li>
       </ul>
