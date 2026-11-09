@@ -1,50 +1,27 @@
 
 "use client";
 
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type {
-  SelectedTraining,
-  TrainingEntry,
-} from "./training-types";
+import type { SelectedTraining, TrainingEntry } from "./training-types";
 import type { PlayerTypeSelection } from "./player-selection";
-import {
-  getSavedPlayerIds,
-  removeSavedPlayerId,
-  savePlayerIds,
-} from "./player-selection";
+import { getSavedPlayerIds, removeSavedPlayerId, savePlayerIds } from "./player-selection";
 import TypesChart from "./TypesChart";
 import { playerTypeRows } from "./player-type-data";
-import {
-  PLAYER_TYPE_COLORS,
-  calculateAttributes,
-  PLAYER_TYPE_NAMES,
-  type Language,
-} from "../../lib/utils";
-import {
-  calculatePlayerPosition,
-  calculateTrainingStep,
-} from "./player-type-calculation";
+import { PLAYER_TYPE_COLORS, PLAYER_TYPE_NAMES, calculateAttributes, type Language } from "../../lib/utils";
+import { calculatePlayerPosition, calculateTrainingStep } from "./player-type-calculation";
 import styles from "./TypesChart.module.css";
-import {
-  TypePlayers,
-  type PlayerDisplay,
-} from "./TypePlayers";
+import { TypePlayers, type PlayerDisplay } from "./TypePlayers";
 import LanguageSwitcher from "../LanguageSwitcher";
 import TrainingSelectFilter from "./TrainingSelectFilter";
 
 const SKILL_VALUES = [0, 50, 150, 350, 600, 1000] as const;
+const TRAINING_STORAGE_KEY = "npfc-player-training-orders-v1";
+const POSITION_STORAGE_KEY = "npfc-player-type-positions-v1";
+const SELECTED_PLAYER_STORAGE_KEY = "npfc-selected-player-v1";
 
-type Position = {
-  x: number;
-  y: number;
-};
+type Position = { x: number; y: number };
+type TrainingOrders = Record<string, SelectedTraining[]>;
 
 type PlayerTypesClientProps = {
   trainings: TrainingEntry[];
@@ -58,7 +35,6 @@ function clampCoordinate(value: number) {
 
 function getPlayerTypeId(x: number, y: number): number {
   const row = playerTypeRows[clampCoordinate(y)];
-
   if (!row) return 0;
 
   for (let i = 0; i < row.length; i += 2) {
@@ -68,19 +44,14 @@ function getPlayerTypeId(x: number, y: number): number {
   return 0;
 }
 
-function estimatePotsForPosition(
-  targetX: number,
-  targetY: number
-) {
+function estimatePotsForPosition(targetX: number, targetY: number) {
   const baseline = Array<number>(12).fill(50);
 
   const score = (pots: number[]) => {
     const position = calculatePlayerPosition(pots);
-
     const positionError =
       (position.x - targetX) ** 2 +
       (position.y - targetY) ** 2;
-
     const potentialDifference = pots.reduce(
       (sum, value) => sum + (value - 50) ** 2,
       0
@@ -94,17 +65,10 @@ function estimatePotsForPosition(
 
   for (let restart = 0; restart < 4; restart++) {
     let seed =
-      (
-        12345 +
-        restart * 7919 +
-        targetX * 101 +
-        targetY * 307
-      ) >>> 0;
+      (12345 + restart * 7919 + targetX * 101 + targetY * 307) >>> 0;
 
     const random = () => {
-      seed =
-        (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
       return seed / 4294967296;
     };
 
@@ -112,10 +76,7 @@ function estimatePotsForPosition(
       restart === 0
         ? [...baseline]
         : baseline.map(
-            () =>
-              [0, 25, 50, 75, 100][
-                Math.floor(random() * 5)
-              ]
+            () => [0, 25, 50, 75, 100][Math.floor(random() * 5)]
           );
 
     let currentScore = score(pots);
@@ -175,6 +136,93 @@ function toSkillRow(values: number[]) {
   return row;
 }
 
+function readTrainingOrders(): TrainingOrders {
+  try {
+    const value: unknown = JSON.parse(
+      localStorage.getItem(TRAINING_STORAGE_KEY) ?? "{}"
+    );
+
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return {};
+    }
+
+    const result: TrainingOrders = {};
+
+    for (const [key, entries] of Object.entries(value)) {
+      if (!Array.isArray(entries)) continue;
+
+      result[key] = entries.flatMap((entry, index) => {
+        if (!entry || typeof entry !== "object") return [];
+
+        const item = entry as Record<string, unknown>;
+
+        if (
+          (item.kind !== "card" && item.kind !== "combo") ||
+          typeof item.id !== "number" ||
+          !Number.isSafeInteger(item.id) ||
+          item.id < 0
+        ) {
+          return [];
+        }
+
+        return [
+          {
+            kind: item.kind,
+            id: Number(item.id),
+            instanceId:
+              typeof item.instanceId === "number" &&
+              Number.isSafeInteger(item.instanceId)
+                ? item.instanceId
+                : index,
+          },
+        ];
+      });
+    }
+
+    return result;
+  } catch {
+    return {};
+  }
+}
+
+function readPositions(): Record<string, Position> {
+  try {
+    const value: unknown = JSON.parse(
+      localStorage.getItem(POSITION_STORAGE_KEY) ?? "{}"
+    );
+
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return {};
+    }
+
+    const result: Record<string, Position> = {};
+
+    for (const [key, position] of Object.entries(value)) {
+      if (!position || typeof position !== "object") continue;
+
+      const point = position as Record<string, unknown>;
+
+      if (
+        typeof point.x !== "number" ||
+        typeof point.y !== "number" ||
+        !Number.isFinite(point.x) ||
+        !Number.isFinite(point.y)
+      ) {
+        continue;
+      }
+
+      result[key] = {
+        x: clampCoordinate(point.x),
+        y: clampCoordinate(point.y),
+      };
+    }
+
+    return result;
+  } catch {
+    return {};
+  }
+}
+
 export default function PlayerTypesClient({
   trainings,
   initialLanguage,
@@ -186,27 +234,56 @@ export default function PlayerTypesClient({
     useState<PlayerTypeSelection[]>(initialPlayers);
 
   const [positions, setPositions] =
-    useState<Record<number, Position>>({});
+    useState<Record<string, Position>>({});
 
   const [language] = useState<Language>(initialLanguage);
 
-  const [selectedTrainings, setSelectedTrainings] =
-    useState<SelectedTraining[]>([]);
+  const [selectedPlayerKey, setSelectedPlayerKey] =
+    useState<string | null>(null);
+
+  const [trainingOrders, setTrainingOrders] =
+    useState<TrainingOrders>({});
+
+  const [storageLoaded, setStorageLoaded] = useState(false);
 
   useEffect(() => {
     setPlayers(initialPlayers);
   }, [initialPlayers]);
 
   useEffect(() => {
-    const savedIds = getSavedPlayerIds();
+    setTrainingOrders(readTrainingOrders());
+    setPositions(readPositions());
 
-    const currentIds = initialPlayers.map(
-      (player) => player.id
+    const savedSelection = localStorage.getItem(
+      SELECTED_PLAYER_STORAGE_KEY
     );
 
-    const combined = [
-      ...new Set([...savedIds, ...currentIds]),
-    ];
+    setSelectedPlayerKey(savedSelection || null);
+    setStorageLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!storageLoaded) return;
+
+    localStorage.setItem(
+      TRAINING_STORAGE_KEY,
+      JSON.stringify(trainingOrders)
+    );
+  }, [trainingOrders, storageLoaded]);
+
+  useEffect(() => {
+    if (!storageLoaded) return;
+
+    localStorage.setItem(
+      POSITION_STORAGE_KEY,
+      JSON.stringify(positions)
+    );
+  }, [positions, storageLoaded]);
+
+  useEffect(() => {
+    const savedIds = getSavedPlayerIds();
+    const currentIds = initialPlayers.map((player) => player.id);
+    const combined = [...new Set([...savedIds, ...currentIds])];
 
     if (combined.length !== savedIds.length) {
       savePlayerIds(combined);
@@ -229,12 +306,50 @@ export default function PlayerTypesClient({
     localStorage.removeItem("npfc-player-type-id");
   }, [initialPlayers, router]);
 
+  useEffect(() => {
+    if (!storageLoaded) return;
+
+    if (players.length === 0) {
+      setSelectedPlayerKey("dummy");
+      return;
+    }
+
+    const available = players.map((player) => String(player.id));
+
+    setSelectedPlayerKey((current) => {
+      if (available.length === 1) {
+        return available[0];
+      }
+
+      return current !== null && available.includes(current)
+        ? current
+        : null;
+    });
+  }, [players, storageLoaded]);
+
+  useEffect(() => {
+    if (!storageLoaded) return;
+
+    if (selectedPlayerKey === null) {
+      localStorage.removeItem(SELECTED_PLAYER_STORAGE_KEY);
+    } else {
+      localStorage.setItem(
+        SELECTED_PLAYER_STORAGE_KEY,
+        selectedPlayerKey
+      );
+    }
+  }, [selectedPlayerKey, storageLoaded]);
+
   const handleRemovePlayer = useCallback(
     (id: number) => {
       removeSavedPlayerId(id);
 
       setPlayers((current) =>
         current.filter((player) => player.id !== id)
+      );
+
+      setSelectedPlayerKey((current) =>
+        current === String(id) ? null : current
       );
 
       if (window.location.search.includes("playerId=")) {
@@ -252,18 +367,29 @@ export default function PlayerTypesClient({
       axis: "x" | "y",
       value: number
     ) => {
-      const key = id ?? 0;
+      const key = id === null ? "dummy" : String(id);
 
-      setPositions((current) => ({
-        ...current,
-        [key]: {
-          x: current[key]?.x ?? 50,
-          y: current[key]?.y ?? 50,
-          [axis]: clampCoordinate(value),
-        },
-      }));
+      setPositions((current) => {
+        const updated = {
+          ...current,
+          [key]: {
+            x: current[key]?.x ?? 50,
+            y: current[key]?.y ?? 50,
+            [axis]: clampCoordinate(value),
+          },
+        };
+
+        if (storageLoaded) {
+          localStorage.setItem(
+            POSITION_STORAGE_KEY,
+            JSON.stringify(updated)
+          );
+        }
+
+        return updated;
+      });
     },
-    []
+    [storageLoaded]
   );
 
   const trainingCatalog = useMemo(
@@ -276,33 +402,6 @@ export default function PlayerTypesClient({
       ),
     [trainings]
   );
-
-  const handleSelectionChange = useCallback(
-    (items: SelectedTraining[]) => {
-      setSelectedTrainings(items);
-    },
-    []
-  );
-
-  const skillTotals = useMemo(() => {
-    const totals = Array<number>(10).fill(0);
-
-    for (const selected of selectedTrainings) {
-      const training = trainingCatalog.get(
-        `${selected.kind}:${selected.id}`
-      );
-
-      if (!training) continue;
-
-      for (let i = 0; i < 10; i++) {
-        totals[i] += Number(
-          training.skillChanges[i] ?? 0
-        );
-      }
-    }
-
-    return totals;
-  }, [selectedTrainings, trainingCatalog]);
 
   const displayPlayers = useMemo(
     () =>
@@ -319,32 +418,75 @@ export default function PlayerTypesClient({
     [players]
   );
 
+  const activePlayerKey =
+    players.length === 0
+      ? "dummy"
+      : players.length === 1
+        ? String(players[0].id)
+        : selectedPlayerKey;
+
+  const selectedTrainings =
+    activePlayerKey === null
+      ? []
+      : trainingOrders[activePlayerKey] ?? [];
+
+  const handleSelectionChange = useCallback(
+    (items: SelectedTraining[]) => {
+      if (activePlayerKey === null || !storageLoaded) return;
+
+      setTrainingOrders((current) => {
+        const updated = {
+          ...current,
+          [activePlayerKey]: items,
+        };
+
+        localStorage.setItem(
+          TRAINING_STORAGE_KEY,
+          JSON.stringify(updated)
+        );
+
+        return updated;
+      });
+    },
+    [activePlayerKey, storageLoaded]
+  );
+
   const playerViews = useMemo<PlayerDisplay[]>(() => {
     return displayPlayers.map((player) => {
       const id = player.id === 0 ? null : player.id;
-      const key = id ?? 0;
+      const key = id === null ? "dummy" : String(id);
 
-      const { x, y } = positions[key] ?? {
-        x: 50,
-        y: 50,
-      };
+      const { x, y } = positions[key] ?? { x: 50, y: 50 };
 
       const initialSkillPoints = Array.from(
         { length: 10 },
         (_, index) => {
-          const level = Number(
-            player.skills[index] ?? 0
-          );
-
+          const level = Number(player.skills[index] ?? 0);
           return SKILL_VALUES[level] ?? 0;
         }
       );
 
-      const finalSkillPoints =
-        initialSkillPoints.map(
-          (original, index) =>
-            Math.max(0, original + skillTotals[index])
+      const trainingsForPlayer = trainingOrders[key] ?? [];
+      const skillTotals = Array<number>(10).fill(0);
+
+      for (const item of trainingsForPlayer) {
+        const entry = trainingCatalog.get(
+          `${item.kind}:${item.id}`
         );
+
+        if (!entry) continue;
+
+        for (let i = 0; i < 10; i++) {
+          skillTotals[i] += Number(
+            entry.skillChanges[i] ?? 0
+          );
+        }
+      }
+
+      const finalSkillPoints = initialSkillPoints.map(
+        (original, index) =>
+          Math.max(0, original + skillTotals[index])
+      );
 
       const startAttributes = calculateAttributes(
         toSkillRow(initialSkillPoints),
@@ -356,26 +498,22 @@ export default function PlayerTypesClient({
         "points"
       );
 
-      const startPots =
-        estimatePotsForPosition(x, y);
-
-      const startPosition =
-        calculatePlayerPosition(startPots);
+      const startPots = estimatePotsForPosition(x, y);
+      const startPosition = calculatePlayerPosition(startPots);
 
       let currentPots = [...startPots];
-
       const path: Position[] = [];
 
-      for (const selected of selectedTrainings) {
-        const training = trainingCatalog.get(
-          `${selected.kind}:${selected.id}`
+      for (const item of trainingsForPlayer) {
+        const entry = trainingCatalog.get(
+          `${item.kind}:${item.id}`
         );
 
-        if (!training) continue;
+        if (!entry) continue;
 
         const step = calculateTrainingStep(
           currentPots,
-          training.potChanges
+          entry.potChanges
         );
 
         currentPots = step.nextPots;
@@ -416,17 +554,20 @@ export default function PlayerTypesClient({
   }, [
     displayPlayers,
     positions,
-    selectedTrainings,
+    trainingOrders,
     trainingCatalog,
-    skillTotals,
     language,
   ]);
 
+  const selectedPlayer = playerViews.find(
+    (player) =>
+      (player.id === null ? "dummy" : String(player.id)) ===
+      activePlayerKey
+  );
+
   const getPlayerType = useCallback(
     (x: number, y: number) =>
-      PLAYER_TYPE_NAMES[language][
-        getPlayerTypeId(x, y)
-      ],
+      PLAYER_TYPE_NAMES[language][getPlayerTypeId(x, y)],
     [language]
   );
 
@@ -444,6 +585,14 @@ export default function PlayerTypesClient({
 
           <TypePlayers
             players={playerViews}
+            selectedPlayerKey={activePlayerKey}
+            onSelectPlayer={(key) => {
+              if (players.length <= 1) return;
+
+              setSelectedPlayerKey((current) =>
+                current === key ? null : key
+              );
+            }}
             onRemovePlayer={handleRemovePlayer}
             onPositionChange={handlePositionChange}
             clampCoordinate={clampCoordinate}
@@ -459,6 +608,7 @@ export default function PlayerTypesClient({
                 startPosition: player.startPosition,
                 path: player.path,
               }))}
+              selectedPlayerKey={activePlayerKey}
               language={language}
             />
           </section>
@@ -466,8 +616,14 @@ export default function PlayerTypesClient({
           <TrainingSelectFilter
             language={language}
             trainings={trainings}
+            selected={selectedTrainings}
+            selectedPlayerName={selectedPlayer?.name ?? null}
+            hasSelectedPlayer={selectedPlayer !== undefined}
             onSelectionChange={handleSelectionChange}
-            startPots={playerViews[0].startPots}
+            startPots={
+              selectedPlayer?.startPots ??
+              Array<number>(12).fill(50)
+            }
           />
         </div>
       </Suspense>

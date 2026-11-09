@@ -4,13 +4,14 @@
 
 .playerList {
   margin: 0;
-  padding: 0 15px 15px 0;
+  padding: 12px 15px 18px;
   list-style: none;
   display: flex;
   gap: 16px;
+  max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .playerList > li {
@@ -20,7 +21,7 @@
 .player {
   box-sizing: border-box;
   min-width: 0;
-  padding: 22px 18px 70px;
+  padding: 22px 18px 60px;
   border: 3px solid #000;
   border-radius: 24px;
   background: #f1f1f1;
@@ -40,7 +41,7 @@
 .playerName {
   color: #000;
   font-family: var(--font-body);
-  font-size: clamp(20px, 3vw, 28px);
+  font-size: clamp(10px, 3vw, 20px);
   font-weight: 800;
   line-height: 1.15;
 }
@@ -186,13 +187,12 @@
   height: auto;
   object-fit: contain;
   image-rendering: pixelated;
-  transform: translateX(1px);
 }
 
 .levelTrack {
   position: relative;
-  flex: 0 0 2px;
-  width: 2px;
+  flex: 0 0 3px;
+  width: 3px;
   height: 25px;
   border-radius: 2px;
   background: var(--button_grey);
@@ -201,9 +201,9 @@
 .levelDot {
   position: absolute;
   left: 50%;
-  width: 5px;
-  height: 5px;
-  border: 1px solid var(--dark);
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--dark);
   border-radius: 50%;
   background: var(--color-physical);
   transform: translate(-50%, 50%);
@@ -240,12 +240,45 @@
 
 .player {
   position: relative;
+  cursor: default;
+  transition: background var(--anim), border-color var(--anim), box-shadow var(--anim), transform var(--anim);
+}
+
+.hoverEnabled .player:hover {
+  transform: scale(1.025);
+  cursor: pointer;
+}
+
+.player.selectedPlayer {
+  border-color: #2041b0;
+  background: #eaf0ff;
+  box-shadow: 6px 6px 0 #2041b0;
+}
+.player:focus-visible {
+  outline: 3px solid #2041b0;
+  outline-offset: 3px;
+}
+
+@media (hover: hover) {
+
+  .player.selectedPlayer:hover {
+    background: #dbe6ff;
+    border-color: #2041b0;
+    box-shadow: 6px 6px 0 #2041b0;
+  }
+}
+
+.player.selectedPlayer {
+  border-color: #2041b0;
+  background: #dbe6ff;
+  box-shadow: 6px 6px 0 #2041b0;
 }
 
 .infoButton,
 .removePlayer {
   position: absolute;
-  z-index: 4;
+  z-index: 5;
+  bottom: -10px;
   display: grid;
   place-items: center;
   width: 32px;
@@ -253,34 +286,33 @@
   padding: 0;
   border: 2px solid var(--dark);
   border-radius: 8px;
-  font-size: 25px;
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 23px;
   font-weight: 800;
   line-height: 1;
+  text-align: center;
   text-decoration: none;
   box-shadow: 2px 2px 0 var(--dark);
   cursor: pointer;
-  transition:
-    transform var(--anim),
-    background var(--anim);
+  transition: transform var(--anim), background var(--anim);
+  margin-bottom: 20px;
 }
 
 .infoButton {
-  bottom: 10px;
-  left: 10px;
-  background: #478dce;
-  color: #ffffff;
-}
-
-.infoButton:hover {
-  transform: scale(1.03);
+  left: 8px;
+  background: #2041b0;
 }
 
 .removePlayer {
-  right: 10px;
-  bottom: 10px;
+  right: 8px;
   background: #cf3434;
-  color: #fff;
-  padding-bottom: 5px;
+  padding-bottom: 3px;
+}
+
+.infoButton:hover {
+  background: #426be0;
+  transform: scale(1.08);
 }
 
 .removePlayer:hover {
@@ -288,8 +320,25 @@
   transform: scale(1.08);
 }
 
+.infoButton:active,
+.removePlayer:active {
+  transform: scale(0.95);
+}
+
 .infoButton:focus-visible,
 .removePlayer:focus-visible {
   outline: 3px solid var(--color-highlight);
   outline-offset: 2px;
+}
+
+.player {
+  flex-shrink: 0;
+  transform-origin: center center;
+  transition: transform 0.2s ease;
+}
+
+.hoverEnabled .player:hover {
+  transform: scale(1.025);
+  position: relative;
+  z-index: 2;
 }

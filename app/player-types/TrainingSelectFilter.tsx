@@ -24,6 +24,17 @@ type TrainingSelectFilterProps = {
   trainings: TrainingEntry[];
   onSelectionChange: (selected: SelectedTraining[]) => void;
   startPots: number[];
+  selected: SelectedTraining[];
+  selectedPlayerName: string | null;
+  hasSelectedPlayer: boolean;
+};
+
+export type TrainingNames = {
+  en: string;
+  de: string;
+  es: string;
+  it: string;
+  fr: string;
 };
 
 const labels = {
@@ -67,6 +78,70 @@ type Direction =
 
 type MatchFilter = keyof typeof labels.match;
 
+const FILTER_STORAGE_KEY = "npfc-training-filters-v1";
+
+type SavedFilters = {
+  search: string;
+  showCards: boolean;
+  showCombos: boolean;
+  direction: Direction;
+  matchFilter: MatchFilter;
+};
+
+function readSavedFilters(): SavedFilters | null {
+  try {
+    const raw = localStorage.getItem(FILTER_STORAGE_KEY);
+
+    if (!raw) return null;
+
+    const value: unknown = JSON.parse(raw);
+
+    if (
+      !value ||
+      typeof value !== "object" ||
+      Array.isArray(value)
+    ) {
+      return null;
+    }
+
+    const filters = value as Record<string, unknown>;
+    const validDirections = sortOptions.map(
+      (option) => option.value
+    );
+
+    const validMatchFilters = Object.keys(labels.match);
+
+    return {
+      search:
+        typeof filters.search === "string"
+          ? filters.search
+          : "",
+      showCards:
+        typeof filters.showCards === "boolean"
+          ? filters.showCards
+          : true,
+      showCombos:
+        typeof filters.showCombos === "boolean"
+          ? filters.showCombos
+          : true,
+      direction:
+        typeof filters.direction === "string" &&
+        validDirections.includes(
+          filters.direction as Direction
+        )
+          ? (filters.direction as Direction)
+          : "all",
+      matchFilter:
+        typeof filters.matchFilter === "string" &&
+        validMatchFilters.includes(filters.matchFilter)
+          ? (filters.matchFilter as MatchFilter)
+          : "all",
+    };
+  } catch {
+    return null;
+  }
+}
+
 function getTrainingVector(
   pots: number[],
   potChanges: number[]
@@ -75,7 +150,10 @@ function getTrainingVector(
   const { dx, dy } = step;
 
   if (dx === 0 && dy === 0) {
-    return { ...step, direction: "zero" as Direction };
+    return {
+      ...step,
+      direction: "zero" as Direction,
+    };
   }
 
   const sector =
@@ -106,19 +184,61 @@ export default function TrainingSelectFilter({
   trainings,
   onSelectionChange,
   startPots,
+  selected,
+  selectedPlayerName,
+  hasSelectedPlayer,
 }: TrainingSelectFilterProps) {
   const [search, setSearch] = useState("");
   const [showCards, setShowCards] = useState(true);
   const [showCombos, setShowCombos] = useState(true);
   const [direction, setDirection] = useState<Direction>("all");
-  const [selected, setSelected] = useState<SelectedTraining[]>([]);
   const [dragOverId, setDragOverId] = useState<number | null>(null);
-  const [matchFilter, setMatchFilter] = useState<MatchFilter>("all");
+  const [matchFilter, setMatchFilter] =
+    useState<MatchFilter>("all");
+  const [filtersLoaded, setFiltersLoaded] = useState(false);
 
   const sortRef = useRef<HTMLDetailsElement>(null);
   const matchRef = useRef<HTMLDetailsElement>(null);
   const draggedId = useRef<number | null>(null);
   const nextInstanceId = useRef(0);
+
+  useEffect(() => {
+    const saved = readSavedFilters();
+
+    if (saved) {
+      setSearch(saved.search);
+      setShowCards(saved.showCards);
+      setShowCombos(saved.showCombos);
+      setDirection(saved.direction);
+      setMatchFilter(saved.matchFilter);
+    }
+
+    setFiltersLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!filtersLoaded) return;
+
+    const filters: SavedFilters = {
+      search,
+      showCards,
+      showCombos,
+      direction,
+      matchFilter,
+    };
+
+    localStorage.setItem(
+      FILTER_STORAGE_KEY,
+      JSON.stringify(filters)
+    );
+  }, [
+    filtersLoaded,
+    search,
+    showCards,
+    showCombos,
+    direction,
+    matchFilter,
+  ]);
 
   useEffect(() => {
     const dropdowns = [sortRef, matchRef];
@@ -147,14 +267,17 @@ export default function TrainingSelectFilter({
     document.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener(
+        "pointerdown",
+        handlePointerDown
+      );
+
+      document.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
     };
   }, []);
-
-  useEffect(() => {
-    onSelectionChange(selected);
-  }, [selected, onSelectionChange]);
 
   const catalog = useMemo(
     () =>
@@ -200,7 +323,10 @@ export default function TrainingSelectFilter({
       new Map(
         trainings.map((entry) => [
           entryKey(entry),
-          getTrainingVector(previewPots, entry.potChanges),
+          getTrainingVector(
+            previewPots,
+            entry.potChanges
+          ),
         ])
       ),
     [trainings, previewPots]
@@ -229,19 +355,32 @@ export default function TrainingSelectFilter({
 
     return trainings
       .filter((entry) => {
-        if (entry.kind === "card" && !showCards) return false;
-        if (entry.kind === "combo" && !showCombos) return false;
-
-        if (matchFilter === "only" && !entry.hasMatchActions) {
+        if (entry.kind === "card" && !showCards) {
           return false;
         }
 
-        if (matchFilter === "excluded" && entry.hasMatchActions) {
+        if (entry.kind === "combo" && !showCombos) {
+          return false;
+        }
+
+        if (
+          matchFilter === "only" &&
+          !entry.hasMatchActions
+        ) {
+          return false;
+        }
+
+        if (
+          matchFilter === "excluded" &&
+          entry.hasMatchActions
+        ) {
           return false;
         }
 
         if (direction !== "all") {
-          const vector = trainingVectors.get(entryKey(entry));
+          const vector = trainingVectors.get(
+            entryKey(entry)
+          );
 
           if (vector?.direction !== direction) {
             return false;
@@ -250,15 +389,19 @@ export default function TrainingSelectFilter({
 
         if (!query) return true;
 
-        return Object.values(entry.names).some((name) =>
-          name.toLocaleLowerCase().includes(query)
+        return Object.values(entry.names).some(
+          (name) =>
+            name.toLocaleLowerCase().includes(query)
         );
       })
       .sort((a, b) => {
         if (selectedDirection) {
-          const difference = projection(b) - projection(a);
+          const difference =
+            projection(b) - projection(a);
 
-          if (difference !== 0) return difference;
+          if (difference !== 0) {
+            return difference;
+          }
         }
 
         return a.names[language].localeCompare(
@@ -277,10 +420,18 @@ export default function TrainingSelectFilter({
   ]);
 
   function addTraining(entry: TrainingEntry) {
-    const instanceId = nextInstanceId.current++;
+    if (!hasSelectedPlayer) return;
 
-    setSelected((current) => [
-      ...current,
+    const instanceId = Math.max(
+      nextInstanceId.current,
+      ...selected.map((item) => item.instanceId + 1),
+      0
+    );
+
+    nextInstanceId.current = instanceId + 1;
+
+    onSelectionChange([
+      ...selected,
       {
         kind: entry.kind,
         id: entry.id,
@@ -290,42 +441,44 @@ export default function TrainingSelectFilter({
   }
 
   function removeTraining(instanceId: number) {
-    setSelected((current) =>
-      current.filter(
+    onSelectionChange(
+      selected.filter(
         (item) => item.instanceId !== instanceId
       )
     );
   }
 
   function clearTrainings() {
-    setSelected([]);
+    onSelectionChange([]);
   }
 
-  function moveTraining(fromId: number, toId: number) {
-    setSelected((current) => {
-      const fromIndex = current.findIndex(
-        (item) => item.instanceId === fromId
-      );
+  function moveTraining(
+    fromId: number,
+    toId: number
+  ) {
+    const current = selected;
 
-      const toIndex = current.findIndex(
-        (item) => item.instanceId === toId
-      );
+    const fromIndex = current.findIndex(
+      (item) => item.instanceId === fromId
+    );
 
-      if (
-        fromIndex === -1 ||
-        toIndex === -1 ||
-        fromIndex === toIndex
-      ) {
-        return current;
-      }
+    const toIndex = current.findIndex(
+      (item) => item.instanceId === toId
+    );
 
-      const updated = [...current];
-      const [moved] = updated.splice(fromIndex, 1);
+    if (
+      fromIndex === -1 ||
+      toIndex === -1 ||
+      fromIndex === toIndex
+    ) {
+      return;
+    }
 
-      updated.splice(toIndex, 0, moved);
+    const updated = [...current];
+    const [moved] = updated.splice(fromIndex, 1);
 
-      return updated;
-    });
+    updated.splice(toIndex, 0, moved);
+    onSelectionChange(updated);
   }
 
   function handleDragStart(
@@ -333,8 +486,8 @@ export default function TrainingSelectFilter({
     instanceId: number
   ) {
     draggedId.current = instanceId;
-
     event.dataTransfer.effectAllowed = "move";
+
     event.dataTransfer.setData(
       "text/plain",
       String(instanceId)
@@ -346,7 +499,6 @@ export default function TrainingSelectFilter({
     instanceId: number
   ) {
     event.preventDefault();
-
     event.dataTransfer.dropEffect = "move";
 
     setDragOverId(
@@ -363,7 +515,10 @@ export default function TrainingSelectFilter({
     event.preventDefault();
 
     if (draggedId.current !== null) {
-      moveTraining(draggedId.current, instanceId);
+      moveTraining(
+        draggedId.current,
+        instanceId
+      );
     }
 
     draggedId.current = null;
@@ -525,56 +680,65 @@ export default function TrainingSelectFilter({
         </div>
 
         <div className={styles.availableShell}>
-          <div className={styles.availableList}>
-            {options.length === 0 && (
-              <p className={styles.empty}>
-                {labels.noResults}
-              </p>
-            )}
+          {!hasSelectedPlayer ? (
+            <p className={styles.selectionHint}>
+              Select a player first
+            </p>
+          ) : (
+            <div className={styles.availableList}>
+              {options.length === 0 && (
+                <p className={styles.empty}>
+                  {labels.noResults}
+                </p>
+              )}
 
-            {options.map((entry) => (
-              <button
-                type="button"
-                className={styles.availableItem}
-                key={entryKey(entry)}
-                onClick={() => addTraining(entry)}
-                aria-label={entry.names[language]}
-                title={entry.names[language]}
-              >
-                <span className={styles.availableImage}>
-                  <Image
-                    src={entry.imageUrl}
-                    alt=""
-                    width={150}
-                    height={98}
-                    unoptimized
-                  />
+              {options.map((entry) => (
+                <button
+                  type="button"
+                  className={styles.availableItem}
+                  key={entryKey(entry)}
+                  onClick={() => addTraining(entry)}
+                  aria-label={entry.names[language]}
+                  title={entry.names[language]}
+                >
+                  <span className={styles.availableImage}>
+                    <Image
+                      src={entry.imageUrl}
+                      alt=""
+                      width={150}
+                      height={98}
+                      unoptimized
+                    />
 
-                  <span className={styles.availableName}>
-                    {entry.names[language]}
+                    <span className={styles.availableName}>
+                      {entry.names[language]}
+                    </span>
+
+                    <span className={styles.availableVector}>
+                      {(() => {
+                        const vector = trainingVectors.get(
+                          entryKey(entry)
+                        );
+
+                        return vector
+                          ? getVectorLabel(
+                              vector.dx,
+                              vector.dy
+                            )
+                          : "X 0 / Y 0";
+                      })()}
+                    </span>
                   </span>
-
-                  <span className={styles.availableVector}>
-                    {(() => {
-                      const vector = trainingVectors.get(
-                        entryKey(entry)
-                      );
-
-                      return vector
-                        ? getVectorLabel(vector.dx, vector.dy)
-                        : "X 0 / Y 0";
-                    })()}
-                  </span>
-                </span>
-              </button>
-            ))}
-          </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       <div className={styles.selectedHeader}>
         <h3 className={styles.playerTitle}>
-          Order for {labels.selected}:
+          Order for {selectedPlayerName || "Dummy"}:
         </h3>
 
         {selected.length > 0 && (
@@ -589,14 +753,21 @@ export default function TrainingSelectFilter({
       </div>
 
       <div className={styles.selectedList}>
-        {selected.length === 0 && (
+        {!hasSelectedPlayer ? (
+          <p className={styles.empty}>
+            Select a player first
+          </p>
+        ) : selected.length === 0 ? (
           <p className={styles.empty}>
             {labels.empty}
           </p>
-        )}
+        ) : null}
 
         {selected
-          .map((item, index) => ({ item, index }))
+          .map((item, index) => ({
+            item,
+            index,
+          }))
           .reverse()
           .map(({ item, index }) => {
             const entry = catalog.get(entryKey(item));
@@ -658,33 +829,40 @@ export default function TrainingSelectFilter({
                         );
 
                         return vector
-                          ? getVectorLabel(vector.dx, vector.dy)
+                          ? getVectorLabel(
+                              vector.dx,
+                              vector.dy
+                            )
                           : "X 0 / Y 0";
                       })()}
                     </span>
                   </span>
                 </div>
 
-              <button
-                className={styles.removeButton}
-                type="button"
-                draggable={false}
-                aria-label={`${labels.remove}: ${entry.names[language]}`}
-                onClick={() => removeTraining(item.instanceId)}
-              >
-                ×
-              </button>
+                <button
+                  className={styles.removeButton}
+                  type="button"
+                  draggable={false}
+                  aria-label={`${labels.remove}: ${entry.names[language]}`}
+                  onClick={() =>
+                    removeTraining(item.instanceId)
+                  }
+                >
+                  ×
+                </button>
 
-              <Link
-                href={`/cards-and-combos?id=${entry.id}`}
-                className={`${styles.removeButton} ${styles.trainingInfoButton}`}
-                aria-label={`View ${entry.names[language]} information`}
-                title="Training info"
-                draggable={false}
-                onDragStart={(event) => event.preventDefault()}
-              >
-                i
-              </Link>
+                <Link
+                  href={`/cards-and-combos?id=${entry.id}`}
+                  className={`${styles.removeButton} ${styles.trainingInfoButton}`}
+                  aria-label={`View ${entry.names[language]} information`}
+                  title="Training info"
+                  draggable={false}
+                  onDragStart={(event) =>
+                    event.preventDefault()
+                  }
+                >
+                  i
+                </Link>
               </div>
             );
           })}

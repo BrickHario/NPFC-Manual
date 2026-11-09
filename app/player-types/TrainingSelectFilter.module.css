@@ -127,6 +127,7 @@
 
 .singleFilter {
   position: relative;
+  min-width: 160px;
 }
 
 .filterSummary {
@@ -633,22 +634,35 @@
   outline: 3px solid var(--color-highlight);
   outline-offset: 2px;
 }
-.selectedItem {
-  position: relative;
-}
+
 
 .trainingInfoButton {
   top: auto;
-  bottom: -5px;
+  bottom: -10px;
   right: -6px;
   background: #2041b0;
   color: #fff;
-  text-decoration: none;
+  font-size: 22px;
   font-style: normal;
+  text-decoration: none;
 }
-
 .trainingInfoButton:hover {
   background: #426be0;
-  color: #fff;
+}
+.availableItem:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
+}
+.selectionHint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 145px;
+  margin: 0;
+  font-size: 20px;
+  color: var(--font_black);
+  text-align: center;
 }
 
