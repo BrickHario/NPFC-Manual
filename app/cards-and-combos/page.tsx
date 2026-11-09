@@ -18,7 +18,7 @@ import type {
 import GoUpButton from "./GoUpButton";
 
 export const metadata: Metadata = {
-  title: "Cards and Combos | NPFC Manual",
+  title: "Cards and Combos",
 };
 
 type ComboMakerParams = {

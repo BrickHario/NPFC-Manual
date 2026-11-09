@@ -2,6 +2,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import {
   useEffect,
   useMemo,
@@ -23,14 +24,6 @@ type TrainingSelectFilterProps = {
   trainings: TrainingEntry[];
   onSelectionChange: (selected: SelectedTraining[]) => void;
   startPots: number[];
-};
-
-export type TrainingNames = {
-  en: string;
-  de: string;
-  es: string;
-  it: string;
-  fr: string;
 };
 
 const labels = {
@@ -67,10 +60,17 @@ const sortOptions = [
   ...directions,
 ] as const;
 
-type Direction = "all" | "zero" | (typeof directions)[number]["value"];
+type Direction =
+  | "all"
+  | "zero"
+  | (typeof directions)[number]["value"];
+
 type MatchFilter = keyof typeof labels.match;
 
-function getTrainingVector(pots: number[], potChanges: number[]) {
+function getTrainingVector(
+  pots: number[],
+  potChanges: number[]
+) {
   const step = calculateTrainingStep(pots, potChanges);
   const { dx, dy } = step;
 
@@ -88,7 +88,6 @@ function getTrainingVector(pots: number[], potChanges: number[]) {
 }
 
 function getVectorLabel(dx: number, dy: number) {
-
   const signed = (value: number) =>
     value > 0 ? `+${value}` : String(value);
 
@@ -120,37 +119,38 @@ export default function TrainingSelectFilter({
   const matchRef = useRef<HTMLDetailsElement>(null);
   const draggedId = useRef<number | null>(null);
   const nextInstanceId = useRef(0);
+
   useEffect(() => {
-  const dropdowns = [sortRef, matchRef];
+    const dropdowns = [sortRef, matchRef];
 
-  const handlePointerDown = (event: PointerEvent) => {
-    const target = event.target as Node;
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
 
-    dropdowns.forEach((ref) => {
-      if (ref.current && !ref.current.contains(target)) {
-        ref.current.open = false;
-      }
-    });
-  };
-
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (event.key === "Escape") {
       dropdowns.forEach((ref) => {
-        if (ref.current) {
+        if (ref.current && !ref.current.contains(target)) {
           ref.current.open = false;
         }
       });
-    }
-  };
+    };
 
-  document.addEventListener("pointerdown", handlePointerDown);
-  document.addEventListener("keydown", handleKeyDown);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        dropdowns.forEach((ref) => {
+          if (ref.current) {
+            ref.current.open = false;
+          }
+        });
+      }
+    };
 
-  return () => {
-    document.removeEventListener("pointerdown", handlePointerDown);
-    document.removeEventListener("keydown", handleKeyDown);
-  };
-}, []);
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   useEffect(() => {
     onSelectionChange(selected);
@@ -177,6 +177,7 @@ export default function TrainingSelectFilter({
 
     for (const item of selected) {
       const entry = catalog.get(entryKey(item));
+
       if (!entry) continue;
 
       const vector = getTrainingVector(
@@ -207,18 +208,23 @@ export default function TrainingSelectFilter({
 
   const options = useMemo(() => {
     const query = search.trim().toLocaleLowerCase();
+
     const selectedDirection = directions.find(
       (option) => option.value === direction
     );
 
     const projection = (entry: TrainingEntry) => {
       const vector = trainingVectors.get(entryKey(entry));
+
       if (!vector || !selectedDirection) return 0;
 
       return (
         vector.dx * selectedDirection.dx +
         vector.dy * selectedDirection.dy
-      ) / Math.hypot(selectedDirection.dx, selectedDirection.dy);
+      ) / Math.hypot(
+        selectedDirection.dx,
+        selectedDirection.dy
+      );
     };
 
     return trainings
@@ -226,12 +232,20 @@ export default function TrainingSelectFilter({
         if (entry.kind === "card" && !showCards) return false;
         if (entry.kind === "combo" && !showCombos) return false;
 
-        if (matchFilter === "only" && !entry.hasMatchActions) return false;
-        if (matchFilter === "excluded" && entry.hasMatchActions) return false;
+        if (matchFilter === "only" && !entry.hasMatchActions) {
+          return false;
+        }
+
+        if (matchFilter === "excluded" && entry.hasMatchActions) {
+          return false;
+        }
 
         if (direction !== "all") {
           const vector = trainingVectors.get(entryKey(entry));
-          if (vector?.direction !== direction) return false;
+
+          if (vector?.direction !== direction) {
+            return false;
+          }
         }
 
         if (!query) return true;
@@ -243,10 +257,13 @@ export default function TrainingSelectFilter({
       .sort((a, b) => {
         if (selectedDirection) {
           const difference = projection(b) - projection(a);
+
           if (difference !== 0) return difference;
         }
 
-        return a.names[language].localeCompare(b.names[language]);
+        return a.names[language].localeCompare(
+          b.names[language]
+        );
       });
   }, [
     trainings,
@@ -281,8 +298,8 @@ export default function TrainingSelectFilter({
   }
 
   function clearTrainings() {
-  setSelected([]);
-}
+    setSelected([]);
+  }
 
   function moveTraining(fromId: number, toId: number) {
     setSelected((current) => {
@@ -316,6 +333,7 @@ export default function TrainingSelectFilter({
     instanceId: number
   ) {
     draggedId.current = instanceId;
+
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData(
       "text/plain",
@@ -328,6 +346,7 @@ export default function TrainingSelectFilter({
     instanceId: number
   ) {
     event.preventDefault();
+
     event.dataTransfer.dropEffect = "move";
 
     setDragOverId(
@@ -366,6 +385,7 @@ export default function TrainingSelectFilter({
     if (sortRef.current) {
       sortRef.current.open = false;
     }
+
     if (matchRef.current) {
       matchRef.current.open = false;
     }
@@ -456,7 +476,7 @@ export default function TrainingSelectFilter({
               </div>
             </details>
 
-                       <details
+            <details
               ref={matchRef}
               className={`${styles.singleFilter} ${styles.sortFilter}`}
             >
@@ -469,24 +489,28 @@ export default function TrainingSelectFilter({
               </summary>
 
               <div className={styles.filterMenu}>
-                {(Object.keys(labels.match) as MatchFilter[]).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    className={`${styles.optionButton} ${
-                      matchFilter === option ? styles.optionSelected : ""
-                    }`}
-                    onClick={() => {
-                      setMatchFilter(option);
+                {(Object.keys(labels.match) as MatchFilter[]).map(
+                  (option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className={`${styles.optionButton} ${
+                        matchFilter === option
+                          ? styles.optionSelected
+                          : ""
+                      }`}
+                      onClick={() => {
+                        setMatchFilter(option);
 
-                      if (matchRef.current) {
-                        matchRef.current.open = false;
-                      }
-                    }}
-                  >
-                    {labels.match[option]}
-                  </button>
-                ))}
+                        if (matchRef.current) {
+                          matchRef.current.open = false;
+                        }
+                      }}
+                    >
+                      {labels.match[option]}
+                    </button>
+                  )
+                )}
               </div>
             </details>
 
@@ -525,15 +549,20 @@ export default function TrainingSelectFilter({
                     height={98}
                     unoptimized
                   />
+
                   <span className={styles.availableName}>
                     {entry.names[language]}
-                  </span>       
+                  </span>
+
                   <span className={styles.availableVector}>
                     {(() => {
-                      const vector = trainingVectors.get(entryKey(entry));
+                      const vector = trainingVectors.get(
+                        entryKey(entry)
+                      );
+
                       return vector
                         ? getVectorLabel(vector.dx, vector.dy)
-                        : "0 X 0 / Y 0";
+                        : "X 0 / Y 0";
                     })()}
                   </span>
                 </span>
@@ -543,23 +572,21 @@ export default function TrainingSelectFilter({
         </div>
       </div>
 
-     
-<div className={styles.selectedHeader}>
-  <h3 className={styles.playerTitle}>
-    Order for {labels.selected}:
-  </h3>
+      <div className={styles.selectedHeader}>
+        <h3 className={styles.playerTitle}>
+          Order for {labels.selected}:
+        </h3>
 
-  {selected.length > 0 && (
-    <button
-      type="button"
-      className={styles.deleteAllButton}
-      onClick={clearTrainings}
-    >
-      Delete All
-    </button>
-  )}
-</div>
-
+        {selected.length > 0 && (
+          <button
+            type="button"
+            className={styles.deleteAllButton}
+            onClick={clearTrainings}
+          >
+            Delete All
+          </button>
+        )}
+      </div>
 
       <div className={styles.selectedList}>
         {selected.length === 0 && (
@@ -569,84 +596,98 @@ export default function TrainingSelectFilter({
         )}
 
         {selected
-  .map((item, index) => ({ item, index }))
-  .reverse()
-  .map(({ item, index }) => {
-          const entry = catalog.get(entryKey(item));
+          .map((item, index) => ({ item, index }))
+          .reverse()
+          .map(({ item, index }) => {
+            const entry = catalog.get(entryKey(item));
 
-          if (!entry) return null;
+            if (!entry) return null;
 
-          return (
-            <div
-              className={`${styles.selectedItem} ${
-                dragOverId === item.instanceId
-                  ? styles.dragOver
-                  : ""
-              }`}
-              key={item.instanceId}
-              draggable
-              onDragStart={(event) =>
-                handleDragStart(
-                  event,
-                  item.instanceId
-                )
-              }
-              onDragOver={(event) =>
-                handleDragOver(
-                  event,
-                  item.instanceId
-                )
-              }
-              onDrop={(event) =>
-                handleDrop(
-                  event,
-                  item.instanceId
-                )
-              }
-              onDragEnd={handleDragEnd}
-            >
-              <span className={styles.itemNumber}>
-                {index + 1}.
-              </span>
-
-              <div className={styles.trainingCard}>
-                <span className={styles.availableImage}>
-                  <Image
-                    src={entry.imageUrl}
-                    alt=""
-                    width={150}
-                    height={98}
-                    unoptimized
-                    draggable={false}
-                  />
-                  <span className={styles.availableName}>
-                    {entry.names[language]}
-                  </span>               
-                  <span className={styles.availableVector}>
-                    {(() => {
-                      const vector = selectedVectors.get(item.instanceId);
-                      return vector
-                        ? getVectorLabel(vector.dx, vector.dy)
-                        : "X 0 / Y 0";
-                    })()}
-                  </span>
+            return (
+              <div
+                className={`${styles.selectedItem} ${
+                  dragOverId === item.instanceId
+                    ? styles.dragOver
+                    : ""
+                }`}
+                key={item.instanceId}
+                draggable
+                onDragStart={(event) =>
+                  handleDragStart(
+                    event,
+                    item.instanceId
+                  )
+                }
+                onDragOver={(event) =>
+                  handleDragOver(
+                    event,
+                    item.instanceId
+                  )
+                }
+                onDrop={(event) =>
+                  handleDrop(
+                    event,
+                    item.instanceId
+                  )
+                }
+                onDragEnd={handleDragEnd}
+              >
+                <span className={styles.itemNumber}>
+                  {index + 1}.
                 </span>
-              </div>
+
+                <div className={styles.trainingCard}>
+                  <span className={styles.availableImage}>
+                    <Image
+                      src={entry.imageUrl}
+                      alt=""
+                      width={150}
+                      height={98}
+                      unoptimized
+                      draggable={false}
+                    />
+
+                    <span className={styles.availableName}>
+                      {entry.names[language]}
+                    </span>
+
+                    <span className={styles.availableVector}>
+                      {(() => {
+                        const vector = selectedVectors.get(
+                          item.instanceId
+                        );
+
+                        return vector
+                          ? getVectorLabel(vector.dx, vector.dy)
+                          : "X 0 / Y 0";
+                      })()}
+                    </span>
+                  </span>
+                </div>
 
               <button
                 className={styles.removeButton}
                 type="button"
                 draggable={false}
                 aria-label={`${labels.remove}: ${entry.names[language]}`}
-                onClick={() =>
-                  removeTraining(item.instanceId)
-                }
+                onClick={() => removeTraining(item.instanceId)}
               >
                 ×
               </button>
-            </div>
-          );
-        })}
+
+              <Link
+                href={`/cards-and-combos?id=${entry.id}`}
+                className={`${styles.removeButton} ${styles.trainingInfoButton}`}
+                aria-label={`View ${entry.names[language]} information`}
+                title="Training info"
+                draggable={false}
+                onDragStart={(event) => event.preventDefault()}
+              >
+                i
+              </Link>
+              </div>
+            );
+          })}
       </div>
     </aside>
   );

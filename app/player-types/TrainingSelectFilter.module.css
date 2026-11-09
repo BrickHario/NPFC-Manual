@@ -633,4 +633,22 @@
   outline: 3px solid var(--color-highlight);
   outline-offset: 2px;
 }
+.selectedItem {
+  position: relative;
+}
+
+.trainingInfoButton {
+  top: auto;
+  bottom: -5px;
+  right: -6px;
+  background: #2041b0;
+  color: #fff;
+  text-decoration: none;
+  font-style: normal;
+}
+
+.trainingInfoButton:hover {
+  background: #426be0;
+  color: #fff;
+}
 
