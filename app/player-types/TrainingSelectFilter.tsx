@@ -12,6 +12,11 @@ import type { DragEvent } from "react";
 import type { Language } from "../../lib/utils";
 import styles from "./TrainingSelectFilter.module.css";
 import { calculateTrainingStep } from "./player-type-calculation";
+import type {
+  SelectedTraining,
+  TrainingEntry,
+  TrainingKind,
+} from "./training-types";
 
 type TrainingSelectFilterProps = {
   language: Language;
@@ -20,8 +25,6 @@ type TrainingSelectFilterProps = {
   startPots: number[];
 };
 
-export type TrainingKind = "card" | "combo";
-
 export type TrainingNames = {
   en: string;
   de: string;
@@ -29,23 +32,6 @@ export type TrainingNames = {
   it: string;
   fr: string;
 };
-
-export type SelectedTraining = {
-  kind: TrainingKind;
-  id: number;
-  instanceId: number;
-};
-
-export type TrainingEntry = {
-  kind: TrainingKind;
-  id: number;
-  hasMatchActions: boolean;
-  names: TrainingNames;
-  imageUrl: string;
-  potChanges: number[];
-  skillChanges: number[];
-};
-
 
 const labels = {
   heading: "Training",
@@ -58,9 +44,9 @@ const labels = {
   remove: "Remove training",
   reset: "Reset filters",
   match: {
-    all: "Match actions",
-    only: "Yes",
-    excluded: "No",
+    all: "All: Match actions",
+    only: "Yes: Match actions",
+    excluded: "No: Match actions",
   },
 } as const;
 
@@ -430,40 +416,6 @@ export default function TrainingSelectFilter({
             </label>
 
             <details
-              ref={matchRef}
-              className={`${styles.singleFilter} ${styles.sortFilter}`}
-            >
-              <summary
-                className={`${styles.control} ${styles.filterSummary}`}
-              >
-                <span className={styles.filterText}>
-                  {labels.match[matchFilter]}
-                </span>
-              </summary>
-
-              <div className={styles.filterMenu}>
-                {(Object.keys(labels.match) as MatchFilter[]).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    className={`${styles.optionButton} ${
-                      matchFilter === option ? styles.optionSelected : ""
-                    }`}
-                    onClick={() => {
-                      setMatchFilter(option);
-
-                      if (matchRef.current) {
-                        matchRef.current.open = false;
-                      }
-                    }}
-                  >
-                    {labels.match[option]}
-                  </button>
-                ))}
-              </div>
-            </details>
-
-            <details
               ref={sortRef}
               className={`${styles.singleFilter} ${styles.sortFilter}`}
             >
@@ -499,6 +451,40 @@ export default function TrainingSelectFilter({
                     }}
                   >
                     {option.label}
+                  </button>
+                ))}
+              </div>
+            </details>
+
+                       <details
+              ref={matchRef}
+              className={`${styles.singleFilter} ${styles.sortFilter}`}
+            >
+              <summary
+                className={`${styles.control} ${styles.filterSummary}`}
+              >
+                <span className={styles.filterText}>
+                  {labels.match[matchFilter]}
+                </span>
+              </summary>
+
+              <div className={styles.filterMenu}>
+                {(Object.keys(labels.match) as MatchFilter[]).map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={`${styles.optionButton} ${
+                      matchFilter === option ? styles.optionSelected : ""
+                    }`}
+                    onClick={() => {
+                      setMatchFilter(option);
+
+                      if (matchRef.current) {
+                        matchRef.current.open = false;
+                      }
+                    }}
+                  >
+                    {labels.match[option]}
                   </button>
                 ))}
               </div>

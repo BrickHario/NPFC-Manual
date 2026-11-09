@@ -18,6 +18,7 @@ export type SelectedTraining = {
 export type TrainingEntry = {
   kind: TrainingKind;
   id: number;
+  hasMatchActions: boolean;
   names: TrainingNames;
   imageUrl: string;
   potChanges: number[];
