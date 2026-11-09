@@ -8,18 +8,10 @@ import {
   rankImages,
 } from "../../lib/utils";
 
-type TypePlayersProps = {
-  playerName: string;
-  playerImageUrl: string;
-  playerId: number | null;
-  onRemovePlayer: () => void;
-  setX: (value: number) => void;
-  setY: (value: number) => void;
-  clampCoordinate: (value: number) => number;
-  getPlayerType: (
-    x: number,
-    y: number
-  ) => string;
+export type PlayerDisplay = {
+  id: number | null;
+  name: string;
+  imageUrl: string;
   x: number;
   y: number;
   typeColor: string;
@@ -27,419 +19,287 @@ type TypePlayersProps = {
   finalY: number;
   finalType: string;
   finalTypeColor: string;
-  startAttributes: ReturnType<
-    typeof calculateAttributes
-  >;
-  finalAttributes: ReturnType<
-    typeof calculateAttributes
-  >;
+  startAttributes: ReturnType<typeof calculateAttributes>;
+  finalAttributes: ReturnType<typeof calculateAttributes>;
+  startPots: number[];
+  startPosition: { x: number; y: number };
+  path: { x: number; y: number }[];
+};
+
+type TypePlayersProps = {
+  players: PlayerDisplay[];
+  onRemovePlayer: (id: number) => void;
+  onPositionChange: (
+    id: number | null,
+    axis: "x" | "y",
+    value: number
+  ) => void;
+  clampCoordinate: (value: number) => number;
+  getPlayerType: (x: number, y: number) => string;
 };
 
 const LEVEL_THRESHOLDS = [
-  0,
-  50,
-  150,
-  350,
-  600,
-  1000,
+  0, 50, 150, 350, 600, 1000,
 ] as const;
 
-function getLevelProgress(
-  value: number,
-  level: number
-): number {
-  if (
-    level >= LEVEL_THRESHOLDS.length - 1
-  ) {
-    return 100;
-  }
-
-  if (
-    level < 0 ||
-    !Number.isFinite(value)
-  ) {
-    return 0;
-  }
+function getLevelProgress(value: number, level: number) {
+  if (level >= LEVEL_THRESHOLDS.length - 1) return 100;
+  if (level < 0 || !Number.isFinite(value)) return 0;
 
   const min = LEVEL_THRESHOLDS[level];
   const max = LEVEL_THRESHOLDS[level + 1];
 
-  if (
-    min === undefined ||
-    max === undefined
-  ) {
-    return 0;
-  }
+  if (min === undefined || max === undefined) return 0;
 
   return Math.max(
     0,
-    Math.min(
-      100,
-      ((value - min) / (max - min)) * 100
-    )
+    Math.min(100, ((value - min) / (max - min)) * 100)
   );
 }
 
-function getAttributeImage(
-  name: string,
-  index: number
-): string {
+function getAttributeImage(name: string, index: number) {
   const value = name.toLowerCase().trim();
 
-  if (/shoot|shot|schuss/.test(value)) {
-    return "/shoot-icon.png";
-  }
+  if (/shoot|shot|schuss/.test(value)) return "/shoot-icon.png";
+  if (/speed|tempo|pace/.test(value)) return "/run-icon.png";
+  if (/stamina|ausdauer|endurance/.test(value)) return "/stamina-icon.png";
+  if (/technic|techni|technik|skill/.test(value)) return "/technic-icon.png";
+  if (/strength|kraft|power/.test(value)) return "/strenght-icon.png";
+  if (/jump|sprung/.test(value)) return "/jump-icon.png";
+  if (/will|wille|mental/.test(value)) return "/will-icon.png";
 
-  if (/speed|tempo|pace/.test(value)) {
-    return "/run-icon.png";
-  }
-
-  if (/stamina|ausdauer|endurance/.test(value)) {
-    return "/stamina-icon.png";
-  }
-
-  if (/technic|techni|technik|skill/.test(value)) {
-    return "/technic-icon.png";
-  }
-
-  if (/strength|kraft|power/.test(value)) {
-    return "/strenght-icon.png";
-  }
-
-  if (/jump|sprung/.test(value)) {
-    return "/jump-icon.png";
-  }
-
-  if (/will|wille|mental/.test(value)) {
-    return "/will-icon.png";
-  }
-
-  return (
-    attributeImages[index] ??
-    "/will-icon.png"
-  );
+  return attributeImages[index] ?? "/will-icon.png";
 }
 
 export function TypePlayers({
-  playerName,
-  playerImageUrl,
-  playerId,
+  players,
   onRemovePlayer,
-  setX,
-  setY,
+  onPositionChange,
   clampCoordinate,
   getPlayerType,
-  x,
-  y,
-  typeColor,
-  finalX,
-  finalY,
-  finalType,
-  finalTypeColor,
-  startAttributes,
-  finalAttributes,
 }: TypePlayersProps) {
   return (
     <aside className={styles.players}>
       <h2>Players</h2>
 
       <ul className={styles.playerList}>
-        <li className={styles.player}>
-          {playerId !== null && (
-            <>
-              <Link
-                href={`/marketplace?sort=overall_desc&page=1&id=${playerId}`}
-                className={styles.infoButton}
-                aria-label={`View ${playerName} information`}
-                title="Player info"
-              >
-                i
-              </Link>
-
-              <Link
-                href="/player-types"
-                className={styles.removePlayer}
-                aria-label={`Remove ${playerName}`}
-                title="Remove player"
-                onClick={onRemovePlayer}
-              >
-                ×
-              </Link>
-            </>
-          )}
-
-          <div className={styles.playerHeading}>
-            <span
-              className={styles.playerName}
-            >
-              {playerName}
-            </span>
-
-            <div
-              className={styles.playerImage}
-            >
-              <Image
-                key={playerImageUrl}
-                src={playerImageUrl}
-                alt={playerName}
-                fill
-                sizes="64px"
-                unoptimized
-                style={{
-                  objectFit: "contain",
-                  imageRendering: "pixelated",
-                }}
-              />
-            </div>
-
-            <div
-              className={styles.typeColumn}
-            >
-              <p
-                className={styles.playerType}
-                style={{ color: typeColor }}
-              >
-                {getPlayerType(x, y)}
-              </p>
-
-              <div
-                className={styles.resultType}
-              >
-                <span
-                  className={styles.downArrow}
+        {players.map((player) => (
+          <li
+            className={styles.player}
+            key={player.id ?? "dummy"}
+          >
+            {player.id !== null && (
+              <>
+                <Link
+                  href={`/marketplace?sort=overall_desc&page=1&id=${player.id}`}
+                  className={styles.infoButton}
+                  aria-label={`View ${player.name} information`}
+                  title="Player info"
                 >
-                  ⌄
-                </span>
+                  i
+                </Link>
 
-                <span
+                <button
+                  type="button"
+                  className={styles.removePlayer}
+                  aria-label={`Remove ${player.name}`}
+                  title="Remove player"
+                  onClick={() => onRemovePlayer(player.id!)}
+                >
+                  ×
+                </button>
+              </>
+            )}
+
+            <div className={styles.playerHeading}>
+              <span className={styles.playerName}>
+                {player.name}
+              </span>
+
+              <div className={styles.playerImage}>
+                <Image
+                  src={player.imageUrl}
+                  alt={player.name}
+                  fill
+                  sizes="64px"
+                  unoptimized
                   style={{
-                    color: finalTypeColor,
+                    objectFit: "contain",
+                    imageRendering: "pixelated",
                   }}
-                >
-                  {finalType}
-                </span>
+                />
               </div>
-            </div>
 
-            <div
-              className={
-                styles.coordinatesColumn
-              }
-            >
-              <div
-                className={
-                  styles.coordinatesRow
-                }
-              >
-                <label
-                  className={
-                    styles.coordinate
-                  }
+              <div className={styles.typeColumn}>
+                <p
+                  className={styles.playerType}
+                  style={{ color: player.typeColor }}
                 >
-                  X
+                  {getPlayerType(player.x, player.y)}
+                </p>
 
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={x}
-                    onChange={(event) => {
-                      const value =
-                        event.currentTarget
-                          .valueAsNumber;
+                <div className={styles.resultType}>
+                  <span className={styles.downArrow}>
+                    ⌄
+                  </span>
 
-                      if (
-                        Number.isFinite(value)
-                      ) {
-                        setX(
-                          clampCoordinate(value)
-                        );
-                      }
+                  <span
+                    style={{
+                      color: player.finalTypeColor,
                     }}
-                    aria-label={`${playerName} X-Koordinate`}
-                  />
-                </label>
-
-                <label
-                  className={
-                    styles.coordinate
-                  }
-                >
-                  Y
-
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={y}
-                    onChange={(event) => {
-                      const value =
-                        event.currentTarget
-                          .valueAsNumber;
-
-                      if (
-                        Number.isFinite(value)
-                      ) {
-                        setY(
-                          clampCoordinate(value)
-                        );
-                      }
-                    }}
-                    aria-label={`${playerName} Y-Koordinate`}
-                  />
-                </label>
+                  >
+                    {player.finalType}
+                  </span>
+                </div>
               </div>
 
-              <div
-                className={
-                  styles.resultCoordinates
-                }
-              >
-                <span
-                  className={styles.downArrow}
-                >
-                  ⌄
-                </span>
+              <div className={styles.coordinatesColumn}>
+                <div className={styles.coordinatesRow}>
+                  <label className={styles.coordinate}>
+                    X
 
-                <span>
-                  X {finalX} / Y {finalY}
-                </span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={player.x}
+                      onChange={(event) => {
+                        const value =
+                          event.currentTarget.valueAsNumber;
+
+                        if (Number.isFinite(value)) {
+                          onPositionChange(
+                            player.id,
+                            "x",
+                            clampCoordinate(value)
+                          );
+                        }
+                      }}
+                      aria-label={`${player.name} X-Koordinate`}
+                    />
+                  </label>
+
+                  <label className={styles.coordinate}>
+                    Y
+
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={player.y}
+                      onChange={(event) => {
+                        const value =
+                          event.currentTarget.valueAsNumber;
+
+                        if (Number.isFinite(value)) {
+                          onPositionChange(
+                            player.id,
+                            "y",
+                            clampCoordinate(value)
+                          );
+                        }
+                      }}
+                      aria-label={`${player.name} Y-Koordinate`}
+                    />
+                  </label>
+                </div>
+
+                <div className={styles.resultCoordinates}>
+                  <span className={styles.downArrow}>
+                    ⌄
+                  </span>
+
+                  <span>
+                    X {player.finalX} / Y {player.finalY}
+                  </span>
+                </div>
               </div>
-            </div>
 
-            <div
-              className={styles.skillsGrid}
-            >
-              {startAttributes
-                .slice(0, 7)
-                .map(
-                  (attribute, index) => {
-                    const startGrade =
-                      String(
-                        attribute.grade ??
-                          "—"
-                      )
-                        .trim()
-                        .toUpperCase();
-
+              <div className={styles.skillsGrid}>
+                {player.startAttributes
+                  .slice(0, 7)
+                  .map((attribute, index) => {
                     const finalAttribute =
-                      finalAttributes[
-                        index
-                      ] ?? attribute;
+                      player.finalAttributes[index] ??
+                      attribute;
 
-                    const finalGrade =
-                      String(
-                        finalAttribute.grade ??
-                          startGrade
-                      )
-                        .trim()
-                        .toUpperCase();
+                    const startGrade = String(
+                      attribute.grade ?? "—"
+                    )
+                      .trim()
+                      .toUpperCase();
+
+                    const finalGrade = String(
+                      finalAttribute.grade ?? "—"
+                    )
+                      .trim()
+                      .toUpperCase();
 
                     const startImage =
-                      rankImages[
-                        startGrade
-                      ];
+                      rankImages[startGrade];
 
                     const finalImage =
-                      rankImages[
-                        finalGrade
-                      ];
+                      rankImages[finalGrade];
 
-                    const startProgress =
-                      getLevelProgress(
-                        attribute.value,
-                        attribute.level
-                      );
+                    const startProgress = getLevelProgress(
+                      attribute.value,
+                      attribute.level
+                    );
 
-                    const finalProgress =
-                      getLevelProgress(
-                        finalAttribute.value,
-                        finalAttribute.level
-                      );
+                    const finalProgress = getLevelProgress(
+                      finalAttribute.value,
+                      finalAttribute.level
+                    );
 
                     return (
                       <div
-                        className={
-                          styles.skillItem
-                        }
+                        className={styles.skillItem}
                         key={`${attribute.name}-${index}`}
-                        title={String(
-                          attribute.name
-                        )}
+                        title={String(attribute.name)}
                       >
                         <Image
                           src={getAttributeImage(
-                            String(
-                              attribute.name
-                            ),
+                            String(attribute.name),
                             index
                           )}
-                          alt={String(
-                            attribute.name
-                          )}
+                          alt={String(attribute.name)}
                           width={46}
                           height={46}
                           unoptimized
-                          className={
-                            styles.skillIcon
-                          }
+                          className={styles.skillIcon}
                         />
 
-                        <div
-                          className={
-                            styles.gradeSlot
-                          }
-                        >
+                        <div className={styles.gradeSlot}>
                           <div
-                            className={
-                              styles.skillGrade
-                            }
+                            className={styles.skillGrade}
                             title={`${attribute.name}: ${startGrade} (${attribute.value})`}
                           >
                             {startImage ? (
                               <Image
-                                src={
-                                  startImage
-                                }
+                                src={startImage}
                                 alt={`Rating ${startGrade}`}
                                 width={15}
                                 height={15}
                                 unoptimized
-                                className={
-                                  styles.rankImage
-                                }
+                                className={styles.rankImage}
                               />
                             ) : (
-                              <span>
-                                {
-                                  startGrade
-                                }
-                              </span>
+                              <span>{startGrade}</span>
                             )}
                           </div>
 
                           <div
-                            className={
-                              styles.levelTrack
-                            }
+                            className={styles.levelTrack}
                             role="progressbar"
                             aria-label={`${attribute.name}: ${Math.round(startProgress)}%`}
-                            aria-valuemin={
-                              0
-                            }
-                            aria-valuemax={
-                              100
-                            }
-                            aria-valuenow={Math.round(
-                              startProgress
-                            )}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuenow={Math.round(startProgress)}
                           >
                             <span
-                              className={
-                                styles.levelDot
-                              }
+                              className={styles.levelDot}
                               style={{
                                 bottom: `${startProgress}%`,
                               }}
@@ -447,67 +307,39 @@ export function TypePlayers({
                           </div>
                         </div>
 
-                        <span
-                          className={
-                            styles.downArrow
-                          }
-                        >
+                        <span className={styles.downArrow}>
                           ⌄
                         </span>
 
-                        <div
-                          className={
-                            styles.gradeSlot
-                          }
-                        >
+                        <div className={styles.gradeSlot}>
                           <div
-                            className={
-                              styles.skillGrade
-                            }
+                            className={styles.skillGrade}
                             title={`${attribute.name}: ${finalGrade} (${finalAttribute.value})`}
                           >
                             {finalImage ? (
                               <Image
-                                src={
-                                  finalImage
-                                }
+                                src={finalImage}
                                 alt={`Rating ${finalGrade}`}
                                 width={15}
                                 height={15}
                                 unoptimized
-                                className={
-                                  styles.rankImage
-                                }
+                                className={styles.rankImage}
                               />
                             ) : (
-                              <span>
-                                {
-                                  finalGrade
-                                }
-                              </span>
+                              <span>{finalGrade}</span>
                             )}
                           </div>
 
                           <div
-                            className={
-                              styles.levelTrack
-                            }
+                            className={styles.levelTrack}
                             role="progressbar"
                             aria-label={`${attribute.name}: ${Math.round(finalProgress)}%`}
-                            aria-valuemin={
-                              0
-                            }
-                            aria-valuemax={
-                              100
-                            }
-                            aria-valuenow={Math.round(
-                              finalProgress
-                            )}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuenow={Math.round(finalProgress)}
                           >
                             <span
-                              className={
-                                styles.levelDot
-                              }
+                              className={styles.levelDot}
                               style={{
                                 bottom: `${finalProgress}%`,
                               }}
@@ -516,11 +348,11 @@ export function TypePlayers({
                         </div>
                       </div>
                     );
-                  }
-                )}
+                  })}
+              </div>
             </div>
-          </div>
-        </li>
+          </li>
+        ))}
       </ul>
     </aside>
   );

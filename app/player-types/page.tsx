@@ -8,6 +8,11 @@ import type {
   TrainingEntry,
   TrainingNames,
 } from "./training-types";
+import {
+  PLAYER_SELECTION_COOKIE,
+  parsePlayerIds,
+  type PlayerTypeSelection,
+} from "./player-selection";
 import { LoadingBig } from "../Loading";
 import styles from "./TrainingSelectFilter.module.css";
 import type { Language } from "../../lib/utils";
@@ -61,40 +66,34 @@ type TrainingRow = {
 };
 
 type PlayerSkillsRow = {
-  skill_01: number;
-  skill_02: number;
-  skill_03: number;
-  skill_04: number;
-  skill_05: number;
-  skill_06: number;
-  skill_07: number;
-  skill_08: number;
-  skill_09: number;
-  skill_10: number;
+  id_player: number;
+  skill_01: number | null;
+  skill_02: number | null;
+  skill_03: number | null;
+  skill_04: number | null;
+  skill_05: number | null;
+  skill_06: number | null;
+  skill_07: number | null;
+  skill_08: number | null;
+  skill_09: number | null;
+  skill_10: number | null;
 };
-
-type SelectedPlayerData = {
-  id: number;
-  name: string;
-  imageUrl: string;
-  skills: number[];
-};
-
-const potColumns = Array.from(
-  { length: 12 },
-  (_, index) => `pot_${String(index + 1).padStart(2, "0")}`
-);
 
 const skillColumns = Array.from(
   { length: 10 },
   (_, index) => `skill_${String(index + 1).padStart(2, "0")}`
 );
 
+const potColumns = Array.from(
+  { length: 12 },
+  (_, index) => `pot_${String(index + 1).padStart(2, "0")}`
+);
+
 const trainingSelect =
   "skill_01,skill_02,skill_03,skill_04,skill_05,skill_06,skill_07,skill_08,skill_09,skill_10,pot_01,pot_02,pot_03,pot_04,pot_05,pot_06,pot_07,pot_08,pot_09,pot_10,pot_11,pot_12" as const;
 
 const playerSkillsSelect =
-  "skill_01,skill_02,skill_03,skill_04,skill_05,skill_06,skill_07,skill_08,skill_09,skill_10" as const;
+  "id_player,skill_01,skill_02,skill_03,skill_04,skill_05,skill_06,skill_07,skill_08,skill_09,skill_10" as const;
 
 function getPotChanges(row: TrainingRow): number[] {
   return potColumns.map((column) =>
@@ -129,7 +128,7 @@ function namesOf(
   };
 }
 
-function normalizeLanguage(value: string | undefined): Language {
+function normalizeLanguage(value?: string): Language {
   if (
     value === "de" ||
     value === "en" ||
@@ -151,88 +150,31 @@ async function PlayerTypesData({
   }>;
 }) {
   const params = await searchParams;
-
-  const playerId =
-    typeof params.playerId === "string"
-      ? params.playerId
-      : undefined;
-
   const cookieStore = await cookies();
+  const supabase = await createClient();
 
   const initialLanguage = normalizeLanguage(
     cookieStore.get("npfc-language")?.value
   );
 
-  const supabase = await createClient();
+  const storedIds = parsePlayerIds(
+    cookieStore.get(PLAYER_SELECTION_COOKIE)?.value
+  );
 
-  let initialPlayer: SelectedPlayerData | null = null;
+  const requestedId =
+    typeof params.playerId === "string"
+      ? Number(params.playerId)
+      : null;
 
-  const id = Number(playerId);
+  const playerIds = [...storedIds];
 
   if (
-    playerId &&
-    Number.isSafeInteger(id) &&
-    id > 0
+    requestedId !== null &&
+    Number.isSafeInteger(requestedId) &&
+    requestedId > 0 &&
+    !playerIds.includes(requestedId)
   ) {
-    const [playerResult, skillsResult] = await Promise.all([
-      supabase
-        .from("Player")
-        .select("id_player,name")
-        .eq("id_player", id)
-        .maybeSingle(),
-
-      supabase
-        .from("Player_Skills")
-        .select(playerSkillsSelect)
-        .eq("id_player", id)
-        .maybeSingle(),
-    ]);
-
-    if (playerResult.error || skillsResult.error) {
-      return (
-        <main>
-          <p role="alert">
-            Unable to load player:{" "}
-            {playerResult.error?.message ??
-              skillsResult.error?.message}
-          </p>
-        </main>
-      );
-    }
-
-    const player = playerResult.data;
-    const skills = skillsResult.data;
-
-    if (!player) {
-      return (
-        <main>
-          <p role="alert">
-            Player #{id} was not found.
-          </p>
-        </main>
-      );
-    }
-
-    if (!skills) {
-      return (
-        <main>
-          <p role="alert">
-            No skill data found for player #{id}.
-          </p>
-        </main>
-      );
-    }
-
-    initialPlayer = {
-      id: Number(player.id_player),
-      name: player.name,
-      imageUrl: supabase.storage
-        .from("player-images")
-        .getPublicUrl(
-          `${String(player.id_player).padStart(4, "0")}.png`
-        ).data.publicUrl,
-      skills: getPlayerSkills(skills as PlayerSkillsRow),
-    };
+    playerIds.push(requestedId);
   }
 
   const [
@@ -240,6 +182,8 @@ async function PlayerTypesData({
     cardNamesResult,
     combosResult,
     comboNamesResult,
+    playersResult,
+    skillsResult,
   ] = await Promise.all([
     supabase
       .from("Cards")
@@ -249,7 +193,7 @@ async function PlayerTypesData({
     supabase
       .from("CardNames")
       .select(
-        "card_id, english_name, german_name, spanish_name, italian_name, french_name"
+        "card_id,english_name,german_name,spanish_name,italian_name,french_name"
       )
       .order("card_id"),
 
@@ -261,22 +205,38 @@ async function PlayerTypesData({
     supabase
       .from("ComboNames")
       .select(
-        "combo_id, english_name, german_name, spanish_name, italian_name, french_name"
+        "combo_id,english_name,german_name,spanish_name,italian_name,french_name"
       )
       .order("combo_id"),
+
+    playerIds.length > 0
+      ? supabase
+          .from("Player")
+          .select("id_player,name")
+          .in("id_player", playerIds)
+      : Promise.resolve({ data: [], error: null }),
+
+    playerIds.length > 0
+      ? supabase
+          .from("Player_Skills")
+          .select(playerSkillsSelect)
+          .in("id_player", playerIds)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   const error =
     cardsResult.error ??
     cardNamesResult.error ??
     combosResult.error ??
-    comboNamesResult.error;
+    comboNamesResult.error ??
+    playersResult.error ??
+    skillsResult.error;
 
   if (error) {
     return (
       <main>
         <p role="alert">
-          Unable to load training data: {error.message}
+          Unable to load data: {error.message}
         </p>
       </main>
     );
@@ -297,21 +257,18 @@ async function PlayerTypesData({
   const cards: TrainingEntry[] = (
     (cardsResult.data ?? []) as TrainingRow[]
   ).map((row) => {
-    const cardId = Number(row.card_id);
+    const id = Number(row.card_id);
 
     return {
       kind: "card",
-      id: cardId,
+      id,
       hasMatchActions: false,
       skillChanges: getSkillChanges(row),
-      names: namesOf(
-        cardNames.get(cardId),
-        `Card #${cardId}`
-      ),
+      names: namesOf(cardNames.get(id), `Card #${id}`),
       imageUrl: supabase.storage
         .from("card-images")
         .getPublicUrl(
-          `${String(cardId).padStart(4, "0")}.png`
+          `${String(id).padStart(4, "0")}.png`
         ).data.publicUrl,
       potChanges: getPotChanges(row),
     };
@@ -320,33 +277,66 @@ async function PlayerTypesData({
   const combos: TrainingEntry[] = (
     (combosResult.data ?? []) as TrainingRow[]
   ).map((row) => {
-    const comboId = Number(row.combo_id);
+    const id = Number(row.combo_id);
 
     return {
       kind: "combo",
-      id: comboId,
+      id,
       hasMatchActions:
         row.has_match_actions === true ||
         row.has_match_actions === 1,
-      names: namesOf(
-        comboNames.get(comboId),
-        `Combo #${comboId}`
-      ),
+      names: namesOf(comboNames.get(id), `Combo #${id}`),
       skillChanges: getSkillChanges(row),
       imageUrl: supabase.storage
         .from("combo-images")
         .getPublicUrl(
-          `${String(comboId).padStart(4, "0")}.png`
+          `${String(id).padStart(4, "0")}.png`
         ).data.publicUrl,
       potChanges: getPotChanges(row),
     };
   });
 
+  const playerMap = new Map(
+    (playersResult.data ?? []).map((player) => [
+      Number(player.id_player),
+      player,
+    ])
+  );
+
+  const skillsMap = new Map(
+    ((skillsResult.data ?? []) as PlayerSkillsRow[]).map(
+      (skills) => [Number(skills.id_player), skills]
+    )
+  );
+
+  const initialPlayers: PlayerTypeSelection[] = playerIds
+    .map((id) => {
+      const player = playerMap.get(id);
+      const skills = skillsMap.get(id);
+
+      if (!player || !skills) return null;
+
+      return {
+        id,
+        name: player.name,
+        imageUrl: supabase.storage
+          .from("player-images")
+          .getPublicUrl(
+            `${String(id).padStart(4, "0")}.png`
+          ).data.publicUrl,
+        skills: getPlayerSkills(skills),
+      };
+    })
+    .filter(
+      (player): player is PlayerTypeSelection =>
+        player !== null
+    );
+
   return (
     <PlayerTypesClient
       trainings={[...cards, ...combos]}
       initialLanguage={initialLanguage}
-      initialPlayer={initialPlayer}
+      initialPlayers={initialPlayers}
     />
   );
 }

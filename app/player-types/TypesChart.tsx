@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, type MouseEvent } from "react";
@@ -9,18 +10,22 @@ import {
   type Language,
 } from "../../lib/utils";
 
+type Point = {
+  x: number;
+  y: number;
+};
+
+type ChartPlayer = {
+  id: number | null;
+  name: string;
+  imageUrl: string;
+  startPosition: Point;
+  path: Point[];
+};
+
 type TypesChartProps = {
-  player: {
-    x: number;
-    y: number;
-  };
-  path?: {
-    x: number;
-    y: number;
-  }[];
+  players: ChartPlayer[];
   language: Language;
-  playerName: string;
-  playerImageUrl: string;
 };
 
 const dimension = 101;
@@ -29,6 +34,17 @@ const step = 10;
 const plot = dimension * step;
 const canvas = plot + padding * 2;
 const ticks = Array.from({ length: 11 }, (_, i) => i * 10);
+
+const pathColors = [
+  "#16a34a",
+  "#2563eb",
+  "#dc2626",
+  "#9333ea",
+  "#ea580c",
+  "#0891b2",
+  "#ca8a04",
+  "#be185d",
+];
 
 const typeDescriptions = [
   "A player with no particular stand-out attributes but who can contribute equally to both attack and defence.",
@@ -47,6 +63,7 @@ const typeDescriptions = [
 
 function createChart() {
   const cells = new Uint8Array(dimension * dimension);
+
   const regions = Array.from(
     { length: PLAYER_TYPE_COLORS.length },
     () => ""
@@ -63,7 +80,8 @@ function createChart() {
       const top = padding + (dimension - 1 - y) * step;
       const width = (end - start + 1) * step;
 
-      regions[type] += `M${x} ${top}h${width}v${step}h-${width}Z`;
+      regions[type] +=
+        `M${x} ${top}h${width}v${step}h-${width}Z`;
 
       cells.fill(
         type,
@@ -129,6 +147,7 @@ function createChart() {
   for (let y = 0; y < dimension; y++) {
     for (let x = 0; x < dimension; x++) {
       const sum = sums[cells[y * dimension + x]];
+
       sum.x += x;
       sum.y += y;
       sum.count++;
@@ -263,21 +282,34 @@ const chart = createChart();
 const popupWidth = 420;
 const popupHeight = 210;
 
+function chartX(value: number) {
+  return padding + (value + 0.5) * step;
+}
+
+function chartY(value: number) {
+  return padding + (100.5 - value) * step;
+}
+
+function finalPosition(player: ChartPlayer): Point {
+  return player.path.length > 0
+    ? player.path[player.path.length - 1]
+    : player.startPosition;
+}
+
 export default function TypesChart({
-  player,
-  path = [],
+  players,
   language,
-  playerName,
-  playerImageUrl,
 }: TypesChartProps) {
-  const allPoints = [player, ...path];
   const [selectedType, setSelectedType] = useState<{
     type: number;
     x: number;
     y: number;
   } | null>(null);
 
-  function toggleType(event: MouseEvent<SVGPathElement>, type: number) {
+  function toggleType(
+    event: MouseEvent<SVGPathElement>,
+    type: number
+  ) {
     event.stopPropagation();
     event.currentTarget.blur();
 
@@ -288,14 +320,20 @@ export default function TypesChart({
 
     const svg = event.currentTarget.ownerSVGElement;
     const matrix = svg?.getScreenCTM();
+
     let x = chart.labels[type].x;
     let y = chart.labels[type].y;
 
     if (svg && matrix) {
       const point = svg.createSVGPoint();
+
       point.x = event.clientX;
       point.y = event.clientY;
-      const svgPoint = point.matrixTransform(matrix.inverse());
+
+      const svgPoint = point.matrixTransform(
+        matrix.inverse()
+      );
+
       x = svgPoint.x;
       y = svgPoint.y;
     }
@@ -304,296 +342,380 @@ export default function TypesChart({
   }
 
   const popupX = selectedType
-    ? Math.min(Math.max(10, selectedType.x + 16), canvas - popupWidth - 10)
+    ? Math.min(
+        Math.max(10, selectedType.x + 16),
+        canvas - popupWidth - 10
+      )
     : 0;
+
   const popupY = selectedType
     ? selectedType.y + popupHeight + 16 > canvas
-      ? Math.max(10, selectedType.y - popupHeight - 16)
+      ? Math.max(
+          10,
+          selectedType.y - popupHeight - 16
+        )
       : Math.max(10, selectedType.y + 16)
     : 0;
 
-  function chartX(value: number) {
-    return padding + (value + 0.5) * step;
-  }
+  const markers = players.map((player, index) => {
+    const position = finalPosition(player);
 
-  function chartY(value: number) {
-    return padding + (100.5 - value) * step;
-  }
+    return {
+      player,
+      anchorX: chartX(position.x),
+      anchorY: chartY(position.y),
+      color: pathColors[index % pathColors.length],
+    };
+  });
 
-const playerPosition =
-  path.length > 0 ? path[path.length - 1] : player;
+  return (
+    <>
+      <p className={styles.chartDescription}>
+        Training vectors change depending on the player&apos;s
+        current position.
+      </p>
 
-
-return (
-  <>
-    <p className={styles.chartDescription}>
-      Training vectors change depending on the player&apos;s current
-      position.
-    </p>
-
-    <svg
-
-      className={styles.chart}
-      viewBox={`0 0 ${canvas} ${canvas}`}
-      role="img"
-      aria-label="NPFC Player Types – click a coloured area for its description"
-      onClick={() => setSelectedType(null)}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <g shapeRendering="crispEdges">
-        {chart.regions.map((pathData, type) => (
-          <path
-            key={type}
-            d={pathData}
-            style={{
-              fill: PLAYER_TYPE_COLORS[type],
-              cursor: "pointer",
-              outline: "none", // Kein kurz aufblitzender svg Fokusrahmen
-              WebkitTapHighlightColor: "transparent", // Kein Touch-Highlight
-            }}
-            role="button"
-            tabIndex={0}
-            aria-label={`${PLAYER_TYPE_NAMES[language][type]} – show or hide description`}
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={(event) => toggleType(event, type)}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter" && event.key !== " ") return;
-              event.preventDefault();
-              event.stopPropagation();
-              setSelectedType((current) =>
-                current?.type === type
-                  ? null
-                  : { type, x: chart.labels[type].x, y: chart.labels[type].y }
-              );
-            }}
-          />
-        ))}
-      </g>
-
-      <g
-        className={styles.grid}
-        pointerEvents="none"
-        shapeRendering="crispEdges"
+      <svg
+        className={styles.chart}
+        viewBox={`0 0 ${canvas} ${canvas}`}
+        role="img"
+        aria-label="NPFC Player Types"
+        onClick={() => setSelectedType(null)}
+        xmlns="http://www.w3.org/2000/svg"
       >
-        {ticks.slice(1, -1).map((tick) => (
-          <g key={tick}>
-            <line
-              x1={padding + (tick + 0.5) * step}
-              y1={padding}
-              x2={padding + (tick + 0.5) * step}
-              y2={padding + plot}
+        <g shapeRendering="crispEdges">
+          {chart.regions.map((pathData, type) => (
+            <path
+              key={type}
+              d={pathData}
+              style={{
+                fill: PLAYER_TYPE_COLORS[type],
+                cursor: "pointer",
+                outline: "none",
+                WebkitTapHighlightColor: "transparent",
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label={`${PLAYER_TYPE_NAMES[language][type]} description`}
+              onMouseDown={(event) =>
+                event.preventDefault()
+              }
+              onClick={(event) =>
+                toggleType(event, type)
+              }
+              onKeyDown={(event) => {
+                if (
+                  event.key !== "Enter" &&
+                  event.key !== " "
+                ) {
+                  return;
+                }
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                setSelectedType((current) =>
+                  current?.type === type
+                    ? null
+                    : {
+                        type,
+                        x: chart.labels[type].x,
+                        y: chart.labels[type].y,
+                      }
+                );
+              }}
             />
-            <line
-              x1={padding}
-              y1={padding + (100.5 - tick) * step}
-              x2={padding + plot}
-              y2={padding + (100.5 - tick) * step}
-            />
-          </g>
-        ))}
-      </g>
+          ))}
+        </g>
 
-      <path
-        d={chart.borders}
-        className={styles.boundary}
-        pointerEvents="none"
-        shapeRendering="crispEdges"
-      />
+        <g
+          className={styles.grid}
+          pointerEvents="none"
+          shapeRendering="crispEdges"
+        >
+          {ticks.slice(1, -1).map((tick) => (
+            <g key={tick}>
+              <line
+                x1={padding + (tick + 0.5) * step}
+                y1={padding}
+                x2={padding + (tick + 0.5) * step}
+                y2={padding + plot}
+              />
 
-      <rect
-        x={padding}
-        y={padding}
-        width={plot}
-        height={plot}
-        className={styles.frame}
-        pointerEvents="none"
-      />
+              <line
+                x1={padding}
+                y1={padding + (100.5 - tick) * step}
+                x2={padding + plot}
+                y2={padding + (100.5 - tick) * step}
+              />
+            </g>
+          ))}
+        </g>
 
-      <g className={styles.ticks} pointerEvents="none">
-        {ticks.map((tick) => (
-          <g key={tick}>
-            <text
-              x={padding + (tick + 0.5) * step}
-              y={padding + plot + 23}
-              textAnchor="middle"
-            >
-              {tick}
-            </text>
-            <text
-              x={padding - 12}
-              y={padding + (100.5 - tick) * step + 5}
-              textAnchor="end"
-            >
-              {tick}
-            </text>
-          </g>
-        ))}
-      </g>
-      
-<g className={styles.axisLabels} pointerEvents="none">
-  <text
-    x={padding + plot / 2}
-    y={canvas + 4}
-    textAnchor="middle"
-  >
-    X
-  </text>
-  <text
-    x={0}
-    y={padding + plot / 2}
-    textAnchor="middle"
-    dominantBaseline="middle"
-  >
-    Y
-  </text>
-</g>
+        <path
+          d={chart.borders}
+          className={styles.boundary}
+          pointerEvents="none"
+          shapeRendering="crispEdges"
+        />
 
+        <rect
+          x={padding}
+          y={padding}
+          width={plot}
+          height={plot}
+          className={styles.frame}
+          pointerEvents="none"
+        />
 
-      <g className={styles.labels} pointerEvents="none">
-        {chart.labels.map((label) => (
+        <g
+          className={styles.ticks}
+          pointerEvents="none"
+        >
+          {ticks.map((tick) => (
+            <g key={tick}>
+              <text
+                x={padding + (tick + 0.5) * step}
+                y={padding + plot + 23}
+                textAnchor="middle"
+              >
+                {tick}
+              </text>
+
+              <text
+                x={padding - 12}
+                y={
+                  padding +
+                  (100.5 - tick) * step +
+                  5
+                }
+                textAnchor="end"
+              >
+                {tick}
+              </text>
+            </g>
+          ))}
+        </g>
+
+        <g
+          className={styles.axisLabels}
+          pointerEvents="none"
+        >
           <text
-            key={label.type}
-            x={label.x}
-            y={label.y}
+            x={padding + plot / 2}
+            y={canvas + 4}
+            textAnchor="middle"
+          >
+            X
+          </text>
+
+          <text
+            x={0}
+            y={padding + plot / 2}
             textAnchor="middle"
             dominantBaseline="middle"
           >
-            {PLAYER_TYPE_NAMES[language][label.type]}
+            Y
           </text>
-        ))}
-      </g>
+        </g>
 
-      {path.length > 0 &&
-        allPoints.slice(1).map((point, index) => {
-          const previous = allPoints[index];
+        <g
+          className={styles.labels}
+          pointerEvents="none"
+        >
+          {chart.labels.map((label) => (
+            <text
+              key={label.type}
+              x={label.x}
+              y={label.y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+            >
+              {PLAYER_TYPE_NAMES[language][label.type]}
+            </text>
+          ))}
+        </g>
+
+        {markers.map(({ player, color }) => {
+          const points = [
+            player.startPosition,
+            ...player.path,
+          ];
 
           return (
-            <g key={index} pointerEvents="none">
-              <line
-                x1={chartX(previous.x)}
-                y1={chartY(previous.y)}
-                x2={chartX(point.x)}
-                y2={chartY(point.y)}
-                stroke="#16a34a"
-                strokeWidth={5}
-                strokeLinecap="round"
-              />
+            <g
+              key={`path-${player.id ?? "dummy"}`}
+              pointerEvents="none"
+            >
+              {points.slice(1).map((point, index) => {
+                const previous = points[index];
 
-              <circle
-                cx={chartX(point.x)}
-                cy={chartY(point.y)}
-                r={8}
-                fill="#16a34a"
-                stroke="#000"
-                strokeWidth={2}
-              />
+                return (
+                  <g key={index}>
+                    <line
+                      x1={chartX(previous.x)}
+                      y1={chartY(previous.y)}
+                      x2={chartX(point.x)}
+                      y2={chartY(point.y)}
+                      stroke={color}
+                      strokeWidth={5}
+                      strokeLinecap="round"
+                    />
 
-              <text
-                x={chartX(point.x)}
-                y={chartY(point.y) - 14}
-                textAnchor="middle"
-                fontSize={16}
-                fontWeight={800}
-                fill="#0b6b1a"
-              >
-                {index + 1}
-              </text>
+                    <circle
+                      cx={chartX(point.x)}
+                      cy={chartY(point.y)}
+                      r={8}
+                      fill={color}
+                      stroke="#000"
+                      strokeWidth={2}
+                    />
+
+                    <text
+                      x={chartX(point.x)}
+                      y={chartY(point.y) - 14}
+                      textAnchor="middle"
+                      fontSize={16}
+                      fontWeight={800}
+                      fill={color}
+                    >
+                      {index + 1}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {player.path.length > 0 && (
+                <circle
+                  cx={chartX(player.startPosition.x)}
+                  cy={chartY(player.startPosition.y)}
+                  r={8}
+                  fill={color}
+                  stroke="#000"
+                  strokeWidth={2}
+                />
+              )}
             </g>
           );
         })}
 
-      {path.length > 0 && (
-        <circle
-          cx={chartX(player.x)}
-          cy={chartY(player.y)}
-          r={8}
-          fill="#16a34a"
-          stroke="#000"
-          strokeWidth={2}
-          pointerEvents="none"
-        />
-      )}
+        {markers.map(
+          ({ player, anchorX, anchorY, color }) => (
+            <g
+              key={`marker-${player.id ?? "dummy"}`}
+              pointerEvents="none"
+            >
+              <circle
+                cx={anchorX}
+                cy={anchorY}
+                r={5}
+                fill={color}
+                stroke="#000"
+                strokeWidth={1.5}
+              />
 
-<g pointerEvents="none">
-  <image
-    href={playerImageUrl}
-    x={chartX(playerPosition.x) - 37.5}
-    y={chartY(playerPosition.y) - 37.5}
-    width={75}
-    height={75}
-    preserveAspectRatio="xMidYMid meet"
-  />
+              <image
+                href={player.imageUrl}
+                x={anchorX - 37.5}
+                y={anchorY - 37.5}
+                width={75}
+                height={75}
+                preserveAspectRatio="xMidYMid meet"
+              />
 
-  <text
-    x={chartX(playerPosition.x)}
-    y={chartY(playerPosition.y) + 45}
-    textAnchor="middle"
-    fontSize={25}
-    fill="#000"
-  >
-    {playerName}
-  </text>
-</g>
+              <text
+                x={anchorX}
+                y={anchorY + 45}
+                textAnchor="middle"
+                fontSize={23}
+                fontWeight={700}
+                fill="#000"
+                stroke="#fff"
+                strokeWidth={3}
+                paintOrder="stroke"
+              >
+                {player.name}
+              </text>
+            </g>
+          )
+        )}
 
-      {selectedType !== null && (
-        <foreignObject
-          x={popupX}
-          y={popupY}
-          width={popupWidth}
-          height={popupHeight}
-          onClick={(event) => {
-            event.stopPropagation();
-            setSelectedType(null);
-          }}
-          style={{ cursor: "pointer" }}
-        >
-          <div
-            role="dialog"
-            aria-label={`${PLAYER_TYPE_NAMES[language][selectedType.type]} description`}
-            style={{
-              boxSizing: "border-box",
-              width: "100%",
-              height: "100%",
-              padding: "14px 18px",
-              border: "2px solid #222",
-              borderRadius: "12px",
-              background: "#fffdf4",
-              boxShadow: "0 5px 16px #0004",
-              fontFamily: "var(--font-body)",
-              color: "var(--font_black)",
-              overflow: "hidden",
+        {selectedType !== null && (
+          <foreignObject
+            x={popupX}
+            y={popupY}
+            width={popupWidth}
+            height={popupHeight}
+            onClick={(event) => {
+              event.stopPropagation();
+              setSelectedType(null);
             }}
+            style={{ cursor: "pointer" }}
           >
             <div
+              role="dialog"
+              aria-label={`${PLAYER_TYPE_NAMES[language][selectedType.type]} description`}
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                marginBottom: "6px",
+                boxSizing: "border-box",
+                width: "100%",
+                height: "100%",
+                padding: "14px 18px",
+                border: "2px solid #222",
+                borderRadius: "12px",
+                background: "#fffdf4",
+                boxShadow: "0 5px 16px #0004",
+                fontFamily: "var(--font-body)",
+                color: "var(--font_black)",
+                overflow: "hidden",
               }}
             >
-              <span
+              <div
                 style={{
-                  flexShrink: 0,
-                  width: "17px",
-                  height: "17px",
-                  border: "1px solid #222",
-                  borderRadius: "3px",
-                  backgroundColor: PLAYER_TYPE_COLORS[selectedType.type],
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  marginBottom: "6px",
                 }}
-              />
-              <strong style={{ fontSize: "25px", lineHeight: 1.2 }}>
-                {PLAYER_TYPE_NAMES[language][selectedType.type]}
-              </strong>
-            </div>
-            <p style={{ margin: 0, fontSize: "22px", lineHeight: 1.27 }}>
-              {typeDescriptions[selectedType.type]}
-            </p>
-          </div>
-        </foreignObject>
-      )}
+              >
+                <span
+                  style={{
+                    flexShrink: 0,
+                    width: "17px",
+                    height: "17px",
+                    border: "1px solid #222",
+                    borderRadius: "3px",
+                    backgroundColor:
+                      PLAYER_TYPE_COLORS[selectedType.type],
+                  }}
+                />
 
-    </svg>
-  </>
-);
+                <strong
+                  style={{
+                    fontSize: "25px",
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {
+                    PLAYER_TYPE_NAMES[language][
+                      selectedType.type
+                    ]
+                  }
+                </strong>
+              </div>
+
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "22px",
+                  lineHeight: 1.27,
+                }}
+              >
+                {typeDescriptions[selectedType.type]}
+              </p>
+            </div>
+          </foreignObject>
+        )}
+      </svg>
+    </>
+  );
 }

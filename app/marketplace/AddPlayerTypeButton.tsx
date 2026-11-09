@@ -1,7 +1,12 @@
+
 "use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import {
+  addSavedPlayerId,
+  getSavedPlayerIds,
+} from "@/app/player-types/player-selection";
 import styles from "./PlayerInfo.module.css";
 
 type Props = {
@@ -11,47 +16,35 @@ type Props = {
 export default function AddPlayerTypeButton({
   playerId,
 }: Props) {
-  const [selectedPlayerId, setSelectedPlayerId] =
-    useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [isAdded, setIsAdded] = useState(false);
 
   useEffect(() => {
-    const syncSelection = () => {
-      const savedId = localStorage.getItem(
-        "npfc-player-type-id"
-      );
-
-      setSelectedPlayerId(
-        savedId === null ? null : Number(savedId)
-      );
-
+    const update = () => {
+      setIsAdded(getSavedPlayerIds().includes(playerId));
       setLoaded(true);
     };
 
-    syncSelection();
+    update();
 
-    window.addEventListener("pageshow", syncSelection);
-    window.addEventListener("storage", syncSelection);
+    window.addEventListener("pageshow", update);
+    window.addEventListener("focus", update);
 
     return () => {
-      window.removeEventListener("pageshow", syncSelection);
-      window.removeEventListener("storage", syncSelection);
+      window.removeEventListener("pageshow", update);
+      window.removeEventListener("focus", update);
     };
-  }, []);
+  }, [playerId]);
 
-  if (!loaded || selectedPlayerId === playerId) {
-    return null;
-  }
+  if (!loaded || isAdded) return null;
 
   return (
     <Link
       href={`/player-types?playerId=${playerId}`}
       className={styles.addPlayerType}
       onClick={() => {
-        localStorage.setItem(
-          "npfc-player-type-id",
-          String(playerId)
-        );
+        addSavedPlayerId(playerId);
+        setIsAdded(true);
       }}
     >
       Add to player types
