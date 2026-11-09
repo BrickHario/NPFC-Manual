@@ -20,7 +20,7 @@
 .player {
   box-sizing: border-box;
   min-width: 0;
-  padding: 22px 18px 28px;
+  padding: 22px 18px 70px;
   border: 3px solid #000;
   border-radius: 24px;
   background: #f1f1f1;
@@ -186,12 +186,13 @@
   height: auto;
   object-fit: contain;
   image-rendering: pixelated;
+  transform: translateX(1px);
 }
 
 .levelTrack {
   position: relative;
-  flex: 0 0 3px;
-  width: 3px;
+  flex: 0 0 2px;
+  width: 2px;
   height: 25px;
   border-radius: 2px;
   background: var(--button_grey);
@@ -200,9 +201,9 @@
 .levelDot {
   position: absolute;
   left: 50%;
-  width: 7px;
-  height: 7px;
-  border: 2px solid var(--dark);
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--dark);
   border-radius: 50%;
   background: var(--color-physical);
   transform: translate(-50%, 50%);
@@ -235,4 +236,60 @@
   height: 64px;
   flex-shrink: 0;
   margin-bottom: 10px;
+}
+
+.player {
+  position: relative;
+}
+
+.infoButton,
+.removePlayer {
+  position: absolute;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 2px solid var(--dark);
+  border-radius: 8px;
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+  box-shadow: 2px 2px 0 var(--dark);
+  cursor: pointer;
+  transition:
+    transform var(--anim),
+    background var(--anim);
+}
+
+.infoButton {
+  bottom: 10px;
+  left: 10px;
+  background: #478dce;
+  color: #ffffff;
+}
+
+.infoButton:hover {
+  transform: scale(1.03);
+}
+
+.removePlayer {
+  right: 10px;
+  bottom: 10px;
+  background: #cf3434;
+  color: #fff;
+  padding-bottom: 5px;
+}
+
+.removePlayer:hover {
+  background: #ef4444;
+  transform: scale(1.08);
+}
+
+.infoButton:focus-visible,
+.removePlayer:focus-visible {
+  outline: 3px solid var(--color-highlight);
+  outline-offset: 2px;
 }
