@@ -34,6 +34,7 @@ type ComboNameRow = NameRow & {
 type TrainingRow = {
   card_id?: number | null;
   combo_id?: number | null;
+  has_match_actions?: boolean | null;
   skill_01: number | null;
   skill_02: number | null;
   skill_03: number | null;
@@ -144,7 +145,7 @@ async function PlayerTypesData() {
 
     supabase
       .from("Combos")
-      .select(`combo_id,${trainingSelect}` as const)
+      .select(`combo_id,has_match_actions,${trainingSelect}` as const)
       .order("combo_id"),
 
     supabase
@@ -191,6 +192,7 @@ async function PlayerTypesData() {
     return {
       kind: "card",
       id,
+      hasMatchActions: false,
       skillChanges: getSkillChanges(row),
       names: namesOf(
         cardNames.get(id),
@@ -213,6 +215,7 @@ async function PlayerTypesData() {
     return {
       kind: "combo",
       id,
+      hasMatchActions: row.has_match_actions === true,
       names: namesOf(
         comboNames.get(id),
         `Combo #${id}`

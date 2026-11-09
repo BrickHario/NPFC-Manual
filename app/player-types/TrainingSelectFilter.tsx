@@ -10,11 +10,6 @@ import {
 } from "react";
 import type { DragEvent } from "react";
 import type { Language } from "../../lib/utils";
-import type {
-  SelectedTraining,
-  TrainingEntry,
-  TrainingKind,
-} from "./training-types";
 import styles from "./TrainingSelectFilter.module.css";
 import { calculateTrainingStep } from "./player-type-calculation";
 
@@ -24,6 +19,33 @@ type TrainingSelectFilterProps = {
   onSelectionChange: (selected: SelectedTraining[]) => void;
   startPots: number[];
 };
+
+export type TrainingKind = "card" | "combo";
+
+export type TrainingNames = {
+  en: string;
+  de: string;
+  es: string;
+  it: string;
+  fr: string;
+};
+
+export type SelectedTraining = {
+  kind: TrainingKind;
+  id: number;
+  instanceId: number;
+};
+
+export type TrainingEntry = {
+  kind: TrainingKind;
+  id: number;
+  hasMatchActions: boolean;
+  names: TrainingNames;
+  imageUrl: string;
+  potChanges: number[];
+  skillChanges: number[];
+};
+
 
 const labels = {
   heading: "Training",
@@ -35,6 +57,11 @@ const labels = {
   noResults: "No matches",
   remove: "Remove training",
   reset: "Reset filters",
+  match: {
+    all: "Match actions",
+    only: "Yes",
+    excluded: "No",
+  },
 } as const;
 
 const directions = [
@@ -55,6 +82,7 @@ const sortOptions = [
 ] as const;
 
 type Direction = "all" | "zero" | (typeof directions)[number]["value"];
+type MatchFilter = keyof typeof labels.match;
 
 function getTrainingVector(pots: number[], potChanges: number[]) {
   const step = calculateTrainingStep(pots, potChanges);
@@ -100,10 +128,43 @@ export default function TrainingSelectFilter({
   const [direction, setDirection] = useState<Direction>("all");
   const [selected, setSelected] = useState<SelectedTraining[]>([]);
   const [dragOverId, setDragOverId] = useState<number | null>(null);
+  const [matchFilter, setMatchFilter] = useState<MatchFilter>("all");
 
   const sortRef = useRef<HTMLDetailsElement>(null);
+  const matchRef = useRef<HTMLDetailsElement>(null);
   const draggedId = useRef<number | null>(null);
   const nextInstanceId = useRef(0);
+  useEffect(() => {
+  const dropdowns = [sortRef, matchRef];
+
+  const handlePointerDown = (event: PointerEvent) => {
+    const target = event.target as Node;
+
+    dropdowns.forEach((ref) => {
+      if (ref.current && !ref.current.contains(target)) {
+        ref.current.open = false;
+      }
+    });
+  };
+
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === "Escape") {
+      dropdowns.forEach((ref) => {
+        if (ref.current) {
+          ref.current.open = false;
+        }
+      });
+    }
+  };
+
+  document.addEventListener("pointerdown", handlePointerDown);
+  document.addEventListener("keydown", handleKeyDown);
+
+  return () => {
+    document.removeEventListener("pointerdown", handlePointerDown);
+    document.removeEventListener("keydown", handleKeyDown);
+  };
+}, []);
 
   useEffect(() => {
     onSelectionChange(selected);
@@ -179,6 +240,9 @@ export default function TrainingSelectFilter({
         if (entry.kind === "card" && !showCards) return false;
         if (entry.kind === "combo" && !showCombos) return false;
 
+        if (matchFilter === "only" && !entry.hasMatchActions) return false;
+        if (matchFilter === "excluded" && entry.hasMatchActions) return false;
+
         if (direction !== "all") {
           const vector = trainingVectors.get(entryKey(entry));
           if (vector?.direction !== direction) return false;
@@ -205,6 +269,7 @@ export default function TrainingSelectFilter({
     search,
     showCards,
     showCombos,
+    matchFilter,
     direction,
   ]);
 
@@ -310,9 +375,13 @@ export default function TrainingSelectFilter({
     setShowCards(true);
     setShowCombos(true);
     setDirection("all");
+    setMatchFilter("all");
 
     if (sortRef.current) {
       sortRef.current.open = false;
+    }
+    if (matchRef.current) {
+      matchRef.current.open = false;
     }
   }
 
@@ -359,6 +428,40 @@ export default function TrainingSelectFilter({
               />
               <span>{labels.combos}</span>
             </label>
+
+            <details
+              ref={matchRef}
+              className={`${styles.singleFilter} ${styles.sortFilter}`}
+            >
+              <summary
+                className={`${styles.control} ${styles.filterSummary}`}
+              >
+                <span className={styles.filterText}>
+                  {labels.match[matchFilter]}
+                </span>
+              </summary>
+
+              <div className={styles.filterMenu}>
+                {(Object.keys(labels.match) as MatchFilter[]).map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={`${styles.optionButton} ${
+                      matchFilter === option ? styles.optionSelected : ""
+                    }`}
+                    onClick={() => {
+                      setMatchFilter(option);
+
+                      if (matchRef.current) {
+                        matchRef.current.open = false;
+                      }
+                    }}
+                  >
+                    {labels.match[option]}
+                  </button>
+                ))}
+              </div>
+            </details>
 
             <details
               ref={sortRef}

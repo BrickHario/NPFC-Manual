@@ -43,7 +43,7 @@ export default function RootLayout({
             target="_blank"
             rel="noopener noreferrer"
           >
-            Was ist NPFC?
+            What is NPFC?
           </a>
         </footer>
       </body>
