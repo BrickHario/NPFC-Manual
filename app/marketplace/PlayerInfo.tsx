@@ -15,6 +15,7 @@ import {
   rankImages,
 } from "@/lib/utils";
 import styles from "./PlayerInfo.module.css";
+import AddPlayerTypeButton from "./AddPlayerTypeButton";
 
 type PlayerInfoProps = {
   id: number;
@@ -108,9 +109,15 @@ if (!player) {
 
   return (
     <div className={styles.page}>
-      <Link href={backHref} className={styles.backLink}>
-        ◀ Back
-      </Link>
+<div className={styles.navigationRow}>
+  <Link href={backHref} className={styles.backLink}>
+    ◀ Back
+  </Link>
+
+  {skills && (
+    <AddPlayerTypeButton playerId={player.id_player} />
+  )}
+</div>
 
       <article className={styles.panel}>
         <header className={styles.topBar}>
