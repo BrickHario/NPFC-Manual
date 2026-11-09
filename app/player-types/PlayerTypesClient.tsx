@@ -1,17 +1,50 @@
 
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
-import type { SelectedTraining, TrainingEntry } from "./training-types";
-import type { PlayerTypeSelection } from "./player-selection";
-import { getSavedPlayerIds, removeSavedPlayerId, savePlayerIds } from "./player-selection";
+import type {
+  SelectedTraining,
+  TrainingEntry,
+} from "./training-types";
+import type {
+  PlayerTypeSelection,
+} from "./player-selection";
+import {
+  getSavedPlayerIds,
+  removeSavedPlayerId,
+  savePlayerIds,
+} from "./player-selection";
+import {
+  readImportedPlayers,
+  saveImportedPlayers,
+  removeImportedPlayer,
+  type ImportedSavePlayer,
+} from "./save-parser";
+import ImportSaveButton from "./ImportSaveButton";
 import TypesChart from "./TypesChart";
 import { playerTypeRows } from "./player-type-data";
-import { PLAYER_TYPE_COLORS, PLAYER_TYPE_NAMES, calculateAttributes, type Language } from "../../lib/utils";
-import { calculatePlayerPosition, calculateTrainingStep } from "./player-type-calculation";
+import {
+  PLAYER_TYPE_COLORS,
+  PLAYER_TYPE_NAMES,
+  calculateAttributes,
+  type Language,
+} from "../../lib/utils";
+import {
+  calculatePlayerPosition,
+  calculateTrainingStep,
+} from "./player-type-calculation";
 import styles from "./TypesChart.module.css";
-import { TypePlayers, type PlayerDisplay } from "./TypePlayers";
+import {
+  TypePlayers,
+  type PlayerDisplay,
+} from "./TypePlayers";
 import LanguageSwitcher from "../LanguageSwitcher";
 import TrainingSelectFilter from "./TrainingSelectFilter";
 
@@ -22,6 +55,7 @@ const SELECTED_PLAYER_STORAGE_KEY = "npfc-selected-player-v1";
 
 type Position = { x: number; y: number };
 type TrainingOrders = Record<string, SelectedTraining[]>;
+type PlayerEntry = PlayerTypeSelection | ImportedSavePlayer;
 
 type PlayerTypesClientProps = {
   trainings: TrainingEntry[];
@@ -29,12 +63,36 @@ type PlayerTypesClientProps = {
   initialPlayers: PlayerTypeSelection[];
 };
 
+function isImportedPlayer(
+  player: PlayerEntry
+): player is ImportedSavePlayer {
+  return "source" in player && player.source === "save";
+}
+
+function mergePlayers(
+  marketplace: PlayerTypeSelection[],
+  imported: ImportedSavePlayer[]
+): PlayerEntry[] {
+  const map = new Map<number, PlayerEntry>();
+
+  for (const player of marketplace) {
+    map.set(player.id, player);
+  }
+
+  for (const player of imported) {
+    map.set(player.id, player);
+  }
+
+  return [...map.values()];
+}
+
 function clampCoordinate(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
 function getPlayerTypeId(x: number, y: number): number {
   const row = playerTypeRows[clampCoordinate(y)];
+
   if (!row) return 0;
 
   for (let i = 0; i < row.length; i += 2) {
@@ -44,14 +102,19 @@ function getPlayerTypeId(x: number, y: number): number {
   return 0;
 }
 
-function estimatePotsForPosition(targetX: number, targetY: number) {
+function estimatePotsForPosition(
+  targetX: number,
+  targetY: number
+) {
   const baseline = Array<number>(12).fill(50);
 
   const score = (pots: number[]) => {
     const position = calculatePlayerPosition(pots);
+
     const positionError =
       (position.x - targetX) ** 2 +
       (position.y - targetY) ** 2;
+
     const potentialDifference = pots.reduce(
       (sum, value) => sum + (value - 50) ** 2,
       0
@@ -65,10 +128,17 @@ function estimatePotsForPosition(targetX: number, targetY: number) {
 
   for (let restart = 0; restart < 4; restart++) {
     let seed =
-      (12345 + restart * 7919 + targetX * 101 + targetY * 307) >>> 0;
+      (
+        12345 +
+        restart * 7919 +
+        targetX * 101 +
+        targetY * 307
+      ) >>> 0;
 
     const random = () => {
-      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      seed =
+        (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+
       return seed / 4294967296;
     };
 
@@ -76,7 +146,10 @@ function estimatePotsForPosition(targetX: number, targetY: number) {
       restart === 0
         ? [...baseline]
         : baseline.map(
-            () => [0, 25, 50, 75, 100][Math.floor(random() * 5)]
+            () =>
+              [0, 25, 50, 75, 100][
+                Math.floor(random() * 5)
+              ]
           );
 
     let currentScore = score(pots);
@@ -142,7 +215,11 @@ function readTrainingOrders(): TrainingOrders {
       localStorage.getItem(TRAINING_STORAGE_KEY) ?? "{}"
     );
 
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
+    if (
+      !value ||
+      typeof value !== "object" ||
+      Array.isArray(value)
+    ) {
       return {};
     }
 
@@ -152,7 +229,9 @@ function readTrainingOrders(): TrainingOrders {
       if (!Array.isArray(entries)) continue;
 
       result[key] = entries.flatMap((entry, index) => {
-        if (!entry || typeof entry !== "object") return [];
+        if (!entry || typeof entry !== "object") {
+          return [];
+        }
 
         const item = entry as Record<string, unknown>;
 
@@ -165,17 +244,15 @@ function readTrainingOrders(): TrainingOrders {
           return [];
         }
 
-        return [
-          {
-            kind: item.kind,
-            id: Number(item.id),
-            instanceId:
-              typeof item.instanceId === "number" &&
-              Number.isSafeInteger(item.instanceId)
-                ? item.instanceId
-                : index,
-          },
-        ];
+        return [{
+          kind: item.kind,
+          id: item.id,
+          instanceId:
+            typeof item.instanceId === "number" &&
+            Number.isSafeInteger(item.instanceId)
+              ? item.instanceId
+              : index,
+        }];
       });
     }
 
@@ -191,14 +268,20 @@ function readPositions(): Record<string, Position> {
       localStorage.getItem(POSITION_STORAGE_KEY) ?? "{}"
     );
 
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
+    if (
+      !value ||
+      typeof value !== "object" ||
+      Array.isArray(value)
+    ) {
       return {};
     }
 
     const result: Record<string, Position> = {};
 
     for (const [key, position] of Object.entries(value)) {
-      if (!position || typeof position !== "object") continue;
+      if (!position || typeof position !== "object") {
+        continue;
+      }
 
       const point = position as Record<string, unknown>;
 
@@ -230,13 +313,13 @@ export default function PlayerTypesClient({
 }: PlayerTypesClientProps) {
   const router = useRouter();
 
-  const [players, setPlayers] =
-    useState<PlayerTypeSelection[]>(initialPlayers);
+  const [players, setPlayers] = useState<PlayerEntry[]>(
+    initialPlayers
+  );
 
-  const [positions, setPositions] =
-    useState<Record<string, Position>>({});
-
-  const [language] = useState<Language>(initialLanguage);
+  const [positions, setPositions] = useState<
+    Record<string, Position>
+  >({});
 
   const [selectedPlayerKey, setSelectedPlayerKey] =
     useState<string | null>(null);
@@ -244,10 +327,18 @@ export default function PlayerTypesClient({
   const [trainingOrders, setTrainingOrders] =
     useState<TrainingOrders>({});
 
-  const [storageLoaded, setStorageLoaded] = useState(false);
+  const [storageLoaded, setStorageLoaded] =
+    useState(false);
+
+  const language = initialLanguage;
 
   useEffect(() => {
-    setPlayers(initialPlayers);
+    setPlayers(
+      mergePlayers(
+        initialPlayers,
+        readImportedPlayers()
+      )
+    );
   }, [initialPlayers]);
 
   useEffect(() => {
@@ -282,8 +373,13 @@ export default function PlayerTypesClient({
 
   useEffect(() => {
     const savedIds = getSavedPlayerIds();
-    const currentIds = initialPlayers.map((player) => player.id);
-    const combined = [...new Set([...savedIds, ...currentIds])];
+    const currentIds = initialPlayers.map(
+      (player) => player.id
+    );
+
+    const combined = [
+      ...new Set([...savedIds, ...currentIds]),
+    ];
 
     if (combined.length !== savedIds.length) {
       savePlayerIds(combined);
@@ -314,14 +410,17 @@ export default function PlayerTypesClient({
       return;
     }
 
-    const available = players.map((player) => String(player.id));
+    const available = players.map(
+      (player) => String(player.id)
+    );
 
     setSelectedPlayerKey((current) => {
       if (available.length === 1) {
         return available[0];
       }
 
-      return current !== null && available.includes(current)
+      return current !== null &&
+        available.includes(current)
         ? current
         : null;
     });
@@ -331,7 +430,9 @@ export default function PlayerTypesClient({
     if (!storageLoaded) return;
 
     if (selectedPlayerKey === null) {
-      localStorage.removeItem(SELECTED_PLAYER_STORAGE_KEY);
+      localStorage.removeItem(
+        SELECTED_PLAYER_STORAGE_KEY
+      );
     } else {
       localStorage.setItem(
         SELECTED_PLAYER_STORAGE_KEY,
@@ -340,9 +441,50 @@ export default function PlayerTypesClient({
     }
   }, [selectedPlayerKey, storageLoaded]);
 
+  const handleImport = useCallback(
+    (imported: ImportedSavePlayer[]) => {
+      const saved = readImportedPlayers();
+
+      const map = new Map<number, ImportedSavePlayer>();
+
+      for (const player of saved) {
+        map.set(player.id, player);
+      }
+
+      for (const player of imported) {
+        map.set(player.id, player);
+      }
+
+      const updatedImported = [...map.values()];
+
+      saveImportedPlayers(updatedImported);
+
+      savePlayerIds([
+        ...getSavedPlayerIds(),
+        ...imported.map((player) => player.id),
+      ]);
+
+      setPlayers((current) => {
+        const updated = new Map<number, PlayerEntry>();
+
+        for (const player of current) {
+          updated.set(player.id, player);
+        }
+
+        for (const player of imported) {
+          updated.set(player.id, player);
+        }
+
+        return [...updated.values()];
+      });
+    },
+    []
+  );
+
   const handleRemovePlayer = useCallback(
     (id: number) => {
       removeSavedPlayerId(id);
+      removeImportedPlayer(id);
 
       setPlayers((current) =>
         current.filter((player) => player.id !== id)
@@ -352,7 +494,9 @@ export default function PlayerTypesClient({
         current === String(id) ? null : current
       );
 
-      if (window.location.search.includes("playerId=")) {
+      if (
+        window.location.search.includes("playerId=")
+      ) {
         router.replace("/player-types");
       } else {
         router.refresh();
@@ -368,6 +512,14 @@ export default function PlayerTypesClient({
       value: number
     ) => {
       const key = id === null ? "dummy" : String(id);
+
+      const player = players.find(
+        (entry) => String(entry.id) === key
+      );
+
+      if (player && isImportedPlayer(player)) {
+        return;
+      }
 
       setPositions((current) => {
         const updated = {
@@ -389,7 +541,7 @@ export default function PlayerTypesClient({
         return updated;
       });
     },
-    [storageLoaded]
+    [players, storageLoaded]
   );
 
   const trainingCatalog = useMemo(
@@ -407,14 +559,12 @@ export default function PlayerTypesClient({
     () =>
       players.length > 0
         ? players
-        : [
-            {
-              id: 0,
-              name: "Dummy",
-              imageUrl: "/Dummy.png",
-              skills: Array<number>(10).fill(0),
-            },
-          ],
+        : [{
+            id: 0,
+            name: "Dummy",
+            imageUrl: "/Dummy.png",
+            skills: Array<number>(10).fill(0),
+          }],
     [players]
   );
 
@@ -432,7 +582,12 @@ export default function PlayerTypesClient({
 
   const handleSelectionChange = useCallback(
     (items: SelectedTraining[]) => {
-      if (activePlayerKey === null || !storageLoaded) return;
+      if (
+        activePlayerKey === null ||
+        !storageLoaded
+      ) {
+        return;
+      }
 
       setTrainingOrders((current) => {
         const updated = {
@@ -456,17 +611,39 @@ export default function PlayerTypesClient({
       const id = player.id === 0 ? null : player.id;
       const key = id === null ? "dummy" : String(id);
 
-      const { x, y } = positions[key] ?? { x: 50, y: 50 };
+      const imported = isImportedPlayer(player);
 
-      const initialSkillPoints = Array.from(
-        { length: 10 },
-        (_, index) => {
-          const level = Number(player.skills[index] ?? 0);
-          return SKILL_VALUES[level] ?? 0;
-        }
-      );
+      const initialSkillPoints = imported
+        ? [...player.skillPoints]
+        : Array.from({ length: 10 }, (_, index) => {
+            const level = Number(
+              player.skills[index] ?? 0
+            );
 
-      const trainingsForPlayer = trainingOrders[key] ?? [];
+            return SKILL_VALUES[level] ?? 0;
+          });
+
+      const startPots = imported
+        ? [...player.typeWeights]
+        : estimatePotsForPosition(
+            positions[key]?.x ?? 50,
+            positions[key]?.y ?? 50
+          );
+
+      const startPosition =
+        calculatePlayerPosition(startPots);
+
+      const x = imported
+        ? startPosition.x
+        : positions[key]?.x ?? 50;
+
+      const y = imported
+        ? startPosition.y
+        : positions[key]?.y ?? 50;
+
+      const trainingsForPlayer =
+        trainingOrders[key] ?? [];
+
       const skillTotals = Array<number>(10).fill(0);
 
       for (const item of trainingsForPlayer) {
@@ -483,23 +660,26 @@ export default function PlayerTypesClient({
         }
       }
 
-      const finalSkillPoints = initialSkillPoints.map(
-        (original, index) =>
-          Math.max(0, original + skillTotals[index])
-      );
+      const finalSkillPoints =
+        initialSkillPoints.map(
+          (original, index) =>
+            Math.max(
+              0,
+              original + skillTotals[index]
+            )
+        );
 
-      const startAttributes = calculateAttributes(
-        toSkillRow(initialSkillPoints),
-        "points"
-      );
+      const startAttributes =
+        calculateAttributes(
+          toSkillRow(initialSkillPoints),
+          "points"
+        );
 
-      const finalAttributes = calculateAttributes(
-        toSkillRow(finalSkillPoints),
-        "points"
-      );
-
-      const startPots = estimatePotsForPosition(x, y);
-      const startPosition = calculatePlayerPosition(startPots);
+      const finalAttributes =
+        calculateAttributes(
+          toSkillRow(finalSkillPoints),
+          "points"
+        );
 
       let currentPots = [...startPots];
       const path: Position[] = [];
@@ -534,14 +714,19 @@ export default function PlayerTypesClient({
         id,
         name: player.name,
         imageUrl: player.imageUrl,
+        isImported: imported,
         x,
         y,
         typeColor:
-          PLAYER_TYPE_COLORS[getPlayerTypeId(x, y)],
+          PLAYER_TYPE_COLORS[
+            getPlayerTypeId(x, y)
+          ],
         finalX: finalPosition.x,
         finalY: finalPosition.y,
         finalType:
-          PLAYER_TYPE_NAMES[language][finalTypeId],
+          PLAYER_TYPE_NAMES[
+            language
+          ][finalTypeId],
         finalTypeColor:
           PLAYER_TYPE_COLORS[finalTypeId],
         startAttributes,
@@ -561,19 +746,40 @@ export default function PlayerTypesClient({
 
   const selectedPlayer = playerViews.find(
     (player) =>
-      (player.id === null ? "dummy" : String(player.id)) ===
-      activePlayerKey
+      (
+        player.id === null
+          ? "dummy"
+          : String(player.id)
+      ) === activePlayerKey
   );
 
   const getPlayerType = useCallback(
     (x: number, y: number) =>
-      PLAYER_TYPE_NAMES[language][getPlayerTypeId(x, y)],
+      PLAYER_TYPE_NAMES[language][
+        getPlayerTypeId(x, y)
+      ],
     [language]
   );
 
   return (
-    <main className={styles.pageContent}>
+    <main
+      className={styles.pageContent}
+      style={{ position: "relative" }}
+    >
       <Suspense>
+        <div
+          style={{
+            position: "absolute",
+            top: 20,
+            left: 20,
+            zIndex: 10,
+          }}
+        >
+          <ImportSaveButton
+            onImport={handleImport}
+          />
+        </div>
+
         <div className={styles.languageDock}>
           <LanguageSwitcher />
         </div>
@@ -617,9 +823,15 @@ export default function PlayerTypesClient({
             language={language}
             trainings={trainings}
             selected={selectedTrainings}
-            selectedPlayerName={selectedPlayer?.name ?? null}
-            hasSelectedPlayer={selectedPlayer !== undefined}
-            onSelectionChange={handleSelectionChange}
+            selectedPlayerName={
+              selectedPlayer?.name ?? null
+            }
+            hasSelectedPlayer={
+              selectedPlayer !== undefined
+            }
+            onSelectionChange={
+              handleSelectionChange
+            }
             startPots={
               selectedPlayer?.startPots ??
               Array<number>(12).fill(50)

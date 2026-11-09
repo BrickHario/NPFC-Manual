@@ -23,6 +23,7 @@ export type PlayerDisplay = {
   startPots: number[];
   startPosition: { x: number; y: number };
   path: { x: number; y: number }[];
+  isImported?: boolean;
 };
 
 type TypePlayersProps = {
@@ -151,6 +152,12 @@ export function TypePlayers({
                     min={0}
                     max={100}
                     step={1}
+                    readOnly={player.isImported}
+                    title={
+                      player.isImported
+                        ? "Coordinates calculated from the 12 saved type values"
+                        : undefined
+                    }
                     value={player.x}
                     onChange={(event) => {
                       const value = event.currentTarget.valueAsNumber;
@@ -170,6 +177,12 @@ export function TypePlayers({
                     min={0}
                     max={100}
                     step={1}
+                    readOnly={player.isImported}
+                    title={
+                      player.isImported
+                        ? "Coordinates calculated from the 12 saved type values"
+                        : undefined
+                    }
                     value={player.y}
                     onChange={(event) => {
                       const value = event.currentTarget.valueAsNumber;
