@@ -19,6 +19,8 @@ type TypesChartProps = {
     y: number;
   }[];
   language: Language;
+  playerName: string;
+  playerImageUrl: string;
 };
 
 const dimension = 101;
@@ -265,6 +267,8 @@ export default function TypesChart({
   player,
   path = [],
   language,
+  playerName,
+  playerImageUrl,
 }: TypesChartProps) {
   const allPoints = [player, ...path];
   const [selectedType, setSelectedType] = useState<{
@@ -316,7 +320,7 @@ export default function TypesChart({
     return padding + (100.5 - value) * step;
   }
 
-  const dummyPosition =
+const playerPosition =
   path.length > 0 ? path[path.length - 1] : player;
 
 
@@ -510,25 +514,26 @@ return (
         />
       )}
 
-      <g pointerEvents="none">
-        <image
-          href="/Dummy.png"
-           x={chartX(dummyPosition.x) - 37.5}
-          y={chartY(dummyPosition.y) - 37.5}
-          width={75}
-          height={75}
-          preserveAspectRatio="xMidYMid meet"
-        />
-        <text
-          x={chartX(dummyPosition.x)}
-    y={chartY(dummyPosition.y) + 45}
-          textAnchor="middle"
-          fontSize={25}
-          fill="#000"
-        >
-          Dummy
-        </text>
-      </g>
+<g pointerEvents="none">
+  <image
+    href={playerImageUrl}
+    x={chartX(playerPosition.x) - 37.5}
+    y={chartY(playerPosition.y) - 37.5}
+    width={75}
+    height={75}
+    preserveAspectRatio="xMidYMid meet"
+  />
+
+  <text
+    x={chartX(playerPosition.x)}
+    y={chartY(playerPosition.y) + 45}
+    textAnchor="middle"
+    fontSize={25}
+    fill="#000"
+  >
+    {playerName}
+  </text>
+</g>
 
       {selectedType !== null && (
         <foreignObject
