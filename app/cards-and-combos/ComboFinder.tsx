@@ -11,6 +11,7 @@ import {
   type SortValue,
 } from "./combo-config";
 import CardButtons from "./CardButtons";
+import { getTypeVector, getClockwiseAngle } from "./combo-type-vector";
 import ComboFilters from "./ComboFilters";
 import ComboTable, { type ResultRow } from "./ComboTable";
 import styles from "./cards-and-combos.module.css";
@@ -40,6 +41,7 @@ const collator = new Intl.Collator("en", {
   sensitivity: "base",
 });
 
+
 function sortRows(
   a: ResultRow,
   b: ResultRow,
@@ -65,6 +67,30 @@ function sortRows(
     if (sort === "category_desc") {
       comparison *= -1;
     }
+  } else if (sort.startsWith("direction:")) {
+    const vectorA = getTypeVector(a.data);
+    const vectorB = getTypeVector(b.data);
+
+    const zeroA = vectorA.dx === 0 && vectorA.dy === 0;
+    const zeroB = vectorB.dx === 0 && vectorB.dy === 0;
+
+    const directionAngles: Record<string, number> = {
+      "direction:zero": 0,
+      "direction:up": 0,
+      "direction:right": Math.PI / 2,
+      "direction:down": Math.PI,
+      "direction:left": (3 * Math.PI) / 2,
+    };
+
+    const startAngle = directionAngles[sort] ?? 0;
+
+    if (sort === "direction:zero" && zeroA !== zeroB) {
+      comparison = zeroA ? -1 : 1;
+    } else {
+      comparison =
+        getClockwiseAngle(vectorA, startAngle) -
+        getClockwiseAngle(vectorB, startAngle);
+    }
   } else {
     const [, key, direction] = sort.split(":") as [
       string,
@@ -87,6 +113,7 @@ function sortRows(
     a.id - b.id
   );
 }
+
 
 export default function CardsAndCombos({
   cards,
@@ -279,7 +306,7 @@ export default function CardsAndCombos({
     const filteredCards = singleRows.filter(matches);
     const filteredCombos = comboRows.filter(matches);
 
-    if (showCardsFirst) {
+    if (showCardsFirst && !sort.startsWith("direction:")) {
       return [
         ...filteredCards.sort((a, b) =>
           sortRows(a, b, sort)

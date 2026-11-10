@@ -1,5 +1,7 @@
 
 import HorizontalScrollArea from "./HorizontalScrollArea";
+import { getTypeVector, formatTypeVector } from "./combo-type-vector";
+import vectorStyles from "./combo-type-vector.module.css";
 import {
   ATTRIBUTES,
   attributeIcon,
@@ -70,12 +72,17 @@ export default function ComboTable({
               Combo
             </th>
 
+            <th scope="col" className={vectorStyles.header}>
+              Type Vector
+            </th>
+
             <th
               scope="col"
               className={styles.typeHead}
             >
-              Type
+              Group
             </th>
+
 
             {ATTRIBUTES.map((attribute, index) => (
               <th
@@ -103,6 +110,7 @@ export default function ComboTable({
           {rows.map((row) => {
             const values =
               comboAttributeValues(row.data);
+            const typeVector = getTypeVector(row.data);
 
             const recipeIds =
               row.kind === "card"
@@ -161,7 +169,32 @@ export default function ComboTable({
                   </div>
                 </td>
 
-                <td
+                <td className={vectorStyles.cell}>
+                  <div
+                    className={vectorStyles.vector}
+                    title={formatTypeVector(typeVector.dx, typeVector.dy)}
+                  >
+                    {typeVector.dx === 0 && typeVector.dy === 0 ? (
+                      <span className={vectorStyles.zero}>•</span>
+                    ) : (
+                      <svg
+                        className={vectorStyles.arrow}
+                        viewBox="0 0 32 32"
+                        aria-hidden="true"
+                        style={{
+                          transform: `rotate(${Math.atan2(typeVector.dx, typeVector.dy) * 180 / Math.PI}deg)`,
+                        }}
+                      >
+                        <path d="M16 28V5M7 14l9-9 9 9" />
+                      </svg>
+                    )}
+                    <span className={vectorStyles.label}>
+                      {formatTypeVector(typeVector.dx, typeVector.dy)}
+                    </span>
+                  </div>
+                </td>
+
+                                <td
                   className={`${
                     styles.categoryCell
                   } ${

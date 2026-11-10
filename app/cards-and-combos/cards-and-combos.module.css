@@ -466,6 +466,7 @@
   background: var(--dark);
   color: var(--font_white);
   font-size: 2rem;
+  text-wrap: wrap;
 }
 
 .nameHead {
@@ -916,5 +917,143 @@
 
   .table tbody tr:last-child td {
     border-bottom-width: 2px;
+  }
+}
+
+.table {
+  min-width: 1680px;
+}
+
+.table th,
+.table td {
+  box-sizing: border-box;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  white-space: normal;
+}
+
+.table th {
+  line-height: 1.15;
+  padding-inline: 6px;
+}
+
+.table td.ingredients {
+  white-space: normal;
+}
+
+.ingredientList {
+  width: 100%;
+  min-width: 0;
+  flex-flow: row wrap;
+  column-gap: 2px;
+  row-gap: 6px;
+  white-space: normal;
+}
+
+.ingredientItem {
+  max-width: 100%;
+  flex-shrink: 1;
+  white-space: normal;
+}
+
+.table td.ingredients .ingredient {
+  max-width: 100%;
+  flex-shrink: 1;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.plus {
+  margin-inline: 4px;
+}
+
+.trainingLink {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+@media (min-width: 701px) and (max-width: 1300px) {
+  .table {
+    min-width: 1320px;
+  }
+
+  .nameHead {
+    width: 150px;
+  }
+
+  .comboHead {
+    width: 300px;
+  }
+
+  .typeHead {
+    width: 125px;
+  }
+
+  .table th.statHead {
+    width: 90px;
+  }
+
+  .table th,
+  .table td {
+    font-size: 0.9rem;
+  }
+
+  .table td {
+    padding: 8px 6px;
+  }
+
+  .table td.value {
+    font-size: 1.35rem;
+  }
+}
+
+@media (max-width: 700px) {
+  .table {
+    min-width: 1120px;
+  }
+
+  .nameHead {
+    width: 135px;
+  }
+
+  .comboHead {
+    width: 235px;
+  }
+
+  .typeHead {
+    width: 108px;
+  }
+
+  .table th.statHead {
+    width: 76px;
+  }
+
+  .table th {
+    font-size: 1.1rem;
+    padding-inline: 4px;
+  }
+
+  .table td {
+    height: auto;
+    min-height: 65px;
+    padding: 8px 5px;
+    line-height: 1.25;
+  }
+
+  .table td.ingredients {
+    padding: 8px 5px;
+  }
+
+  .ingredientList {
+    row-gap: 4px;
+  }
+
+  .plus {
+    margin-inline: 2px;
+  }
+
+  .table td.value {
+    font-size: 1.15rem;
   }
 }

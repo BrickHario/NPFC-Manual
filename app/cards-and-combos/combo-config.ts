@@ -11,6 +11,11 @@ export type SortValue =
   | "name_desc"
   | "category_asc"
   | "category_desc"
+  | "direction:up"
+  | "direction:right"
+  | "direction:down"
+  | "direction:left"
+  | "direction:zero"
   | `attribute:${AttributeKey}:${"asc" | "desc"}`;
 
 export const CARD_GROUPS: {
@@ -44,6 +49,11 @@ export const SORT_OPTIONS: {
   { value: "name_desc", label: "Name Z–A" },
   { value: "category_asc", label: "Category A–Z" },
   { value: "category_desc", label: "Category Z–A" },
+  { value: "direction:up", label: "Direction Up" },
+  { value: "direction:right", label: "Direction Right" },
+  { value: "direction:down", label: "Direction Down" },
+  { value: "direction:left", label: "Direction Left" },
+  { value: "direction:zero", label: "Direction Zero" },
   ...ATTRIBUTES.flatMap((attribute) => [
     {
       value: `attribute:${attribute.key}:desc` as SortValue,
