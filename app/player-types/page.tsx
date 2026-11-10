@@ -16,6 +16,7 @@ import {
 import { LoadingBig } from "../Loading";
 import styles from "./TrainingSelectFilter.module.css";
 import type { Language } from "../../lib/utils";
+import { requiredCards, TrainingCombo } from "../cards-and-combos/types";
 
 export const metadata: Metadata = {
   title: "Player Types",
@@ -199,7 +200,7 @@ async function PlayerTypesData({
 
     supabase
       .from("Combos")
-      .select(`combo_id,has_match_actions,${trainingSelect}` as const)
+      .select("*")
       .order("combo_id"),
 
     supabase
@@ -282,6 +283,9 @@ async function PlayerTypesData({
     return {
       kind: "combo",
       id,
+      requiredCardIds: requiredCards(
+  row as unknown as TrainingCombo
+),
       hasMatchActions:
         row.has_match_actions === true ||
         row.has_match_actions === 1,

@@ -43,6 +43,7 @@ const labels = {
   search: "Search for training..",
   cards: "Cards",
   combos: "Combos",
+  selectedCards: "Selected cards",
   selected: "Dummy",
   empty: "No training selected",
   noResults: "No matches",
@@ -80,11 +81,14 @@ type Direction =
 type MatchFilter = keyof typeof labels.match;
 
 const FILTER_STORAGE_KEY = "npfc-training-filters-v1";
+const CARD_SELECTION_STORAGE_KEY =
+  "npfc-combo-finder-selection-v1";
 
 type SavedFilters = {
   search: string;
   showCards: boolean;
   showCombos: boolean;
+  selectedCardsOnly: boolean;
   direction: Direction;
   matchFilter: MatchFilter;
 };
@@ -106,6 +110,7 @@ function readSavedFilters(): SavedFilters | null {
     }
 
     const filters = value as Record<string, unknown>;
+
     const validDirections = sortOptions.map(
       (option) => option.value
     );
@@ -125,6 +130,8 @@ function readSavedFilters(): SavedFilters | null {
         typeof filters.showCombos === "boolean"
           ? filters.showCombos
           : true,
+      selectedCardsOnly:
+        filters.selectedCardsOnly === true,
       direction:
         typeof filters.direction === "string" &&
         validDirections.includes(
@@ -143,6 +150,43 @@ function readSavedFilters(): SavedFilters | null {
   }
 }
 
+function readSelectedCardIds(): Set<number> {
+  try {
+    const raw = localStorage.getItem(
+      CARD_SELECTION_STORAGE_KEY
+    );
+
+    if (!raw) return new Set();
+
+    const value: unknown = JSON.parse(raw);
+
+    if (
+      !value ||
+      typeof value !== "object" ||
+      Array.isArray(value)
+    ) {
+      return new Set();
+    }
+
+    const cards = (value as { cards?: unknown }).cards;
+
+    if (!Array.isArray(cards)) {
+      return new Set();
+    }
+
+    return new Set(
+      cards.filter(
+        (id): id is number =>
+          typeof id === "number" &&
+          Number.isSafeInteger(id) &&
+          id >= 0
+      )
+    );
+  } catch {
+    return new Set();
+  }
+}
+
 function getTrainingVector(
   pots: number[],
   potChanges: number[]
@@ -158,7 +202,8 @@ function getTrainingVector(
   }
 
   const sector =
-    (Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) + 8) % 8;
+    (Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) + 8) %
+    8;
 
   return {
     ...step,
@@ -186,18 +231,30 @@ export default function TrainingSelectFilter({
   onSelectionChange,
   startPots,
   selected,
-  focusTrainingKey,
   selectedPlayerName,
   hasSelectedPlayer,
+  focusTrainingKey,
 }: TrainingSelectFilterProps) {
   const [search, setSearch] = useState("");
   const [showCards, setShowCards] = useState(true);
   const [showCombos, setShowCombos] = useState(true);
-  const [direction, setDirection] = useState<Direction>("all");
-  const [dragOverId, setDragOverId] = useState<number | null>(null);
+  const [selectedCardsOnly, setSelectedCardsOnly] =
+    useState(false);
+  const [savedCardIds, setSavedCardIds] = useState<
+    Set<number>
+  >(new Set());
+
+  const [direction, setDirection] =
+    useState<Direction>("all");
+
+  const [dragOverId, setDragOverId] =
+    useState<number | null>(null);
+
   const [matchFilter, setMatchFilter] =
     useState<MatchFilter>("all");
-  const [filtersLoaded, setFiltersLoaded] = useState(false);
+
+  const [filtersLoaded, setFiltersLoaded] =
+    useState(false);
 
   const sortRef = useRef<HTMLDetailsElement>(null);
   const matchRef = useRef<HTMLDetailsElement>(null);
@@ -211,6 +268,7 @@ export default function TrainingSelectFilter({
       setSearch(saved.search);
       setShowCards(saved.showCards);
       setShowCombos(saved.showCombos);
+      setSelectedCardsOnly(saved.selectedCardsOnly);
       setDirection(saved.direction);
       setMatchFilter(saved.matchFilter);
     }
@@ -225,6 +283,7 @@ export default function TrainingSelectFilter({
       search,
       showCards,
       showCombos,
+      selectedCardsOnly,
       direction,
       matchFilter,
     };
@@ -238,9 +297,37 @@ export default function TrainingSelectFilter({
     search,
     showCards,
     showCombos,
+    selectedCardsOnly,
     direction,
     matchFilter,
   ]);
+
+  useEffect(() => {
+    const updateSelectedCards = () => {
+      setSavedCardIds(readSelectedCardIds());
+    };
+
+    updateSelectedCards();
+
+    window.addEventListener("focus", updateSelectedCards);
+    window.addEventListener("storage", updateSelectedCards);
+    window.addEventListener("pageshow", updateSelectedCards);
+
+    return () => {
+      window.removeEventListener(
+        "focus",
+        updateSelectedCards
+      );
+      window.removeEventListener(
+        "storage",
+        updateSelectedCards
+      );
+      window.removeEventListener(
+        "pageshow",
+        updateSelectedCards
+      );
+    };
+  }, []);
 
   useEffect(() => {
     const dropdowns = [sortRef, matchRef];
@@ -265,15 +352,20 @@ export default function TrainingSelectFilter({
       }
     };
 
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener(
+      "pointerdown",
+      handlePointerDown
+    );
+    document.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
 
     return () => {
       document.removeEventListener(
         "pointerdown",
         handlePointerDown
       );
-
       document.removeEventListener(
         "keydown",
         handleKeyDown
@@ -293,18 +385,24 @@ export default function TrainingSelectFilter({
   );
 
   useEffect(() => {
-  if (!focusTrainingKey || !filtersLoaded) return;
+    if (!focusTrainingKey || !filtersLoaded) return;
 
-  const entry = catalog.get(focusTrainingKey);
+    const entry = catalog.get(focusTrainingKey);
 
-  if (!entry) return;
+    if (!entry) return;
 
-  setSearch(entry.names[language]);
-  setShowCards(true);
-  setShowCombos(true);
-  setDirection("all");
-  setMatchFilter("all");
-}, [focusTrainingKey, catalog, language, filtersLoaded]);
+    setSearch(entry.names[language]);
+    setShowCards(true);
+    setShowCombos(true);
+    setSelectedCardsOnly(false);
+    setDirection("all");
+    setMatchFilter("all");
+  }, [
+    focusTrainingKey,
+    catalog,
+    language,
+    filtersLoaded,
+  ]);
 
   const { selectedVectors, previewPots } = useMemo(() => {
     const vectors = new Map<
@@ -371,6 +469,26 @@ export default function TrainingSelectFilter({
 
     return trainings
       .filter((entry) => {
+        if (selectedCardsOnly) {
+          if (entry.kind === "card") {
+            if (!savedCardIds.has(entry.id)) {
+              return false;
+            }
+          } else {
+            const required = entry.requiredCardIds;
+
+            if (
+              !required ||
+              required.length === 0 ||
+              !required.every((id) =>
+                savedCardIds.has(id)
+              )
+            ) {
+              return false;
+            }
+          }
+        }
+
         if (entry.kind === "card" && !showCards) {
           return false;
         }
@@ -431,6 +549,8 @@ export default function TrainingSelectFilter({
     search,
     showCards,
     showCombos,
+    selectedCardsOnly,
+    savedCardIds,
     matchFilter,
     direction,
   ]);
@@ -550,6 +670,7 @@ export default function TrainingSelectFilter({
     setSearch("");
     setShowCards(true);
     setShowCombos(true);
+    setSelectedCardsOnly(false);
     setDirection("all");
     setMatchFilter("all");
 
@@ -606,6 +727,21 @@ export default function TrainingSelectFilter({
               <span>{labels.combos}</span>
             </label>
 
+            <label className={styles.optionLabel}>
+              <input
+                className={styles.checkbox}
+                type="checkbox"
+                checked={selectedCardsOnly}
+                onChange={(event) => {
+                  setSavedCardIds(readSelectedCardIds());
+                  setSelectedCardsOnly(
+                    event.target.checked
+                  );
+                }}
+              />
+              <span>{labels.selectedCards}</span>
+            </label>
+
             <details
               ref={sortRef}
               className={`${styles.singleFilter} ${styles.sortFilter}`}
@@ -660,28 +796,28 @@ export default function TrainingSelectFilter({
               </summary>
 
               <div className={styles.filterMenu}>
-                {(Object.keys(labels.match) as MatchFilter[]).map(
-                  (option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      className={`${styles.optionButton} ${
-                        matchFilter === option
-                          ? styles.optionSelected
-                          : ""
-                      }`}
-                      onClick={() => {
-                        setMatchFilter(option);
+                {(
+                  Object.keys(labels.match) as MatchFilter[]
+                ).map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={`${styles.optionButton} ${
+                      matchFilter === option
+                        ? styles.optionSelected
+                        : ""
+                    }`}
+                    onClick={() => {
+                      setMatchFilter(option);
 
-                        if (matchRef.current) {
-                          matchRef.current.open = false;
-                        }
-                      }}
-                    >
-                      {labels.match[option]}
-                    </button>
-                  )
-                )}
+                      if (matchRef.current) {
+                        matchRef.current.open = false;
+                      }
+                    }}
+                  >
+                    {labels.match[option]}
+                  </button>
+                ))}
               </div>
             </details>
 
@@ -696,58 +832,58 @@ export default function TrainingSelectFilter({
         </div>
 
         <div className={styles.availableShell}>
-  <div className={styles.availableList}>
-              {options.length === 0 && (
-                <p className={styles.empty}>
-                  {labels.noResults}
-                </p>
-              )}
+          <div className={styles.availableList}>
+            {options.length === 0 && (
+              <p className={styles.empty}>
+                {labels.noResults}
+              </p>
+            )}
 
-              {options.map((entry) => (
-                <button
-                  type="button"
-                  className={styles.availableItem}
-                  key={entryKey(entry)}
-                  onClick={() => addTraining(entry)}
-                  disabled={!hasSelectedPlayer}
-                  aria-label={entry.names[language]}
-                  title={
-                    hasSelectedPlayer
-                      ? entry.names[language]
-                      : "Select a player to add training"
-                  }
-                >
-                  <span className={styles.availableImage}>
-                    <Image
-                      src={entry.imageUrl}
-                      alt=""
-                      width={150}
-                      height={98}
-                      unoptimized
-                    />
+            {options.map((entry) => (
+              <button
+                type="button"
+                className={styles.availableItem}
+                key={entryKey(entry)}
+                onClick={() => addTraining(entry)}
+                disabled={!hasSelectedPlayer}
+                aria-label={entry.names[language]}
+                title={
+                  hasSelectedPlayer
+                    ? entry.names[language]
+                    : "Select a player to add training"
+                }
+              >
+                <span className={styles.availableImage}>
+                  <Image
+                    src={entry.imageUrl}
+                    alt=""
+                    width={150}
+                    height={98}
+                    unoptimized
+                  />
 
-                    <span className={styles.availableName}>
-                      {entry.names[language]}
-                    </span>
-
-                    <span className={styles.availableVector}>
-                      {(() => {
-                        const vector = trainingVectors.get(
-                          entryKey(entry)
-                        );
-
-                        return vector
-                          ? getVectorLabel(
-                              vector.dx,
-                              vector.dy
-                            )
-                          : "X 0 / Y 0";
-                      })()}
-                    </span>
+                  <span className={styles.availableName}>
+                    {entry.names[language]}
                   </span>
-                </button>
-              ))}
-            </div>
+
+                  <span className={styles.availableVector}>
+                    {(() => {
+                      const vector = trainingVectors.get(
+                        entryKey(entry)
+                      );
+
+                      return vector
+                        ? getVectorLabel(
+                            vector.dx,
+                            vector.dy
+                          )
+                        : "X 0 / Y 0";
+                    })()}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
