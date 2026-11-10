@@ -573,3 +573,122 @@
     transition: none;
   }
 }
+
+.navigationRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
+  align-items: center;
+  width: 100%;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.navigationRow .backButton {
+  position: static;
+  justify-self: start;
+  margin: 0;
+}
+
+.navigationRow .title {
+  width: 100%;
+  margin: 0;
+  min-width: 0;
+  text-align: center;
+}
+
+.addToTypesButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: end;
+  padding: 10px 18px;
+  border: 3px solid #000;
+  border-radius: 12px;
+  background: var(--button_grey);
+  color: var(--font_white);
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 800;
+  text-decoration: none;
+  text-align: center;
+  box-shadow: 3px 3px 0 #000;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.addToTypesButton:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #000;
+}
+
+@media (max-width: 850px) {
+  .navigationRow {
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+  }
+
+  .navigationRow .backButton {
+    grid-column: 1;
+    grid-row: 1;
+    margin: 0;
+  }
+
+  .navigationRow .addToTypesButton {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .navigationRow .title {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 480px) {
+  .navigationRow {
+    gap: 12px;
+  }
+
+  .navigationRow .backButton {
+    font-size: 20px;
+  }
+
+  .addToTypesButton {
+    padding: 9px 12px;
+    font-size: 14px;
+  }
+}
+
+.categoryRow {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.categoryRow .categoryBadge {
+  width: 300px;
+  max-width: 100%;
+  min-height: 65px;
+  padding: 8px 15px;
+}
+
+.typeVectorBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 150px;
+  min-height: 65px;
+  padding: 5px 10px;
+  border: 3px solid var(--font_black);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--font_black);
+}
+
+.typeVectorBox :global(svg) {
+  display: block;
+  flex-shrink: 0;
+  width: 25px;
+  height: 25px;
+}

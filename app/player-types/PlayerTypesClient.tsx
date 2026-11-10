@@ -330,6 +330,9 @@ export default function PlayerTypesClient({
   const [storageLoaded, setStorageLoaded] =
     useState(false);
 
+    const [requestedTrainingKey, setRequestedTrainingKey] =
+  useState<string | null>(null);
+
   const language = initialLanguage;
 
   useEffect(() => {
@@ -352,6 +355,23 @@ export default function PlayerTypesClient({
     setSelectedPlayerKey(savedSelection || null);
     setStorageLoaded(true);
   }, []);
+
+  useEffect(() => {
+  if (!storageLoaded) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const kind = params.get("trainingKind");
+  const id = Number(params.get("trainingId"));
+
+  if (
+    (kind === "card" || kind === "combo") &&
+    params.has("trainingId") &&
+    Number.isSafeInteger(id) &&
+    id >= 0
+  ) {
+    setRequestedTrainingKey(`${kind}:${id}`);
+  }
+}, [storageLoaded]);
 
   useEffect(() => {
     if (!storageLoaded) return;
@@ -574,6 +594,54 @@ export default function PlayerTypesClient({
       : players.length === 1
         ? String(players[0].id)
         : selectedPlayerKey;
+
+        useEffect(() => {
+  if (
+    !storageLoaded ||
+    !requestedTrainingKey ||
+    !activePlayerKey ||
+    activePlayerKey === "dummy"
+  ) {
+    return;
+  }
+
+  const entry = trainingCatalog.get(requestedTrainingKey);
+
+  if (!entry) return;
+
+  setTrainingOrders((current) => {
+    const existing = current[activePlayerKey] ?? [];
+
+    const instanceId = existing.reduce(
+      (max, item) => Math.max(max, item.instanceId + 1),
+      0
+    );
+
+    return {
+      ...current,
+      [activePlayerKey]: [
+        ...existing,
+        {
+          kind: entry.kind,
+          id: entry.id,
+          instanceId,
+        },
+      ],
+    };
+  });
+
+  setRequestedTrainingKey(null);
+  window.history.replaceState(
+    window.history.state,
+    "",
+    "/player-types"
+  );
+}, [
+  storageLoaded,
+  requestedTrainingKey,
+  activePlayerKey,
+  trainingCatalog,
+]);
 
   const selectedTrainings =
     activePlayerKey === null
@@ -836,6 +904,7 @@ export default function PlayerTypesClient({
             language={language}
             trainings={trainings}
             selected={selectedTrainings}
+            focusTrainingKey={requestedTrainingKey}
             selectedPlayerName={
               selectedPlayer?.name ?? null
             }

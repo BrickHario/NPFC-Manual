@@ -21,6 +21,7 @@ import {
   isEnabled,
 } from "./combo-config";
 import styles from "./TrainingInfo.module.css";
+import { formatTypeVector, getTypeVector } from "./combo-type-vector";
 
 type TrainingSelection =
   | { kind: "card"; data: TrainingCard }
@@ -76,6 +77,7 @@ export default function TrainingInfo({
   );
 
   const values = comboAttributeValues(data);
+  const typeVector = getTypeVector(data);
 
   const gkOnly =
     isCombo && isEnabled(training.data.gk_only);
@@ -86,30 +88,86 @@ export default function TrainingInfo({
 
   return (
     <article className={styles.page}>
-      <Link
-        href="/cards-and-combos"
-        className={styles.backButton}
-        aria-label="Back to Cards and Combos"
-      >
-        <span
-          className={styles.backTriangle}
-          aria-hidden="true"
-        />
-        <span>Back</span>
-      </Link>
+<div className={styles.navigationRow}>
+  <Link
+    href="/cards-and-combos"
+    className={styles.backButton}
+    aria-label="Back to Cards and Combos"
+  >
+    <span
+      className={styles.backTriangle}
+      aria-hidden="true"
+    />
+    <span>Back</span>
+  </Link>
 
-      <h1 className={styles.title}>
-        {data.name}
-      </h1>
+  <h1 className={styles.title}>
+    {data.name}
+  </h1>
 
-      <div
-        className={`${styles.categoryBadge} ${
-          styles[`category${categoryId}`] ?? ""
-        }`}
-      >
-        {categoryName}
-      </div>
+  <Link
+    href={`/player-types?trainingKind=${training.kind}&trainingId=${id}`}
+    className={styles.addToTypesButton}
+  >
+    Add to player types
+  </Link>
+</div>
+<div className={styles.categoryRow}>
+  <div
+    className={`${styles.categoryBadge} ${
+      styles[`category${categoryId}`] ?? ""
+    }`}
+  >
+    {categoryName}
+  </div>
 
+  <div className={styles.typeVectorBox}>
+    <div
+  className={styles.vector}
+  style={{
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    justifyItems: "center",
+    alignContent: "center",
+    gap: "3px",
+    width: "100%",
+  }}
+  title={formatTypeVector(typeVector.dx, typeVector.dy)}
+>
+      {typeVector.dx === 0 && typeVector.dy === 0 ? (
+        <span className={styles.zero}>•</span>
+      ) : (
+       <svg
+  viewBox="0 0 32 32"
+  width="27"
+  height="27"
+  aria-hidden="true"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="3"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{
+    transform: `rotate(${
+      (Math.atan2(typeVector.dx, typeVector.dy) * 180) /
+      Math.PI
+    }deg)`,
+  }}
+>
+  <path
+    d="M16 28V5M7 14L16 5L25 14"
+    fill="none"
+    stroke="currentColor"
+  />
+</svg>
+      )}
+
+      <span className={styles.label}>
+        {formatTypeVector(typeVector.dx, typeVector.dy)}
+      </span>
+    </div>
+  </div>
+</div>
       <div className={styles.content}>
         <section
           className={styles.hero}
