@@ -16,6 +16,7 @@ type PlayerLookup = {
     id: number;
     name: string;
     imageUrl: string;
+    potentialCurve: number[] | null;
   }[];
   error?: string;
 };
@@ -114,6 +115,7 @@ export default function ImportSaveButton({
           ...player,
           name: record.name,
           imageUrl: record.imageUrl,
+          potentialCurve: record.potentialCurve,
         };
       });
 

@@ -715,6 +715,19 @@ export default function PlayerTypesClient({
         name: player.name,
         imageUrl: player.imageUrl,
         isImported: imported,
+        potentialPercent:
+  imported &&
+  player.potentialCurve?.length === 33
+    ? player.potentialCurve[
+        Math.min(
+          32,
+          Math.floor(player.developmentWeeks / 12)
+        )
+      ]
+    : undefined,
+        developmentWeeks: imported
+          ? player.developmentWeeks
+          : undefined,
         x,
         y,
         typeColor:

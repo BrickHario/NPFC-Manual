@@ -10,6 +10,9 @@ import {
 export type PlayerDisplay = {
   id: number | null;
   name: string;
+  isImported?: boolean;
+  developmentWeeks?: number;
+  potentialOffsetWeeks?: number | null;
   imageUrl: string;
   x: number;
   y: number;
@@ -23,7 +26,7 @@ export type PlayerDisplay = {
   startPots: number[];
   startPosition: { x: number; y: number };
   path: { x: number; y: number }[];
-  isImported?: boolean;
+  potentialPercent?: number;
 };
 
 type TypePlayersProps = {
@@ -75,7 +78,7 @@ export function TypePlayers({
   return (
     <aside
   className={`${styles.players} ${
-    players.length > 1 ? styles.hoverEnabled : ""
+    players.length > 2 ? styles.hoverEnabled : ""
   }`}
 >
       <h2>Players</h2>
@@ -118,6 +121,22 @@ export function TypePlayers({
                   if (player.id !== null) onRemovePlayer(player.id);
                 }}
               >×</button>
+            {player.developmentWeeks !== undefined && (
+  <span
+    className={styles.potentialOffset}
+    title="Current development time and potential curve value"
+  >
+    <span>
+      {(player.developmentWeeks / 48).toFixed(2)}y
+    </span>
+
+    {player.potentialPercent !== undefined && (
+      <span style={{ display: "block" }}>
+        ({player.potentialPercent.toFixed(0)}%)
+      </span>
+    )}
+  </span>
+)}
             </>
           )}
           <div className={styles.playerHeading}>
@@ -149,15 +168,10 @@ export function TypePlayers({
                   <input
                     onClick={(event) => event.stopPropagation()}
                     type="number"
+                    readOnly={player.isImported}
                     min={0}
                     max={100}
                     step={1}
-                    readOnly={player.isImported}
-                    title={
-                      player.isImported
-                        ? "Coordinates calculated from the 12 saved type values"
-                        : undefined
-                    }
                     value={player.x}
                     onChange={(event) => {
                       const value = event.currentTarget.valueAsNumber;
@@ -174,15 +188,10 @@ export function TypePlayers({
                   <input
                     onClick={(event) => event.stopPropagation()}
                     type="number"
+                    readOnly={player.isImported}
                     min={0}
                     max={100}
                     step={1}
-                    readOnly={player.isImported}
-                    title={
-                      player.isImported
-                        ? "Coordinates calculated from the 12 saved type values"
-                        : undefined
-                    }
                     value={player.y}
                     onChange={(event) => {
                       const value = event.currentTarget.valueAsNumber;

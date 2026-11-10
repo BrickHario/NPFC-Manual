@@ -65,7 +65,7 @@ export async function POST(request: Request) {
 
     const { data, error } = await supabase
       .from("Player")
-      .select("id_player,name")
+      .select("id_player,name,id_potential")
       .in("id_player", ids);
 
     if (error) {
@@ -101,12 +101,47 @@ export async function POST(request: Request) {
       );
     }
 
+    const potentialIds = [
+  ...new Set(
+    (data ?? [])
+      .map((player) => player.id_potential)
+      .filter((id): id is number => typeof id === "number")
+  ),
+];
+
+const { data: curves, error: curvesError } = potentialIds.length
+  ? await supabase
+      .from("Potential_Curves")
+      .select("*")
+      .in("id_potential", potentialIds)
+  : { data: [], error: null };
+
+if (curvesError) {
+  return NextResponse.json(
+    { error: "Unable to load potential curves" },
+    { status: 500 }
+  );
+}
+
+const curveMap = new Map(
+  (curves ?? []).map((curve) => [
+    curve.id_potential,
+    Array.from({ length: 33 }, (_, index) =>
+      Number(
+        curve[`point_${String(index).padStart(2, "0")}`]
+      )
+    ),
+  ])
+);
+
     const players = ids.map((id) => {
       const player = found.get(id)!;
 
       return {
         id,
         name: player.name,
+        potentialCurve:
+  curveMap.get(player.id_potential) ?? null,
         imageUrl: supabase.storage
           .from("player-images")
           .getPublicUrl(

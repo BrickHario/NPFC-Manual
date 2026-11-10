@@ -21,7 +21,7 @@
 .player {
   box-sizing: border-box;
   min-width: 0;
-  padding: 22px 18px 60px;
+  padding: 22px 18px 80px;
   border: 3px solid #000;
   border-radius: 24px;
   background: #f1f1f1;
@@ -235,7 +235,6 @@
   width: 64px;
   height: 64px;
   flex-shrink: 0;
-  margin-bottom: 10px;
 }
 
 .player {
@@ -341,4 +340,15 @@
   transform: scale(1.025);
   position: relative;
   z-index: 2;
+}
+.potentialOffset {
+  position: absolute;
+  bottom: 15px;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+  z-index: 3;
+  transform: translateX(-18px);
+  width: 100%;
 }
