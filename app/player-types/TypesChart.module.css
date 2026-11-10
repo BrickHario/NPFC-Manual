@@ -35,7 +35,7 @@
   flex-shrink: 1;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1100px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto auto auto;
@@ -47,6 +47,7 @@
   .heading {
     grid-column: 1;
     grid-row: 1;
+    margin-top: 60px;
   }
 
   .chartColumn {
@@ -143,3 +144,178 @@
 .chart g[role="button"]:focus-visible {
   outline: 2px solid var(--dark);
 }
+
+
+.layout {
+  min-width: 0;
+}
+
+.players {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.playerList {
+  width: 100%;
+  min-width: 0;
+}
+
+.chartColumn {
+  min-width: 0;
+}
+
+.chart {
+  max-width: min(580px, 100%);
+}
+
+@media (min-width: 801px) and (max-width: 1300px) {
+  .layout {
+    grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    align-items: start;
+    justify-items: stretch;
+    gap: 24px;
+    padding: 16px;
+  }
+
+  .heading {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    margin-top: 60px;
+  }
+
+  .players {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+    max-width: none;
+  }
+
+  .chartColumn {
+    grid-column: 2;
+    grid-row: 2;
+    width: 100%;
+    align-self: center;
+  }
+
+  .chart {
+    width: 100%;
+    max-width: min(580px, 100%);
+  }
+
+  .layout > :last-child {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .playerList {
+    gap: 12px;
+  }
+}
+
+.playerSize {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (max-width: 800px) {
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    justify-items: stretch;
+    align-items: start;
+    gap: 24px;
+    padding: 16px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .heading {
+    grid-column: 1;
+    grid-row: 1;
+    margin-top: 60px;
+  }
+
+    .playerSize {
+    transform: scale(1.5);
+  }
+
+  .players {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .chartColumn {
+    grid-column: 1;
+    grid-row: 3;
+    width: 100%;
+    max-width: 580px;
+    justify-self: center;
+  }
+
+  .chart {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .layout > :last-child {
+    grid-column: 1;
+    grid-row: 4;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .playerList {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .layout {
+    gap: 20px;
+    padding: 12px;
+  }
+
+  .heading {
+    margin-top: 100px;
+  }
+
+  .languageDock {
+    top: 8px;
+    right: 8px;
+  }
+
+  .chartDescription {
+    font-size: 11px;
+    margin-bottom: -10px;
+  }
+
+  .playerList {
+    gap: 12px;
+  }
+
+  .playerName {
+    font-size: 16px;
+  }
+
+  .playerType {
+    font-size: 16px;
+  }
+
+  .resultType,
+  .resultCoordinates {
+    font-size: 17px;
+  }
+
+  .skillGrade {
+    font-size: 17px;
+  }
+}
+

@@ -473,8 +473,13 @@
 
 @media (max-width: 600px) {
   .page {
-    padding: 10px 12px 60px;
+    padding: 50px 12px 60px 10px;
   }
+
+  .label {
+  font-size: 14px;
+  font-weight: 800;
+}
 
   .title {
     margin-bottom: 15px;

@@ -354,7 +354,7 @@
 
 .availableVector {
   position: absolute;
-  top: 70%;
+  top: 75%;
   left: 0;
   z-index: 2;
   display: block;
@@ -369,7 +369,6 @@
   text-align: center;
   text-shadow: 0 0 5px #000, 0 0 10px #000;
   white-space: nowrap;
-  transform: translateY(-50%);
 }
 
 .availableItem:hover {

@@ -4,7 +4,7 @@
 
 .playerList {
   margin: 0;
-  padding: 12px 15px 18px;
+  padding: 0 20px 25px 0;
   list-style: none;
   display: flex;
   gap: 16px;
@@ -12,6 +12,10 @@
   overflow-x: auto;
   overflow-y: hidden;
   box-sizing: border-box;
+}
+
+.playerList .player {
+  transform-origin: top left;
 }
 
 .playerList > li {
@@ -179,6 +183,7 @@
   font-family: var(--font-body);
   font-size: clamp(15px, 2vw, 23px);
   font-weight: 800;
+  transform: translateX(1px);
 }
 
 .rankImage {
@@ -191,8 +196,8 @@
 
 .levelTrack {
   position: relative;
-  flex: 0 0 3px;
-  width: 3px;
+  flex: 0 0 2px;
+  width: 2px;
   height: 25px;
   border-radius: 2px;
   background: var(--button_grey);
@@ -201,8 +206,8 @@
 .levelDot {
   position: absolute;
   left: 50%;
-  width: 7px;
-  height: 7px;
+  width: 5px;
+  height: 5px;
   border: 2px solid var(--dark);
   border-radius: 50%;
   background: var(--color-physical);
@@ -213,7 +218,6 @@
   .players {
     grid-column: 1;
     grid-row: 2;
-    width: min(100%, 370px);
   }
 }
 
@@ -244,7 +248,7 @@
 }
 
 .hoverEnabled .player:hover {
-  transform: scale(1.025);
+    background: #e6eeff;
   cursor: pointer;
 }
 
@@ -261,7 +265,7 @@
 @media (hover: hover) {
 
   .player.selectedPlayer:hover {
-    background: #dbe6ff;
+    background: #e6eeff;
     border-color: #2041b0;
     box-shadow: 6px 6px 0 #2041b0;
   }
@@ -269,7 +273,7 @@
 
 .player.selectedPlayer {
   border-color: #2041b0;
-  background: #dbe6ff;
+  background: #e6eeff;
   box-shadow: 6px 6px 0 #2041b0;
 }
 
@@ -337,7 +341,7 @@
 }
 
 .hoverEnabled .player:hover {
-  transform: scale(1.025);
+    background: #e6eeff;
   position: relative;
   z-index: 2;
 }
@@ -351,4 +355,31 @@
   z-index: 3;
   transform: translateX(-18px);
   width: 100%;
+}
+.coordinatesColumn {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.overhang {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.positiveOverhang {
+  color: #198754;
+}
+
+.negativeOverhang {
+  color: #dc3545;
 }
