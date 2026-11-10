@@ -30,6 +30,8 @@ export type PlayerDisplay = {
   startPosition: { x: number; y: number };
   path: { x: number; y: number }[];
   potentialPercent?: number;
+  xOverflow: number;
+yOverflow: number;
 };
 
 type TypePlayersProps = {
@@ -82,22 +84,26 @@ export function TypePlayers({
   const playerListRef = useRef<HTMLUListElement>(null);
 
 useEffect(() => {
-  if (!selectedPlayerKey) return;
+  if (!selectedPlayerKey || !playerListRef.current) return;
 
-  const selectedElement = Array.from(
-    playerListRef.current?.children ?? []
-  ).find(
+  const list = playerListRef.current;
+
+  const selectedElement = Array.from(list.children).find(
     (element) =>
-      element.getAttribute("data-player-key") ===
-      selectedPlayerKey
-  );
+      element.getAttribute("data-player-key") === selectedPlayerKey
+  ) as HTMLElement | undefined;
 
-  selectedElement?.scrollIntoView({
-    behavior: "instant",
-    block: "nearest",
-    inline: "nearest",
-  });
-}, [selectedPlayerKey, players]);
+  if (!selectedElement) return;
+
+  const listRect = list.getBoundingClientRect();
+  const itemRect = selectedElement.getBoundingClientRect();
+
+  if (itemRect.left < listRect.left) {
+    list.scrollLeft -= listRect.left - itemRect.left;
+  } else if (itemRect.right > listRect.right) {
+    list.scrollLeft += itemRect.right - listRect.right;
+  }
+}, [selectedPlayerKey]);
   return (
     <aside
   className={`${styles.players} ${
@@ -110,7 +116,7 @@ useEffect(() => {
   ref={playerListRef}
   className={styles.playerList}
 >
-        {players.map((player) => {
+        {[...players].reverse().map((player) => {
           const playerKey = player.id === null ? "dummy" : String(player.id);
           const isSelected = selectedPlayerKey === playerKey;
           return (
@@ -189,47 +195,83 @@ useEffect(() => {
             </div>
 
             <div className={styles.coordinatesColumn}>
-              <div className={styles.coordinatesRow}>
-                <label className={styles.coordinate}>
-                  X
-                  <input
-                    onClick={(event) => event.stopPropagation()}
-                    type="number"
-                    readOnly={player.isImported}
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={player.x}
-                    onChange={(event) => {
-                      const value = event.currentTarget.valueAsNumber;
-                      if (Number.isFinite(value)) {
-                        onPositionChange(player.id, "x", clampCoordinate(value));
-                      }
-                    }}
-                    aria-label={`${player.name} X-Koordinate`}
-                  />
-                </label>
+ {
+  (player.xOverflow !== 0 || player.yOverflow !== 0) && (
+    <div className={styles.overhang}>
+      {player.xOverflow !== 0 && (
+        <span
+          className={
+            player.xOverflow > 0
+              ? styles.positiveOverhang
+              : styles.negativeOverhang
+          }
+        >
+          X {player.xOverflow > 0 ? "+" : ""}
+          {player.xOverflow}
+        </span>
+      )}
 
-                <label className={styles.coordinate}>
-                  Y
-                  <input
-                    onClick={(event) => event.stopPropagation()}
-                    type="number"
-                    readOnly={player.isImported}
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={player.y}
-                    onChange={(event) => {
-                      const value = event.currentTarget.valueAsNumber;
-                      if (Number.isFinite(value)) {
-                        onPositionChange(player.id, "y", clampCoordinate(value));
-                      }
-                    }}
-                    aria-label={`${player.name} Y-Koordinate`}
-                  />
-                </label>
-              </div>
+      {player.yOverflow !== 0 && (
+        <span
+          className={
+            player.yOverflow > 0
+              ? styles.positiveOverhang
+              : styles.negativeOverhang
+          }
+        >
+          Y {player.yOverflow > 0 ? "+" : ""}
+          {player.yOverflow}
+        </span>
+      )}
+    </div>
+  )}
+            <div className={styles.coordinatesRow}>
+  {player.isImported ? (
+    <span className={styles.resultCoordinates}>
+      X {player.x} / Y {player.y}
+    </span>
+  ) : (
+    <>
+      <label className={styles.coordinate}>
+        X
+        <input
+          onClick={(event) => event.stopPropagation()}
+          type="number"
+          min={0}
+          max={100}
+          step={1}
+          value={player.x}
+          onChange={(event) => {
+            const value = event.currentTarget.valueAsNumber;
+            if (Number.isFinite(value)) {
+              onPositionChange(player.id, "x", clampCoordinate(value));
+            }
+          }}
+          aria-label={`${player.name} X-Koordinate`}
+        />
+      </label>
+
+      <label className={styles.coordinate}>
+        Y
+        <input
+          onClick={(event) => event.stopPropagation()}
+          type="number"
+          min={0}
+          max={100}
+          step={1}
+          value={player.y}
+          onChange={(event) => {
+            const value = event.currentTarget.valueAsNumber;
+            if (Number.isFinite(value)) {
+              onPositionChange(player.id, "y", clampCoordinate(value));
+            }
+          }}
+          aria-label={`${player.name} Y-Koordinate`}
+        />
+      </label>
+    </>
+  )}
+</div>
               <div className={styles.resultCoordinates}>
                 <span className={styles.downArrow}>⌄</span>
                 <span>X {player.finalX} / Y {player.finalY}</span>

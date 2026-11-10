@@ -664,6 +664,16 @@ const activePlayerKey =
       const trainingsForPlayer =
         trainingOrders[key] ?? [];
 
+      const potentialPercent =
+  imported && player.potentialCurve?.length === 33
+    ? player.potentialCurve[
+        Math.min(
+          32,
+          Math.floor(player.developmentWeeks / 12)
+        )
+      ]
+    : undefined;
+
       const skillTotals = Array<number>(10).fill(0);
 
       for (const item of trainingsForPlayer) {
@@ -674,10 +684,13 @@ const activePlayerKey =
         if (!entry) continue;
 
         for (let i = 0; i < 10; i++) {
-          skillTotals[i] += Number(
-            entry.skillChanges[i] ?? 0
-          );
-        }
+  const change = Number(entry.skillChanges[i] ?? 0);
+
+  skillTotals[i] +=
+    change > 0 && potentialPercent !== undefined
+      ? Math.trunc(change * potentialPercent / 100)
+      : change;
+}
       }
 
       const finalSkillPoints =
@@ -702,7 +715,7 @@ const activePlayerKey =
         );
 
       let currentPots = [...startPots];
-      const path: Position[] = [];
+      const path: ReturnType<typeof calculatePlayerPosition>[] = [];
 
       for (const item of trainingsForPlayer) {
         const entry = trainingCatalog.get(
@@ -727,7 +740,7 @@ const activePlayerKey =
 
       const finalTypeId = getPlayerTypeId(
         finalPosition.x,
-        finalPosition.y
+        finalPosition.y,
       );
 
       return {
@@ -735,16 +748,7 @@ const activePlayerKey =
         name: player.name,
         imageUrl: player.imageUrl,
         isImported: imported,
-        potentialPercent:
-  imported &&
-  player.potentialCurve?.length === 33
-    ? player.potentialCurve[
-        Math.min(
-          32,
-          Math.floor(player.developmentWeeks / 12)
-        )
-      ]
-    : undefined,
+        potentialPercent,
         developmentWeeks: imported
           ? player.developmentWeeks
           : undefined,
@@ -755,7 +759,9 @@ const activePlayerKey =
             getPlayerTypeId(x, y)
           ],
         finalX: finalPosition.x,
-        finalY: finalPosition.y,
+finalY: finalPosition.y,
+xOverflow: finalPosition.xOverflow,
+yOverflow: finalPosition.yOverflow,
         finalType:
           PLAYER_TYPE_NAMES[
             language

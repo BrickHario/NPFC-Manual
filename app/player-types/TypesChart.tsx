@@ -315,11 +315,11 @@ export default function TypesChart({
     : 0;
 
   function chartX(value: number) {
-    return padding + (value + 0.5) * step;
+    return padding + (Math.max(0, Math.min(100, value)) + 0.5) * step;
   }
 
   function chartY(value: number) {
-    return padding + (100.5 - value) * step;
+    return padding + (100.5 - Math.max(0, Math.min(100, value))) * step;
   }
 
   const markers = players.map((player, index) => {
@@ -559,7 +559,7 @@ export default function TypesChart({
             strokeWidth={1.5}
             opacity={faded ? 0.3 : 1}
           />
-          <g opacity={faded ? 0.3 : 1}>
+          <g opacity={faded ? 0.3 : 1} className={styles.playerSize}>
             <image
               href={player.imageUrl}
               x={anchorX - 37.5}
@@ -573,7 +573,7 @@ export default function TypesChart({
               y={anchorY + 45}
               textAnchor="middle"
               fontSize={23}
-              fontWeight={700}
+              fontWeight={300}
               fill="#000"
               stroke="#fff"
               strokeWidth={3}

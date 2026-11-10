@@ -1,4 +1,3 @@
-
 export const POT_WEIGHTS = [
   [-1, 0, 4, 0],
   [-1, 0, -3, 0],
@@ -21,8 +20,9 @@ export function clamp(value: number, min: number, max: number) {
 function calculateWeightedValue(
   pots: number[],
   column: number,
-  scale: number
-) {
+  scale: number,
+  limitResult = true
+): number {
   let positiveWeight = 0;
   let negativeWeight = 0;
   let positiveSum = 0;
@@ -42,48 +42,44 @@ function calculateWeightedValue(
   }
 
   const positive = positiveWeight
-    ? Math.trunc(
-        (positiveSum * scale) / (positiveWeight * 100)
-      )
+    ? Math.trunc((positiveSum * scale) / (positiveWeight * 100))
     : 0;
-
   const negative = negativeWeight
-    ? Math.trunc(
-        (negativeSum * scale) / (negativeWeight * 100)
-      )
+    ? Math.trunc((negativeSum * scale) / (negativeWeight * 100))
     : 0;
 
-  return clamp(positive - negative, -50, 50);
+  const result = positive - negative;
+  return limitResult ? clamp(result, -50, 50) : result;
 }
 
 export function calculatePlayerPosition(pots: number[]) {
-  if (pots.length !== 12) {
-    throw new Error("Exactly 12 potential values are required");
+  if (pots.length !== 12 || pots.some((value) => !Number.isFinite(value))) {
+    throw new Error("Exactly 12 valid potential values are required");
   }
 
-  const xOffset = calculateWeightedValue(pots, 0, 240);
+  const xOffsetRaw = calculateWeightedValue(pots, 0, 240, false);
+  const xOffset = clamp(xOffsetRaw, -50, 50);
 
   const yOffset1 = calculateWeightedValue(
-    pots,
-    1,
-    Math.max(0, 30 + xOffset)
+    pots, 1, Math.max(0, 30 + xOffset)
   );
-
   const yOffset2 = calculateWeightedValue(
-    pots,
-    2,
-    Math.max(0, 30 - xOffset)
+    pots, 2, Math.max(0, 30 - xOffset)
   );
-
   const yOffset3 = calculateWeightedValue(pots, 3, 50);
 
+  const xRaw = 50 + xOffsetRaw;
+  const yRaw = 50 + yOffset1 + yOffset2 + yOffset3;
+  const x = 50 + xOffset;
+  const y = clamp(yRaw, 0, 100);
+
   return {
-    x: 50 + xOffset,
-    y: clamp(
-      50 + yOffset1 + yOffset2 + yOffset3,
-      0,
-      100
-    ),
+    x,
+    y,
+    xRaw,
+    yRaw,
+    xOverflow: xRaw - x,
+    yOverflow: yRaw - y,
   };
 }
 
@@ -92,28 +88,18 @@ export function applyTrainingPots(
   trainingChanges: number[][]
 ) {
   const result = [...initialPots];
-
   for (const changes of trainingChanges) {
     for (let i = 0; i < 12; i++) {
-      result[i] = clamp(
-        result[i] + (changes[i] ?? 0),
-        0,
-        255
-      );
+      result[i] = clamp(result[i] + (changes[i] ?? 0), 0, 255);
     }
   }
-
   return result;
 }
 
-export function calculateTrainingStep(
-  pots: number[],
-  potChanges: number[]
-) {
+export function calculateTrainingStep(pots: number[], potChanges: number[]) {
   const start = calculatePlayerPosition(pots);
   const nextPots = applyTrainingPots(pots, [potChanges]);
   const position = calculatePlayerPosition(nextPots);
-
   return {
     nextPots,
     position,

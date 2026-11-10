@@ -12,7 +12,7 @@ import {
 import type { DragEvent } from "react";
 import type { Language } from "../../lib/utils";
 import styles from "./TrainingSelectFilter.module.css";
-import { calculateTrainingStep } from "./player-type-calculation";
+import { calculatePlayerPosition, calculateTrainingStep } from "./player-type-calculation";
 import type {
   SelectedTraining,
   TrainingEntry,
@@ -192,11 +192,16 @@ function getTrainingVector(
   potChanges: number[]
 ) {
   const step = calculateTrainingStep(pots, potChanges);
-  const { dx, dy } = step;
+  const start = calculatePlayerPosition(pots);
+
+  const dx = step.position.xRaw - start.xRaw;
+  const dy = step.position.yRaw - start.yRaw;
 
   if (dx === 0 && dy === 0) {
     return {
       ...step,
+      dx,
+      dy,
       direction: "zero" as Direction,
     };
   }
@@ -207,6 +212,8 @@ function getTrainingVector(
 
   return {
     ...step,
+    dx,
+    dy,
     direction: directions[sector].value as Direction,
   };
 }
@@ -829,7 +836,7 @@ export default function TrainingSelectFilter({
         <div className={styles.availableShell}>
           <div className={styles.availableList}>
             {options.length === 0 && (
-              <p className={styles.empty}>
+              <p className={styles.empty} style={{paddingTop: 40}}>
                 {labels.noResults}
               </p>
             )}
@@ -882,11 +889,12 @@ export default function TrainingSelectFilter({
         </div>
       </div>
 
-      <div className={styles.selectedHeader}>
-        <h3 className={styles.playerTitle}>
-          Order for {selectedPlayerName || "Dummy"}:
-        </h3>
-
+      <div className={styles.selectedHeader} style={!hasSelectedPlayer ? { marginTop: 48 } : undefined}>
+        {hasSelectedPlayer && (
+          <h3 className={styles.playerTitle}>
+            Order for {selectedPlayerName || "Dummy"}:
+          </h3>
+        )}
         {selected.length > 0 && (
           <button
             type="button"
