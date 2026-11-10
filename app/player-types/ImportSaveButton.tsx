@@ -6,6 +6,7 @@ import {
   parseSaveFiles,
   type ImportedSavePlayer,
 } from "./save-parser";
+import styles from "./ImportSaveButton.module.css";
 
 type Props = {
   onImport: (players: ImportedSavePlayer[]) => void;
@@ -26,7 +27,6 @@ export default function ImportSaveButton({
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -34,13 +34,9 @@ export default function ImportSaveButton({
   async function handleFiles(
     event: React.ChangeEvent<HTMLInputElement>
   ) {
-    const files = Array.from(
-      event.target.files ?? []
-    );
+    const files = Array.from(event.target.files ?? []);
 
-    if (files.length === 0) {
-      return;
-    }
+    if (files.length === 0) return;
 
     setBusy(true);
     setError("");
@@ -57,9 +53,7 @@ export default function ImportSaveButton({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            ids: save.players.map(
-              (player) => player.id
-            ),
+            ids: save.players.map((player) => player.id),
           }),
         }
       );
@@ -80,8 +74,7 @@ export default function ImportSaveButton({
       let result: PlayerLookup;
 
       try {
-        result =
-          (await response.json()) as PlayerLookup;
+        result = (await response.json()) as PlayerLookup;
       } catch {
         throw new Error(
           "Player lookup API returned invalid JSON"
@@ -124,8 +117,6 @@ export default function ImportSaveButton({
       setSuccess(
         `${imported.length} players imported from ${save.fileName}`
       );
-
-      setOpen(false);
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -142,164 +133,46 @@ export default function ImportSaveButton({
   }
 
   return (
-    <>
+    <div className={styles.container}>
+      <p className={styles.instructions}>
+        Open Save Data Location and select{" "}
+        <span>savedata*.bin</span>
+      </p>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".bin"
+        multiple
+        disabled={busy}
+        onChange={handleFiles}
+        className={styles.fileInput}
+      />
+
       <button
         type="button"
+        disabled={busy}
         onClick={() => {
-          setOpen(true);
           setError("");
           setSuccess("");
+          inputRef.current?.click();
         }}
-        style={{
-          padding: "8px 14px",
-          border: "2px solid #222",
-          borderRadius: 8,
-          background: "#2041b0",
-          color: "#fff",
-          fontWeight: 800,
-          cursor: "pointer",
-        }}
+        className={styles.importButton}
       >
-        Import Files
+        {busy ? "Importing..." : "Import Files"}
       </button>
 
       {success && (
-        <span
-          role="status"
-          style={{
-            display: "block",
-            marginTop: 6,
-            fontSize: 12,
-          }}
-        >
+        <span role="status" className={styles.success}>
           {success}
         </span>
       )}
 
-      {open && (
-        <div
-          role="presentation"
-          onMouseDown={(event) => {
-            if (
-              event.target === event.currentTarget &&
-              !busy
-            ) {
-              setOpen(false);
-            }
-          }}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 1000,
-            display: "grid",
-            placeItems: "center",
-            padding: 20,
-            background: "#0009",
-          }}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Import NPFC save data"
-            style={{
-              width: "min(540px, 100%)",
-              padding: 24,
-              border: "2px solid #222",
-              borderRadius: 12,
-              background: "#fff",
-              color: "#222",
-              boxShadow: "4px 4px 0 #222",
-            }}
-          >
-            <h2>Import NPFC Save Data</h2>
-<p>
-  <strong>Citra:</strong> Right-click NPFC and Open Save Data Location.
-</p>
-
-<p>
-  <strong>Nintendo 3DS:</strong> Back up NPFC using
- Checkpoint, then find the files under
-3ds/Checkpoint/saves/ on your SD card.
-</p>
-
-<p>
-  Select your <strong>savedata*.bin</strong> files.
-</p>
-            <input
-              ref={inputRef}
-              type="file"
-              accept=".bin"
-              multiple
-              disabled={busy}
-              onChange={handleFiles}
-              style={{ display: "none" }}
-            />
-
-            {error && (
-              <p
-                role="alert"
-                style={{
-                  color: "#b42318",
-                  whiteSpace: "pre-wrap",
-                  overflowWrap: "anywhere",
-                }}
-              >
-                {error}
-              </p>
-            )}
-
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 10,
-                marginTop: 18,
-              }}
-            >
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() =>
-                  inputRef.current?.click()
-                }
-                style={{
-                  padding: "10px 14px",
-                  border: "2px solid #222",
-                  borderRadius: 8,
-                  background: "#2041b0",
-                  color: "#fff",
-                  fontWeight: 700,
-                  cursor: busy
-                    ? "wait"
-                    : "pointer",
-                }}
-              >
-                {busy
-                  ? "Importing..."
-                  : "Select Save Files"}
-              </button>
-
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => setOpen(false)}
-                style={{
-                  padding: "10px 14px",
-                  border: "2px solid #222",
-                  borderRadius: 8,
-                  background: "#eee",
-                  color: "#222",
-                  cursor: busy
-                    ? "not-allowed"
-                    : "pointer",
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+      {error && (
+        <p role="alert" className={styles.error}>
+          {error}
+        </p>
       )}
-    </>
+    </div>
   );
 }
