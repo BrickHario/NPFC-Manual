@@ -47,8 +47,8 @@ export const SORT_OPTIONS: {
 }[] = [
   { value: "name_asc", label: "Name A–Z" },
   { value: "name_desc", label: "Name Z–A" },
-  { value: "category_asc", label: "Category A–Z" },
-  { value: "category_desc", label: "Category Z–A" },
+  { value: "category_asc", label: "Group A–Z" },
+  { value: "category_desc", label: "Group Z–A" },
   { value: "direction:up", label: "Direction Up" },
   { value: "direction:right", label: "Direction Right" },
   { value: "direction:down", label: "Direction Down" },
@@ -86,7 +86,8 @@ export function isEnabled(value: unknown): boolean {
   );
 }
 
-export function formatBonus(value: number): string {
+export function formatBonus(value: number, random_01 = 0): string {
+  if (random_01 !== 0) return "?";
   if (!Number.isFinite(value) || value === 0) return "";
 
   const rounded = Math.ceil(Math.abs(value));

@@ -207,16 +207,25 @@ export default function ComboTable({
                     `Category ${row.category}`}
                 </td>
 
-                {ATTRIBUTES.map((attribute) => {
-                  const value =
-                    values[attribute.key];
+                {ATTRIBUTES.map((attribute, index) => {
+                  const value = values[attribute.key];
+
+                  const random_01 =
+                    row.kind === "card"
+                      ? Number(row.data.random_01 ?? 0)
+                      : 0;
+
+                  const hasRandomBonus =
+                    random_01 !== 0 && index < 6;
 
                   const valueClass =
-                    value > 0
-                      ? styles.positive
-                      : value < 0
-                        ? styles.negative
-                        : styles.zero;
+                    hasRandomBonus
+                      ? styles.zero
+                      : value > 0
+                        ? styles.positive
+                        : value < 0
+                          ? styles.negative
+                          : styles.zero;
 
                   return (
                     <td
@@ -225,7 +234,10 @@ export default function ComboTable({
                         styles.value
                       } ${valueClass}`}
                     >
-                      {formatBonus(value)}
+                      {formatBonus(
+                        value,
+                        hasRandomBonus ? random_01 : 0
+                      )}
                     </td>
                   );
                 })}

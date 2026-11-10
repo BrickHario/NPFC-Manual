@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import HorizontalScrollArea from "./HorizontalScrollArea";
@@ -35,6 +34,8 @@ type Props = {
   comboPreviewUrl?: string;
 };
 
+const randomColumns = [0, 0, 1, 2, 3, 3, 3, 4, 5];
+
 export default function TrainingInfo({
   training,
   cards,
@@ -44,6 +45,7 @@ export default function TrainingInfo({
 }: Props) {
   const [failedPreviewUrl, setFailedPreviewUrl] =
     useState<string | null>(null);
+  const [randomIndex, setRandomIndex] = useState(0);
 
   const hasPreview =
     Boolean(comboPreviewUrl) &&
@@ -78,6 +80,18 @@ export default function TrainingInfo({
 
   const values = comboAttributeValues(data);
   const typeVector = getTypeVector(data);
+  const randomBonus = !isCombo && "random_01" in data
+    ? Number(data.random_01 ?? 0)
+    : 0;
+
+  useEffect(() => {
+    if (!randomBonus) return;
+    setRandomIndex(Math.floor(Math.random() * 9));
+    const timer = setInterval(() => {
+      setRandomIndex(Math.floor(Math.random() * 9));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [id, randomBonus]);
 
   const gkOnly =
     isCombo && isEnabled(training.data.gk_only);
@@ -300,7 +314,14 @@ export default function TrainingInfo({
             aria-label="Training effects"
           >
             {ATTRIBUTES.map((attribute, index) => {
-              const value = values[attribute.key];
+              const bonus = randomBonus && randomColumns[randomIndex] === index
+                ? index === 0
+                  ? Math.ceil(randomBonus / 2)
+                  : index === 3
+                    ? Math.ceil(randomBonus / 3)
+                    : randomBonus
+                : 0;
+              const value = values[attribute.key] + bonus;
 
               return (
                 <div
