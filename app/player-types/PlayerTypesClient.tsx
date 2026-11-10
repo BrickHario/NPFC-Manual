@@ -576,72 +576,24 @@ export default function PlayerTypesClient({
   );
 
   const displayPlayers = useMemo(
-    () =>
-      players.length > 0
-        ? players
-        : [{
-            id: 0,
-            name: "Dummy",
-            imageUrl: "/Dummy.png",
-            skills: Array<number>(10).fill(0),
-          }],
-    [players]
-  );
+  () =>
+    players.length > 0
+      ? players
+      : [{
+          id: 0,
+          name: "Dummy",
+          imageUrl: "/Dummy.png",
+          skills: Array<number>(10).fill(0),
+        }],
+  [players]
+);
 
-  const activePlayerKey =
-    players.length === 0
-      ? "dummy"
-      : players.length === 1
-        ? String(players[0].id)
-        : selectedPlayerKey;
-
-        useEffect(() => {
-  if (
-    !storageLoaded ||
-    !requestedTrainingKey ||
-    !activePlayerKey ||
-    activePlayerKey === "dummy"
-  ) {
-    return;
-  }
-
-  const entry = trainingCatalog.get(requestedTrainingKey);
-
-  if (!entry) return;
-
-  setTrainingOrders((current) => {
-    const existing = current[activePlayerKey] ?? [];
-
-    const instanceId = existing.reduce(
-      (max, item) => Math.max(max, item.instanceId + 1),
-      0
-    );
-
-    return {
-      ...current,
-      [activePlayerKey]: [
-        ...existing,
-        {
-          kind: entry.kind,
-          id: entry.id,
-          instanceId,
-        },
-      ],
-    };
-  });
-
-  setRequestedTrainingKey(null);
-  window.history.replaceState(
-    window.history.state,
-    "",
-    "/player-types"
-  );
-}, [
-  storageLoaded,
-  requestedTrainingKey,
-  activePlayerKey,
-  trainingCatalog,
-]);
+const activePlayerKey =
+  players.length === 0
+    ? "dummy"
+    : players.length === 1
+      ? String(players[0].id)
+      : selectedPlayerKey;
 
   const selectedTrainings =
     activePlayerKey === null

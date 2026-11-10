@@ -385,24 +385,19 @@ export default function TrainingSelectFilter({
   );
 
   useEffect(() => {
-    if (!focusTrainingKey || !filtersLoaded) return;
+  if (!focusTrainingKey || !filtersLoaded) return;
 
-    const entry = catalog.get(focusTrainingKey);
+  const entry = catalog.get(focusTrainingKey);
 
-    if (!entry) return;
+  if (!entry) return;
 
-    setSearch(entry.names[language]);
-    setShowCards(true);
-    setShowCombos(true);
-    setSelectedCardsOnly(false);
-    setDirection("all");
-    setMatchFilter("all");
-  }, [
-    focusTrainingKey,
-    catalog,
-    language,
-    filtersLoaded,
-  ]);
+  setSearch(entry.names[language]);
+  setShowCards(true);
+  setShowCombos(true);
+  setSelectedCardsOnly(false);
+  setDirection("all");
+  setMatchFilter("all");
+}, [focusTrainingKey, catalog, language, filtersLoaded]);
 
   const { selectedVectors, previewPots } = useMemo(() => {
     const vectors = new Map<
