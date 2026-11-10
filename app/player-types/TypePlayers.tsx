@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import styles from "./TypePlayers.module.css";
 import Image from "next/image";
 import Link from "next/link";
@@ -75,6 +78,26 @@ export function TypePlayers({
   clampCoordinate,
   getPlayerType,
 }: TypePlayersProps) {
+
+  const playerListRef = useRef<HTMLUListElement>(null);
+
+useEffect(() => {
+  if (!selectedPlayerKey) return;
+
+  const selectedElement = Array.from(
+    playerListRef.current?.children ?? []
+  ).find(
+    (element) =>
+      element.getAttribute("data-player-key") ===
+      selectedPlayerKey
+  );
+
+  selectedElement?.scrollIntoView({
+    behavior: "instant",
+    block: "nearest",
+    inline: "nearest",
+  });
+}, [selectedPlayerKey, players]);
   return (
     <aside
   className={`${styles.players} ${
@@ -83,13 +106,17 @@ export function TypePlayers({
 >
       <h2>Players</h2>
 
-      <ul className={styles.playerList}>
+      <ul
+  ref={playerListRef}
+  className={styles.playerList}
+>
         {players.map((player) => {
           const playerKey = player.id === null ? "dummy" : String(player.id);
           const isSelected = selectedPlayerKey === playerKey;
           return (
         <li
           className={`${styles.player} ${isSelected ? styles.selectedPlayer : ""}`}
+          data-player-key={playerKey}
           key={playerKey}
           tabIndex={0}
           onClick={() => onSelectPlayer(playerKey)}

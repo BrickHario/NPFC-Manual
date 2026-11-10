@@ -130,3 +130,16 @@
   font-size: 25px;
   font-weight: 700;
 }
+
+.chart g[role="button"] {
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chart g[role="button"]:focus {
+  outline: none;
+}
+
+.chart g[role="button"]:focus-visible {
+  outline: 2px solid var(--dark);
+}

@@ -22,6 +22,7 @@ type TypesChartProps = {
   players: ChartPlayer[];
   selectedPlayerKey: string | null;
   language: Language;
+  onSelectPlayer: (key: string) => void;
 };
 
 const pathColors = ["#16a34a", "#2563eb", "#dc2626", "#9333ea", "#ea580c", "#0891b2", "#ca8a04", "#be185d"];
@@ -270,6 +271,7 @@ export default function TypesChart({
   players,
   selectedPlayerKey,
   language,
+  onSelectPlayer,
 }: TypesChartProps) {
   const [selectedType, setSelectedType] = useState<{
     type: number;
@@ -470,10 +472,14 @@ export default function TypesChart({
         ))}
       </g>
 
-      {markers.map(({ player, color }) => {
+      {markers.map(({ player, color, faded }) => {
         const points = [player.startPosition, ...player.path];
         return (
-          <g key={`path-${player.id ?? "dummy"}`} pointerEvents="none">
+          <g
+            key={`path-${player.id ?? "dummy"}`}
+            pointerEvents="none"
+            opacity={faded ? 0.3 : 1}
+          >
             {points.slice(1).map((point, index) => {
               const previous = points[index];
               return (
@@ -521,7 +527,29 @@ export default function TypesChart({
       })}
 
       {[...markers].sort((a, b) => Number(b.faded) - Number(a.faded)).map(({ player, anchorX, anchorY, color, faded }) => (
-        <g key={`marker-${player.id ?? "dummy"}`} pointerEvents="none">
+        <g
+          key={`marker-${player.id ?? "dummy"}`}
+          role="button"
+          tabIndex={0}
+          aria-label={`Select ${player.name}`}
+          style={{ cursor: "pointer" }}
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelectPlayer(
+              player.id === null ? "dummy" : String(player.id)
+            );
+            setSelectedType(null);
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            event.stopPropagation();
+            onSelectPlayer(
+              player.id === null ? "dummy" : String(player.id)
+            );
+            setSelectedType(null);
+          }}
+        >
           <circle
             cx={anchorX}
             cy={anchorY}
@@ -529,6 +557,7 @@ export default function TypesChart({
             fill={color}
             stroke="#000"
             strokeWidth={1.5}
+            opacity={faded ? 0.3 : 1}
           />
           <g opacity={faded ? 0.3 : 1}>
             <image

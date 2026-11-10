@@ -897,6 +897,11 @@ export default function PlayerTypesClient({
               }))}
               selectedPlayerKey={activePlayerKey}
               language={language}
+              onSelectPlayer={(key) => {
+                if (players.length <= 1) return;
+
+                setSelectedPlayerKey(key);
+              }}
             />
           </section>
 
