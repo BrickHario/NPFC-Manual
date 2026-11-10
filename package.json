@@ -9,6 +9,8 @@
   "dependencies": {
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.1.0",
     "next": "latest",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

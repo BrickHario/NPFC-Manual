@@ -4,6 +4,8 @@ import Link from "next/link";
 import SiteNavigation from "./SiteNavigation";
 import "./globals.css";
 import PageBackground from "./PageBackground";
+import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 export const metadata: Metadata = {
   title: "NPFC Manual",
@@ -16,6 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    <>
     <html lang="en">
       <body>
         <PageBackground />
@@ -48,5 +51,8 @@ export default function RootLayout({
         </footer>
       </body>
     </html>
+    <Analytics />
+    <SpeedInsights />
+    </>
   );
 }
