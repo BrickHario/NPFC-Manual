@@ -27,6 +27,7 @@ type TrainingSelectFilterProps = {
   selected: SelectedTraining[];
   selectedPlayerName: string | null;
   hasSelectedPlayer: boolean;
+  focusTrainingKey?: string | null;
 };
 
 export type TrainingNames = {
@@ -185,6 +186,7 @@ export default function TrainingSelectFilter({
   onSelectionChange,
   startPots,
   selected,
+  focusTrainingKey,
   selectedPlayerName,
   hasSelectedPlayer,
 }: TrainingSelectFilterProps) {
@@ -289,6 +291,20 @@ export default function TrainingSelectFilter({
       ),
     [trainings]
   );
+
+  useEffect(() => {
+  if (!focusTrainingKey || !filtersLoaded) return;
+
+  const entry = catalog.get(focusTrainingKey);
+
+  if (!entry) return;
+
+  setSearch(entry.names[language]);
+  setShowCards(true);
+  setShowCombos(true);
+  setDirection("all");
+  setMatchFilter("all");
+}, [focusTrainingKey, catalog, language, filtersLoaded]);
 
   const { selectedVectors, previewPots } = useMemo(() => {
     const vectors = new Map<
@@ -680,12 +696,7 @@ export default function TrainingSelectFilter({
         </div>
 
         <div className={styles.availableShell}>
-          {!hasSelectedPlayer ? (
-            <p className={styles.selectionHint}>
-              Select a player first
-            </p>
-          ) : (
-            <div className={styles.availableList}>
+  <div className={styles.availableList}>
               {options.length === 0 && (
                 <p className={styles.empty}>
                   {labels.noResults}
@@ -698,8 +709,13 @@ export default function TrainingSelectFilter({
                   className={styles.availableItem}
                   key={entryKey(entry)}
                   onClick={() => addTraining(entry)}
+                  disabled={!hasSelectedPlayer}
                   aria-label={entry.names[language]}
-                  title={entry.names[language]}
+                  title={
+                    hasSelectedPlayer
+                      ? entry.names[language]
+                      : "Select a player to add training"
+                  }
                 >
                   <span className={styles.availableImage}>
                     <Image
@@ -732,7 +748,6 @@ export default function TrainingSelectFilter({
                 </button>
               ))}
             </div>
-          )}
         </div>
       </div>
 

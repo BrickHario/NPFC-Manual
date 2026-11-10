@@ -666,3 +666,11 @@
   text-align: center;
 }
 
+.availableItem:disabled {
+  cursor: not-allowed;
+}
+
+.availableItem:disabled:hover {
+  transform: none;
+}
+
