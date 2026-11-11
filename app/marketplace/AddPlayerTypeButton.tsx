@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import {
   addSavedPlayerId,
   getSavedPlayerIds,
-} from "@/app/player-types/player-selection";
+} from "@/app/training-planner/player-selection";
 import styles from "./PlayerInfo.module.css";
 
 type Props = {
@@ -40,7 +40,7 @@ export default function AddPlayerTypeButton({
 
   return (
     <Link
-      href={`/player-types?playerId=${playerId}`}
+      href={`/training-planner?playerId=${playerId}`}
       className={styles.addPlayerType}
       onClick={() => {
         addSavedPlayerId(playerId);

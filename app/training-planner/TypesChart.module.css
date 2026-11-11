@@ -184,6 +184,10 @@
     margin-top: 60px;
   }
 
+  .chartDescription{
+  margin-bottom: 0px;
+}
+
   .players {
     grid-column: 1;
     grid-row: 2;

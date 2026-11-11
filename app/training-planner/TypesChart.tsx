@@ -336,8 +336,8 @@ export default function TypesChart({
   return (
   <>
     <p className={styles.chartDescription}>
-      Training vectors change depending on the player&apos;s current
-      position.
+      Vectors change depending on the player&apos;s current
+      position in Types Chart.
     </p>
 
     <svg

@@ -4,6 +4,7 @@ export type ImportedSavePlayer = {
   imageUrl: string;
   skillPoints: number[];
   typeWeights: number[];
+  extraValues?: [number, number];
   position: number;
   foot: "L" | "R";
   savedTypeIndex: number;

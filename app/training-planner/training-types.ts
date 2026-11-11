@@ -23,5 +23,7 @@ export type TrainingEntry = {
   imageUrl: string;
   potChanges: number[];
   skillChanges: number[];
+  xtra_01?: number;
+  xtra_02?: number;
   requiredCardIds?: number[];
 };

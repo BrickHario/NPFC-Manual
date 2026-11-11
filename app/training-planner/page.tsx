@@ -19,7 +19,7 @@ import type { Language } from "../../lib/utils";
 import { requiredCards, TrainingCombo } from "../cards-and-combos/types";
 
 export const metadata: Metadata = {
-  title: "Player Types",
+  title: "Training Planner",
 };
 
 type NameRow = {
@@ -64,6 +64,8 @@ type TrainingRow = {
   pot_10: number | null;
   pot_11: number | null;
   pot_12: number | null;
+  xtra_01: number | null;
+xtra_02: number | null;
 };
 
 type PlayerSkillsRow = {
@@ -91,7 +93,7 @@ const potColumns = Array.from(
 );
 
 const trainingSelect =
-  "skill_01,skill_02,skill_03,skill_04,skill_05,skill_06,skill_07,skill_08,skill_09,skill_10,pot_01,pot_02,pot_03,pot_04,pot_05,pot_06,pot_07,pot_08,pot_09,pot_10,pot_11,pot_12" as const;
+  "skill_01,skill_02,skill_03,skill_04,skill_05,skill_06,skill_07,skill_08,skill_09,skill_10,pot_01,pot_02,pot_03,pot_04,pot_05,pot_06,pot_07,pot_08,pot_09,pot_10,pot_11,pot_12,xtra_01,xtra_02" as const;
 
 const playerSkillsSelect =
   "id_player,skill_01,skill_02,skill_03,skill_04,skill_05,skill_06,skill_07,skill_08,skill_09,skill_10" as const;
@@ -264,6 +266,8 @@ async function PlayerTypesData({
       kind: "card",
       id,
       hasMatchActions: false,
+      xtra_01: Number(row.xtra_01 ?? 0),
+xtra_02: Number(row.xtra_02 ?? 0),
       skillChanges: getSkillChanges(row),
       names: namesOf(cardNames.get(id), `Card #${id}`),
       imageUrl: supabase.storage
@@ -291,6 +295,8 @@ async function PlayerTypesData({
         row.has_match_actions === 1,
       names: namesOf(comboNames.get(id), `Combo #${id}`),
       skillChanges: getSkillChanges(row),
+      xtra_01: Number(row.xtra_01 ?? 0),
+xtra_02: Number(row.xtra_02 ?? 0),
       imageUrl: supabase.storage
         .from("combo-images")
         .getPublicUrl(

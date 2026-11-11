@@ -75,8 +75,8 @@ export default function SiteNavigation() {
           Cards and Combos
         </Link>
 
-          <Link href="/player-types">
-          Player Types
+          <Link href="/training-planner">
+          Training Planner
         </Link>
       </div>
 
@@ -122,10 +122,10 @@ export default function SiteNavigation() {
           Cards and Combos
         </Link>
                 <Link
-          href="/player-types"
+          href="/training-planner"
           onClick={() => setIsOpen(false)}
         >
-          Player Types
+          Training Planner
         </Link>
       </div>
     </div>

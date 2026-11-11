@@ -17,7 +17,7 @@ export default function PageBackground() {
     ) {
       background = "/bg_pattern2.png";
     }  else if (
-      pathname.startsWith("/player-types")
+      pathname.startsWith("/training-planner")
     ) {
       background = "/bg_pattern3.png";
     }

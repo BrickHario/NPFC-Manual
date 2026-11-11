@@ -120,7 +120,7 @@ export default function TrainingInfo({
   </h1>
 
   <Link
-    href={`/player-types?trainingKind=${training.kind}&trainingId=${id}`}
+    href={`/training-planner?trainingKind=${training.kind}&trainingId=${id}`}
     className={styles.addToTypesButton}
   >
     Add to player types

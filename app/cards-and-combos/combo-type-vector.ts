@@ -1,4 +1,4 @@
-import { calculateTrainingStep } from "../player-types/player-type-calculation";
+import { calculateTrainingStep } from "../training-planner/player-type-calculation";
 import type { TrainingCard, TrainingCombo } from "./types";
 
 type TypeVector = { dx: number; dy: number };

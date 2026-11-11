@@ -49,6 +49,71 @@ import LanguageSwitcher from "../LanguageSwitcher";
 import TrainingSelectFilter from "./TrainingSelectFilter";
 
 const SKILL_VALUES = [0, 50, 150, 350, 600, 1000] as const;
+
+const SKILL_GROUPS = [
+  [0, 1],
+  [2],
+  [3],
+  [4, 5, 6],
+  [7],
+  [8],
+  [9],
+];
+
+function applySkillTraining(
+  currentSkills: number[],
+  rawChanges: number[],
+  potentialPercent: number
+): number[] {
+  const effectivePotential = Math.max(20, potentialPercent);
+
+  const prepared = Array.from({ length: 10 }, (_, index) => {
+    const raw = Math.trunc(rawChanges[index] ?? 0);
+    return Math.max(-30, Math.min(30, raw)) * 3;
+  });
+
+  for (const group of SKILL_GROUPS) {
+    let redistributed = 0;
+
+    for (const index of group) {
+      if (currentSkills[index] > 999 && prepared[index] > 0) {
+        redistributed += prepared[index];
+        prepared[index] = 0;
+      }
+    }
+
+    if (redistributed > 0 && group.length > 1) {
+      const share = Math.trunc(redistributed / group.length);
+
+      for (const index of group) {
+        prepared[index] += share;
+      }
+    }
+  }
+
+  return currentSkills.map((current, index) => {
+    const change = prepared[index];
+
+    const actualDelta =
+      change > 0
+        ? Math.trunc(change * effectivePotential / 100)
+        : change;
+
+    return Math.max(0, Math.min(1100, current + actualDelta));
+  });
+}
+
+function applyExtraValues(
+  current: [number, number],
+  xtra_01: number,
+  xtra_02: number
+): [number, number] {
+  return [
+    Math.max(0, Math.min(100, current[0] + xtra_01 * 2)),
+    Math.max(0, Math.min(100, current[1] + xtra_02 * 2)),
+  ];
+}
+
 const TRAINING_STORAGE_KEY = "npfc-player-training-orders-v1";
 const POSITION_STORAGE_KEY = "npfc-player-type-positions-v1";
 const SELECTED_PLAYER_STORAGE_KEY = "npfc-selected-player-v1";
@@ -330,8 +395,8 @@ export default function PlayerTypesClient({
   const [storageLoaded, setStorageLoaded] =
     useState(false);
 
-    const [requestedTrainingKey, setRequestedTrainingKey] =
-  useState<string | null>(null);
+  const [requestedTrainingKey, setRequestedTrainingKey] =
+    useState<string | null>(null);
 
   const language = initialLanguage;
 
@@ -357,21 +422,21 @@ export default function PlayerTypesClient({
   }, []);
 
   useEffect(() => {
-  if (!storageLoaded) return;
+    if (!storageLoaded) return;
 
-  const params = new URLSearchParams(window.location.search);
-  const kind = params.get("trainingKind");
-  const id = Number(params.get("trainingId"));
+    const params = new URLSearchParams(window.location.search);
+    const kind = params.get("trainingKind");
+    const id = Number(params.get("trainingId"));
 
-  if (
-    (kind === "card" || kind === "combo") &&
-    params.has("trainingId") &&
-    Number.isSafeInteger(id) &&
-    id >= 0
-  ) {
-    setRequestedTrainingKey(`${kind}:${id}`);
-  }
-}, [storageLoaded]);
+    if (
+      (kind === "card" || kind === "combo") &&
+      params.has("trainingId") &&
+      Number.isSafeInteger(id) &&
+      id >= 0
+    ) {
+      setRequestedTrainingKey(`${kind}:${id}`);
+    }
+  }, [storageLoaded]);
 
   useEffect(() => {
     if (!storageLoaded) return;
@@ -517,7 +582,7 @@ export default function PlayerTypesClient({
       if (
         window.location.search.includes("playerId=")
       ) {
-        router.replace("/player-types");
+        router.replace("/training-planner");
       } else {
         router.refresh();
       }
@@ -576,24 +641,24 @@ export default function PlayerTypesClient({
   );
 
   const displayPlayers = useMemo(
-  () =>
-    players.length > 0
-      ? players
-      : [{
-          id: 0,
-          name: "Dummy",
-          imageUrl: "/Dummy.png",
-          skills: Array<number>(10).fill(0),
-        }],
-  [players]
-);
+    () =>
+      players.length > 0
+        ? players
+        : [{
+            id: 0,
+            name: "Dummy",
+            imageUrl: "/Dummy.png",
+            skills: Array<number>(10).fill(0),
+          }],
+    [players]
+  );
 
-const activePlayerKey =
-  players.length === 0
-    ? "dummy"
-    : players.length === 1
-      ? String(players[0].id)
-      : selectedPlayerKey;
+  const activePlayerKey =
+    players.length === 0
+      ? "dummy"
+      : players.length === 1
+        ? String(players[0].id)
+        : selectedPlayerKey;
 
   const selectedTrainings =
     activePlayerKey === null
@@ -665,16 +730,22 @@ const activePlayerKey =
         trainingOrders[key] ?? [];
 
       const potentialPercent =
-  imported && player.potentialCurve?.length === 33
-    ? player.potentialCurve[
-        Math.min(
-          32,
-          Math.floor(player.developmentWeeks / 12)
-        )
-      ]
-    : undefined;
+        imported && player.potentialCurve?.length === 33
+          ? player.potentialCurve[
+              Math.min(
+                32,
+                Math.floor(player.developmentWeeks / 12)
+              )
+            ]
+          : undefined;
 
-      const skillTotals = Array<number>(10).fill(0);
+      let finalSkillPoints = [...initialSkillPoints];
+      const initialExtraValues: [number, number] =
+        imported && player.extraValues
+          ? [...player.extraValues]
+          : [0, 0];
+      let finalExtraValues: [number, number] =
+        [...initialExtraValues];
 
       for (const item of trainingsForPlayer) {
         const entry = trainingCatalog.get(
@@ -683,24 +754,30 @@ const activePlayerKey =
 
         if (!entry) continue;
 
-        for (let i = 0; i < 10; i++) {
-  const change = Number(entry.skillChanges[i] ?? 0);
+        let rawChanges = [...entry.skillChanges];
 
-  skillTotals[i] +=
-    change > 0 && potentialPercent !== undefined
-      ? Math.trunc(change * potentialPercent / 100)
-      : change;
-}
-      }
+        if (item.kind === "card" && item.id === 21) {
+          rawChanges = Array<number>(10).fill(0);
+          rawChanges[9] = 2;
 
-      const finalSkillPoints =
-        initialSkillPoints.map(
-          (original, index) =>
-            Math.max(
-              0,
-              original + skillTotals[index]
-            )
+          const randomIndex =
+            (((item.instanceId * 2654435761 +
+              player.id * 1013904223) >>> 0) % 9);
+
+          rawChanges[randomIndex] += 10;
+        }
+
+        finalSkillPoints = applySkillTraining(
+          finalSkillPoints,
+          rawChanges,
+          potentialPercent ?? 100
         );
+        finalExtraValues = applyExtraValues(
+          finalExtraValues,
+          entry.xtra_01 ?? 0,
+          entry.xtra_02 ?? 0
+        );
+      }
 
       const startAttributes =
         calculateAttributes(
@@ -715,7 +792,9 @@ const activePlayerKey =
         );
 
       let currentPots = [...startPots];
-      const path: ReturnType<typeof calculatePlayerPosition>[] = [];
+      const path: ReturnType<
+        typeof calculatePlayerPosition
+      >[] = [];
 
       for (const item of trainingsForPlayer) {
         const entry = trainingCatalog.get(
@@ -759,9 +838,9 @@ const activePlayerKey =
             getPlayerTypeId(x, y)
           ],
         finalX: finalPosition.x,
-finalY: finalPosition.y,
-xOverflow: finalPosition.xOverflow,
-yOverflow: finalPosition.yOverflow,
+        finalY: finalPosition.y,
+        xOverflow: finalPosition.xOverflow,
+        yOverflow: finalPosition.yOverflow,
         finalType:
           PLAYER_TYPE_NAMES[
             language
@@ -770,6 +849,8 @@ yOverflow: finalPosition.yOverflow,
           PLAYER_TYPE_COLORS[finalTypeId],
         startAttributes,
         finalAttributes,
+        initialExtraValues,
+        finalExtraValues,
         startPots,
         startPosition,
         path,
@@ -825,7 +906,7 @@ yOverflow: finalPosition.yOverflow,
 
         <div className={styles.layout}>
           <h1 className={styles.heading}>
-            Player Types
+            Training Planner
           </h1>
 
           <TypePlayers
