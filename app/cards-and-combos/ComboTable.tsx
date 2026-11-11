@@ -27,6 +27,7 @@ export type ResultRow =
       id: number;
       name: string;
       category: number;
+      fatigue: number;
       data: TrainingCard;
     }
   | {
@@ -34,6 +35,7 @@ export type ResultRow =
       id: number;
       name: string;
       category: number;
+      fatigue: number;
       data: TrainingCombo;
     };
 
@@ -71,6 +73,8 @@ export default function ComboTable({
             >
               Combo
             </th>
+
+            <th scope="col" className={styles.statHead}>Fatigue</th>
 
             <th scope="col" className={vectorStyles.header}>
               Type Vector
@@ -167,6 +171,10 @@ export default function ComboTable({
                       </span>
                     ))}
                   </div>
+                </td>
+
+                                <td className={`${styles.value} ${styles.zero}`}>
+                  {row.fatigue > 0 ? `+${row.fatigue}` : "0"}
                 </td>
 
                 <td className={vectorStyles.cell}>

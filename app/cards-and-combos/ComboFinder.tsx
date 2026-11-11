@@ -67,6 +67,10 @@ function sortRows(
     if (sort === "category_desc") {
       comparison *= -1;
     }
+  } else if (sort === "fatigue_desc" || sort === "fatigue_asc") {
+    comparison = sort === "fatigue_desc"
+      ? b.fatigue - a.fatigue
+      : a.fatigue - b.fatigue;
   } else if (sort.startsWith("direction:")) {
     const vectorA = getTypeVector(a.data);
     const vectorB = getTypeVector(b.data);
@@ -220,6 +224,23 @@ export default function CardsAndCombos({
     );
 
   const visibleRows = useMemo(() => {
+    const cardById = new Map(cards.map((card) => [card.card_id, card]));
+
+    const fatigueForCards = (recipe: TrainingCard[]) => {
+      const sum = recipe.reduce(
+        (total, card) =>
+          total + Array.from({ length: 9 }, (_, index) =>
+            Number(card[`skill_${String(index + 1).padStart(2, "0")}` as keyof TrainingCard] ?? 0)
+          ).reduce((a, b) => a + b, 0),
+        0
+      );
+
+      if (recipe.length === 1) return Math.max(0, sum * 10);
+      if (recipe.length === 2) return Math.max(0, Math.trunc(sum * 20 / 3));
+      if (recipe.length === 3) return Math.max(0, Math.trunc(sum * 5));
+      return 0;
+    };
+
     const specialFilterActive =
       twOnly || matchActionsOnly;
 
@@ -235,6 +256,7 @@ export default function CardsAndCombos({
               id: card.card_id,
               name: card.name,
               category: 1,
+              fatigue: fatigueForCards([card]),
               data: card,
             }))
         : [];
@@ -270,6 +292,11 @@ export default function CardsAndCombos({
         id: combo.combo_id,
         name: combo.name,
         category: combo.category_id,
+        fatigue: fatigueForCards(
+          requiredCards(combo)
+            .map((id) => cardById.get(id))
+            .filter((card): card is TrainingCard => card !== undefined)
+        ),
         data: combo,
       }));
 

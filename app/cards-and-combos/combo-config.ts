@@ -16,6 +16,8 @@ export type SortValue =
   | "direction:down"
   | "direction:left"
   | "direction:zero"
+  | "fatigue_desc"
+  | "fatigue_asc"
   | `attribute:${AttributeKey}:${"asc" | "desc"}`;
 
 export const CARD_GROUPS: {
@@ -54,6 +56,8 @@ export const SORT_OPTIONS: {
   { value: "direction:down", label: "Direction Down" },
   { value: "direction:left", label: "Direction Left" },
   { value: "direction:zero", label: "Direction Zero" },
+  { value: "fatigue_desc", label: "Fatigue High" },
+  { value: "fatigue_asc", label: "Fatigue Low" },
   ...ATTRIBUTES.flatMap((attribute) => [
     {
       value: `attribute:${attribute.key}:desc` as SortValue,
