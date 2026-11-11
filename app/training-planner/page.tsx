@@ -16,7 +16,6 @@ import {
 import { LoadingBig } from "../Loading";
 import styles from "./TrainingSelectFilter.module.css";
 import type { Language } from "../../lib/utils";
-import { requiredCards, TrainingCombo } from "../cards-and-combos/types";
 
 export const metadata: Metadata = {
   title: "Training Planner",
@@ -41,6 +40,9 @@ type ComboNameRow = NameRow & {
 type TrainingRow = {
   card_id?: number | null;
   combo_id?: number | null;
+  card1_id?: number | null;
+  card2_id?: number | null;
+  card3_id?: number | null;
   has_match_actions?: boolean | number | null;
   skill_01: number | null;
   skill_02: number | null;
@@ -64,8 +66,6 @@ type TrainingRow = {
   pot_10: number | null;
   pot_11: number | null;
   pot_12: number | null;
-  xtra_01: number | null;
-xtra_02: number | null;
 };
 
 type PlayerSkillsRow = {
@@ -93,7 +93,7 @@ const potColumns = Array.from(
 );
 
 const trainingSelect =
-  "skill_01,skill_02,skill_03,skill_04,skill_05,skill_06,skill_07,skill_08,skill_09,skill_10,pot_01,pot_02,pot_03,pot_04,pot_05,pot_06,pot_07,pot_08,pot_09,pot_10,pot_11,pot_12,xtra_01,xtra_02" as const;
+  "skill_01,skill_02,skill_03,skill_04,skill_05,skill_06,skill_07,skill_08,skill_09,skill_10,pot_01,pot_02,pot_03,pot_04,pot_05,pot_06,pot_07,pot_08,pot_09,pot_10,pot_11,pot_12" as const;
 
 const playerSkillsSelect =
   "id_player,skill_01,skill_02,skill_03,skill_04,skill_05,skill_06,skill_07,skill_08,skill_09,skill_10" as const;
@@ -108,6 +108,23 @@ function getSkillChanges(row: TrainingRow): number[] {
   return skillColumns.map((column) =>
     Number(row[column as keyof TrainingRow] ?? 0)
   );
+}
+
+function calculateTrainingFatigue(cards: { skillPoints: number[] }[]): number {
+  const sum = cards.reduce(
+    (total, card) =>
+      total +
+      card.skillPoints.slice(0, 9).reduce((a, b) => a + b, 0),
+    0
+  );
+
+  const count = cards.length;
+
+  if (count === 1) return Math.max(0, sum * 10);
+  if (count === 2) return Math.max(0, Math.trunc(sum * 20 / 3));
+  if (count === 3) return Math.max(0, Math.trunc(sum * 5));
+
+  return 0;
 }
 
 function getPlayerSkills(row: PlayerSkillsRow): number[] {
@@ -174,7 +191,7 @@ async function PlayerTypesData({
   if (
     requestedId !== null &&
     Number.isSafeInteger(requestedId) &&
-    requestedId > 0 &&
+    requestedId >= 0 &&
     !playerIds.includes(requestedId)
   ) {
     playerIds.push(requestedId);
@@ -202,7 +219,7 @@ async function PlayerTypesData({
 
     supabase
       .from("Combos")
-      .select("*")
+      .select(`combo_id,card1_id,card2_id,card3_id,has_match_actions,${trainingSelect}` as const)
       .order("combo_id"),
 
     supabase
@@ -257,6 +274,13 @@ async function PlayerTypesData({
     )
   );
 
+  const cardSkillMap = new Map(
+    ((cardsResult.data ?? []) as TrainingRow[]).map((row) => [
+      Number(row.card_id),
+      getSkillChanges(row),
+    ])
+  );
+
   const cards: TrainingEntry[] = (
     (cardsResult.data ?? []) as TrainingRow[]
   ).map((row) => {
@@ -266,9 +290,8 @@ async function PlayerTypesData({
       kind: "card",
       id,
       hasMatchActions: false,
-      xtra_01: Number(row.xtra_01 ?? 0),
-xtra_02: Number(row.xtra_02 ?? 0),
       skillChanges: getSkillChanges(row),
+      fatigueChange: calculateTrainingFatigue([{ skillPoints: getSkillChanges(row) }]),
       names: namesOf(cardNames.get(id), `Card #${id}`),
       imageUrl: supabase.storage
         .from("card-images")
@@ -283,20 +306,24 @@ xtra_02: Number(row.xtra_02 ?? 0),
     (combosResult.data ?? []) as TrainingRow[]
   ).map((row) => {
     const id = Number(row.combo_id);
+    const requiredCardIds = [row.card1_id, row.card2_id, row.card3_id]
+      .filter((cardId): cardId is number => cardId !== null && cardId !== undefined);
+    const ingredientSkills = requiredCardIds
+      .map((cardId) => cardSkillMap.get(cardId))
+      .filter((values): values is number[] => values !== undefined);
 
     return {
       kind: "combo",
       id,
-      requiredCardIds: requiredCards(
-  row as unknown as TrainingCombo
-),
       hasMatchActions:
         row.has_match_actions === true ||
         row.has_match_actions === 1,
       names: namesOf(comboNames.get(id), `Combo #${id}`),
       skillChanges: getSkillChanges(row),
-      xtra_01: Number(row.xtra_01 ?? 0),
-xtra_02: Number(row.xtra_02 ?? 0),
+      requiredCardIds,
+      fatigueChange: ingredientSkills.length === requiredCardIds.length
+        ? calculateTrainingFatigue(ingredientSkills.map((skillPoints) => ({ skillPoints })))
+        : 0,
       imageUrl: supabase.storage
         .from("combo-images")
         .getPublicUrl(

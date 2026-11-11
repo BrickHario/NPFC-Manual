@@ -18,6 +18,10 @@
   transform-origin: top left;
 }
 
+.playerList .player:hover {
+  cursor: pointer;
+}
+
 .playerList > li {
   flex: 0 0 auto;
 }
@@ -269,6 +273,7 @@
     background: #e6eeff;
     border-color: #2041b0;
     box-shadow: 6px 6px 0 #2041b0;
+    cursor: pointer;
   }
 }
 
@@ -345,6 +350,7 @@
     background: #e6eeff;
   position: relative;
   z-index: 2;
+  cursor: pointer;
 }
 .potentialOffset {
   position: absolute;

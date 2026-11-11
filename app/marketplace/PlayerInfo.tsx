@@ -143,7 +143,7 @@ if (!player) {
           <div>
              {weeklyRecovery !== null && (
               <span title="Weekly fatigue recovery" className={styles.recovery}>
-                -{weeklyRecovery}/w
+               Recovery -{weeklyRecovery}/w
               </span>
             )}
           </div>

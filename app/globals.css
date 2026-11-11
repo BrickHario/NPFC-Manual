@@ -305,7 +305,7 @@ tr:hover td {
   line-height: 1.1;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 800px) {
   .site-nav {
     padding: 15px 28px;
   }
