@@ -12,6 +12,7 @@ export type ImportedSavePlayer = {
   potentialOffsetWeeks: number | null;
   source: "save";
   potentialCurve?: number[] | null;
+  fatigue: number | null;
 };
 
 export type ParsedSave = {
@@ -54,6 +55,33 @@ export function calculateKnownPotentialOffsetWeeks(
     return null;
   }
   return weeksAtClub - developmentWeeks;
+}
+
+export function readPlayerFatigue(
+  view: DataView,
+  playerId: number
+): number | null {
+  if (
+    !Number.isInteger(playerId) ||
+    playerId < 0 ||
+    playerId > 1015
+  ) {
+    return null;
+  }
+
+  const offset = 0x9716 + playerId * 0x24;
+
+  if (offset + 2 > view.byteLength) return null;
+
+  return view.getInt16(offset, true);
+}
+
+export function getFatigueLevel(
+  fatigue: number | null
+): 0 | 1 | 2 | null {
+  if (fatigue === null) return null;
+
+  return fatigue < 400 ? 0 : fatigue < 700 ? 1 : 2;
 }
 
 export function parseSave(buffer: ArrayBuffer, fileName: string): ParsedSave {
@@ -152,6 +180,7 @@ export function parseSave(buffer: ArrayBuffer, fileName: string): ParsedSave {
       foot: (positionAndFoot & 0x10) !== 0 ? "L" : "R",
       savedTypeIndex: view.getUint8(base + 0x68),
       developmentWeeks,
+      fatigue: readPlayerFatigue(view, id),
       potentialOffsetWeeks: null,
       source: "save",
     });
@@ -248,7 +277,11 @@ export function readImportedPlayers(): ImportedSavePlayer[] {
           item.developmentWeeks <= 384 &&
           (item.potentialOffsetWeeks === null ||
             (typeof item.potentialOffsetWeeks === "number" &&
-              Number.isInteger(item.potentialOffsetWeeks)));
+              Number.isInteger(item.potentialOffsetWeeks))) &&
+          (item.fatigue === undefined ||
+            item.fatigue === null ||
+            (typeof item.fatigue === "number" &&
+              Number.isInteger(item.fatigue)));
         if (valid) seenIds.add(item.id!);
         return valid;
       }

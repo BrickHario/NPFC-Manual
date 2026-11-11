@@ -31,6 +31,7 @@
   background: #f1f1f1;
   box-shadow: 6px 6px 0 #000;
   min-height: 100%;
+  position: relative;
 }
 
 .playerHeading {
@@ -382,4 +383,81 @@
 
 .negativeOverhang {
   color: #dc3545;
+}
+
+.fatigueHud {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  margin-top: 3px;
+}
+
+.fatigueRecovery {
+  color: #000;
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.fatigueMeter {
+  display: flex;
+  align-items: center;
+}
+
+.fatigueTail {
+  position: relative;
+  width: 50px;
+  height: 3px;
+  border-radius: 999px;
+  background: #111;
+}
+
+.fatigueMarker {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #8d8d8d;
+  border: #000 solid 2px;
+  transform: translate(-50%, -50%);
+}
+
+.fatigueDot {
+  display: block;
+  object-fit: contain;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+  .fatigueHud {
+    gap: 8px;
+  }
+
+  .fatigueRecovery {
+    font-size: 14px;
+  }
+
+  .fatigueTail {
+    width: 68px;
+    height: 3px;
+  }
+
+  .fatigueMarker {
+    width: 10px;
+    height: 10px;
+  }
+
+  .fatigueDot {
+    width: 20px;
+    height: 20px;
+  }
 }

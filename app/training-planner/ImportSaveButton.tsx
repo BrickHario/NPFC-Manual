@@ -46,7 +46,7 @@ export default function ImportSaveButton({
       const save = await parseSaveFiles(files);
 
       const response = await fetch(
-        "/api/training-planner/lookup",
+        "/api/player-types/lookup",
         {
           method: "POST",
           headers: {
@@ -67,7 +67,7 @@ export default function ImportSaveButton({
           .includes("application/json")
       ) {
         throw new Error(
-          `Player lookup API unavailable (HTTP ${response.status}). Check app/api/training-planner/lookup/route.ts.`
+          `Player lookup API unavailable (HTTP ${response.status}). Check app/api/player-types/lookup/route.ts.`
         );
       }
 

@@ -34,6 +34,7 @@ import {
   PLAYER_TYPE_COLORS,
   PLAYER_TYPE_NAMES,
   calculateAttributes,
+  calculateWeeklyRecovery,
   type Language,
 } from "../../lib/utils";
 import {
@@ -827,6 +828,8 @@ export default function PlayerTypesClient({
         name: player.name,
         imageUrl: player.imageUrl,
         isImported: imported,
+        fatigue: imported ? player.fatigue ?? null : null,
+        weeklyRecovery: imported ? calculateWeeklyRecovery(finalSkillPoints) : null,
         potentialPercent,
         developmentWeeks: imported
           ? player.developmentWeeks

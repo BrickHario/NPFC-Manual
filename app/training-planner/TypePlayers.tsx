@@ -7,6 +7,8 @@ import Link from "next/link";
 import {
   attributeImages,
   calculateAttributes,
+  getFatigueColor,
+  getFatigueProgress,
   rankImages,
 } from "../../lib/utils";
 
@@ -32,6 +34,8 @@ export type PlayerDisplay = {
   potentialPercent?: number;
   xOverflow: number;
 yOverflow: number;
+fatigue: number | null;
+weeklyRecovery: number | null;
 };
 
 type TypePlayersProps = {
@@ -171,6 +175,33 @@ useEffect(() => {
   </span>
 )}
             </>
+          )}
+          {player.isImported && player.fatigue !== null && (
+            <div
+              className={styles.fatigueHud}
+              title={`Fatigue ${player.fatigue} · Recovery ${player.weeklyRecovery ?? 0}/w`}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <span className={styles.fatigueRecovery}>
+                {player.weeklyRecovery ?? 0}/w
+              </span>
+              <div className={styles.fatigueMeter}>
+                <div className={styles.fatigueTail}>
+                  <span
+                    className={styles.fatigueMarker}
+                    style={{ left: `${getFatigueProgress(player.fatigue)}%` }}
+                  />
+                </div>
+                <Image
+  src={`/fatigueIcon-${getFatigueColor(player.fatigue)}.png`}
+  alt={`Fatigue: ${getFatigueColor(player.fatigue)}`}
+  width={20}
+  height={20}
+  className={styles.fatigueDot}
+  unoptimized
+/>
+              </div>
+            </div>
           )}
           <div className={styles.playerHeading}>
             <span className={styles.playerName}>{player.name}</span>

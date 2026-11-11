@@ -282,4 +282,50 @@ export const PLAYER_TYPE_COLORS = [
   "#00c9ee",
 ] as const;
 
+export function calculateWeeklyRecovery(skillPoints: number[]) {
+  const stamina = Number(skillPoints[3] ?? 0);
+  const toughness = Number(skillPoints[7] ?? 0);
+
+  const weighted = Math.trunc(
+    (stamina + toughness * 2) / 3
+  );
+
+  if (weighted < 50) return 70;
+  if (weighted < 150) return 80;
+  if (weighted < 350) return 92;
+  if (weighted < 600) return 106;
+  if (weighted < 1000) return 116;
+  return 122;
+}
+
+export function getFatigueColor(
+  fatigue: number | null
+): "green" | "yellow" | "red" {
+  if (fatigue === null) return "green";
+  if (fatigue < 400) return "green";
+  if (fatigue < 700) return "yellow";
+  return "red";
+}
+
+export function getFatigueProgress(
+  fatigue: number | null
+) {
+  if (fatigue === null) return 0;
+
+  const value = Math.max(
+    0,
+    Math.min(1000, fatigue)
+  );
+
+  if (value < 400) {
+    return (value / 400) * 100;
+  }
+
+  if (value < 700) {
+    return ((value - 400) / 300) * 100;
+  }
+
+  return ((value - 700) / 300) * 100;
+}
+
 
