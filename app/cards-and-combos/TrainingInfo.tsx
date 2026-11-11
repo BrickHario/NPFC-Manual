@@ -78,6 +78,26 @@ export default function TrainingInfo({
     cards.map((card) => [card.card_id, card])
   );
 
+  const fatigueCards = isCombo
+    ? recipeIds.map((cardId) => cardMap.get(cardId))
+    : [training.data];
+
+  const fatigueSum = fatigueCards.reduce(
+    (total, card) =>
+      total + Array.from({ length: 9 }, (_, index) =>
+        Number(card?.[`skill_${String(index + 1).padStart(2, "0")}` as keyof TrainingCard] ?? 0)
+      ).reduce((sum, value) => sum + value, 0),
+    0
+  );
+
+  const fatigue = fatigueCards.length === 1
+    ? Math.max(0, fatigueSum * 10)
+    : fatigueCards.length === 2
+      ? Math.max(0, Math.trunc(fatigueSum * 20 / 3))
+      : fatigueCards.length === 3
+        ? Math.max(0, Math.trunc(fatigueSum * 5))
+        : 0;
+
   const values = comboAttributeValues(data);
   const typeVector = getTypeVector(data);
   const randomBonus = !isCombo && "random_01" in data
@@ -127,6 +147,9 @@ export default function TrainingInfo({
   </Link>
 </div>
 <div className={styles.categoryRow}>
+  <div className={styles.fatigueBox}>
+    Fatigue: {fatigue > 0 ? `+${fatigue}` : fatigue}
+  </div>
   <div
     className={`${styles.categoryBadge} ${
       styles[`category${categoryId}`] ?? ""
