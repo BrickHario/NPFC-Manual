@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePotentialCurves } from "./PotentialCurvesProvider";
 import styles from "./TypePlayers.module.css";
 import Image from "next/image";
 import Link from "next/link";
@@ -17,6 +18,7 @@ export type PlayerDisplay = {
   name: string;
   isImported?: boolean;
   developmentWeeks?: number;
+  trainingCount?: number;
   potentialOffsetWeeks?: number | null;
   imageUrl: string;
   x: number;
@@ -87,6 +89,8 @@ export function TypePlayers({
 
   const playerListRef = useRef<HTMLUListElement>(null);
 
+  const dbCurves = usePotentialCurves();
+
 useEffect(() => {
   if (!selectedPlayerKey || !playerListRef.current) return;
 
@@ -123,6 +127,25 @@ useEffect(() => {
         {[...players].reverse().map((player) => {
           const playerKey = player.id === null ? "dummy" : String(player.id);
           const isSelected = selectedPlayerKey === playerKey;
+          const curve = player.id === null
+            ? dbCurves.dummy
+            : dbCurves.players[player.id];
+
+          const trainingWeeks = player.trainingCount ?? player.path.length;
+          const developmentWeeks = Math.min(
+            384,
+            Math.max(0, (player.isImported ? player.developmentWeeks ?? 0 : 0) + trainingWeeks)
+          );
+
+          const curvePosition = developmentWeeks / 12;
+          const curveIndex = Math.min(32, Math.floor(curvePosition));
+          const nextCurveIndex = Math.min(32, curveIndex + 1);
+          const dbPotentialPercent = curve
+            ? curve[curveIndex] +
+              (curve[nextCurveIndex] - curve[curveIndex]) * (curvePosition - curveIndex)
+            : undefined;
+          const potentialPercent = dbPotentialPercent ?? player.potentialPercent;
+
           return (
         <li
           className={`${styles.player} ${isSelected ? styles.selectedPlayer : ""}`}
@@ -158,24 +181,21 @@ useEffect(() => {
                   if (player.id !== null) onRemovePlayer(player.id);
                 }}
               >×</button>
-            {player.developmentWeeks !== undefined && (
-  <span
-    className={styles.potentialOffset}
-    title="Current development time and potential curve value"
-  >
-    <span>
-      {(player.developmentWeeks / 48).toFixed(2)}y
-    </span>
-
-    {player.potentialPercent !== undefined && (
-      <span style={{ display: "block" }}>
-        ({player.potentialPercent.toFixed(0)}%)
-      </span>
-    )}
-  </span>
-)}
             </>
           )}
+          <span
+            className={styles.potentialOffset}
+            title="Current development time and potential curve value"
+          >
+            <span>
+              {(developmentWeeks / 48).toFixed(2)}y
+            </span>
+            <span style={{ display: "block" }}>
+              {potentialPercent !== undefined && Number.isFinite(potentialPercent)
+                ? `(${potentialPercent.toFixed(1)}%)`
+                : "(…)"}
+            </span>
+          </span>
             <div
               className={styles.fatigueHud}
               title={`Fatigue ${player.fatigue} · Recovery ${player.weeklyRecovery ?? 0}/w`}

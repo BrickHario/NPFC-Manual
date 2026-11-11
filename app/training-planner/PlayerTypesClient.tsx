@@ -48,6 +48,7 @@ import {
 } from "./TypePlayers";
 import LanguageSwitcher from "../LanguageSwitcher";
 import TrainingSelectFilter from "./TrainingSelectFilter";
+import { usePotentialCurves } from "./PotentialCurvesProvider";
 
 const SKILL_VALUES = [0, 50, 150, 350, 600, 1000] as const;
 
@@ -378,6 +379,7 @@ export default function PlayerTypesClient({
   initialPlayers,
 }: PlayerTypesClientProps) {
   const router = useRouter();
+  const dbCurves = usePotentialCurves();
 
   const [players, setPlayers] = useState<PlayerEntry[]>(
     initialPlayers
@@ -563,8 +565,9 @@ export default function PlayerTypesClient({
 
         return [...updated.values()];
       });
+      router.refresh();
     },
-    []
+    [router]
   );
 
   const handleRemovePlayer = useCallback(
@@ -730,15 +733,16 @@ export default function PlayerTypesClient({
       const trainingsForPlayer =
         trainingOrders[key] ?? [];
 
-      const potentialPercent =
-        imported && player.potentialCurve?.length === 33
-          ? player.potentialCurve[
-              Math.min(
-                32,
-                Math.floor(player.developmentWeeks / 12)
-              )
-            ]
-          : undefined;
+      const curve = id === null
+        ? dbCurves.dummy
+        : dbCurves.players[id] ??
+          (imported && player.potentialCurve?.length === 33
+            ? player.potentialCurve
+            : null);
+
+      const potentialPercent = curve
+        ? curve[Math.min(32, Math.floor((imported ? player.developmentWeeks : 0) / 12))]
+        : undefined;
 
       let finalSkillPoints = [...initialSkillPoints];
       const initialExtraValues: [number, number] =
@@ -789,10 +793,22 @@ appliedTrainings++;
           rawChanges[randomIndex] += 10;
         }
 
+        const trainingWeeks = Math.min(
+          384,
+          Math.max(0, (imported ? player.developmentWeeks : 0) + appliedTrainings - 1)
+        );
+        const curvePosition = trainingWeeks / 12;
+        const curveIndex = Math.min(32, Math.floor(curvePosition));
+        const nextCurveIndex = Math.min(32, curveIndex + 1);
+        const trainingPotentialPercent = curve
+          ? curve[curveIndex] +
+            (curve[nextCurveIndex] - curve[curveIndex]) * (curvePosition - curveIndex)
+          : potentialPercent ?? 100;
+
         finalSkillPoints = applySkillTraining(
           finalSkillPoints,
           rawChanges,
-          potentialPercent ?? 100
+          trainingPotentialPercent
         );
         finalExtraValues = applyExtraValues(
           finalExtraValues,
@@ -887,6 +903,7 @@ appliedTrainings++;
     trainingOrders,
     trainingCatalog,
     language,
+    dbCurves,
   ]);
 
   const selectedPlayer = playerViews.find(

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import PlayerTypesClient from "./PlayerTypesClient";
+import PotentialCurvesProvider from "./PotentialCurvesProvider";
 import type {
   TrainingEntry,
   TrainingNames,
@@ -162,6 +163,18 @@ function normalizeLanguage(value?: string): Language {
   return "en";
 }
 
+function getCurvePoints(value: unknown): number[] | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const row = value as Record<string, unknown>;
+  const points = Array.from({ length: 33 }, (_, index) => {
+    const value = row[`point_${String(index).padStart(2, "0")}`];
+    return value === null || value === undefined || value === ""
+      ? NaN
+      : Number(value);
+  });
+  return points.every(Number.isFinite) ? points : null;
+}
+
 async function PlayerTypesData({
   searchParams,
 }: {
@@ -204,6 +217,7 @@ async function PlayerTypesData({
     comboNamesResult,
     playersResult,
     skillsResult,
+    dummyCurveResult,
   ] = await Promise.all([
     supabase
       .from("Cards")
@@ -232,7 +246,7 @@ async function PlayerTypesData({
     playerIds.length > 0
       ? supabase
           .from("Player")
-          .select("id_player,name")
+          .select("id_player,name,Potential_Curves(*)")
           .in("id_player", playerIds)
       : Promise.resolve({ data: [], error: null }),
 
@@ -242,6 +256,12 @@ async function PlayerTypesData({
           .select(playerSkillsSelect)
           .in("id_player", playerIds)
       : Promise.resolve({ data: [], error: null }),
+
+    supabase
+      .from("Potential_Curves")
+      .select("*")
+      .eq("id_potential", 0)
+      .maybeSingle(),
   ]);
 
   const error =
@@ -250,7 +270,8 @@ async function PlayerTypesData({
     combosResult.error ??
     comboNamesResult.error ??
     playersResult.error ??
-    skillsResult.error;
+    skillsResult.error ??
+    dummyCurveResult.error;
 
   if (error) {
     return (
@@ -346,6 +367,18 @@ async function PlayerTypesData({
     )
   );
 
+  const playerCurves: Record<number, number[]> = {};
+  for (const row of playersResult.data ?? []) {
+    const relation = row.Potential_Curves;
+    const curve = getCurvePoints(Array.isArray(relation) ? relation[0] : relation);
+    if (curve) playerCurves[Number(row.id_player)] = curve;
+  }
+
+  const initialPotentialCurves = {
+    players: playerCurves,
+    dummy: getCurvePoints(dummyCurveResult.data),
+  };
+
   const initialPlayers: PlayerTypeSelection[] = playerIds
     .map((id) => {
       const player = playerMap.get(id);
@@ -370,11 +403,13 @@ async function PlayerTypesData({
     );
 
   return (
-    <PlayerTypesClient
-      trainings={[...cards, ...combos]}
-      initialLanguage={initialLanguage}
-      initialPlayers={initialPlayers}
-    />
+    <PotentialCurvesProvider value={initialPotentialCurves}>
+      <PlayerTypesClient
+        trainings={[...cards, ...combos]}
+        initialLanguage={initialLanguage}
+        initialPlayers={initialPlayers}
+      />
+    </PotentialCurvesProvider>
   );
 }
 
