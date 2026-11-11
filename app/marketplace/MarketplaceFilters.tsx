@@ -429,6 +429,8 @@ export default function MarketplaceFilters({
           { value: "overall_asc", label: "Overall rating ↑" },
           { value: "name_asc", label: "Name A–Z" },
           { value: "name_desc", label: "Name Z–A" },
+          { value: "recovery_desc", label: "Recovery High" },
+          { value: "recovery_asc", label: "Recovery Low" },
           ...skillNames.flatMap((skill, index) => [
             { value: `skill:${index}:desc`, label: `${skill} ↓` },
             { value: `skill:${index}:asc`, label: `${skill} ↑` },

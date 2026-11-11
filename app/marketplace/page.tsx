@@ -7,6 +7,7 @@ import {
   getOverall,
   getTier,
   calculateAttributes,
+  calculateWeeklyRecovery,
   getFoot,
   getMarket,
   POTENTIAL_CURVE_ORDER,
@@ -128,6 +129,16 @@ async function Players({
       : p.Player_Skills;
 
     const overall = skills ? Number(getOverall(skills)) : 0;
+    const recovery = skills
+      ? calculateWeeklyRecovery(
+          Array.from({ length: 10 }, (_, index) => {
+            const level = Number(
+              skills[`skill_${String(index + 1).padStart(2, "0")}`] ?? 0
+            );
+            return [0, 50, 150, 350, 600, 1000][level] ?? 0;
+          })
+        )
+      : 0;
 
     const attributes = skills
       ? calculateAttributes(skills)
@@ -152,6 +163,7 @@ async function Players({
       id_position: p.id_position,
       price: p.price == null ? null : Number(p.price),
       overall,
+      recovery,
       position: String(getPosition(p.id_position) ?? ""),
       foot: String(getFoot(p.id_foot) ?? ""),
       market: String(getMarket(p.id_market) ?? ""),
@@ -265,6 +277,14 @@ async function Players({
     let result = 0;
 
     switch (sort) {
+      case "recovery_desc":
+        result = b.recovery - a.recovery;
+        break;
+
+      case "recovery_asc":
+        result = a.recovery - b.recovery;
+        break;
+
       case "overall_asc":
         result = a.overall - b.overall;
         break;

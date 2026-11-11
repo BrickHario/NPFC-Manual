@@ -47,7 +47,7 @@ export default function AddPlayerTypeButton({
         setIsAdded(true);
       }}
     >
-      Add to player types
+      Add to training planner
     </Link>
   );
 }
