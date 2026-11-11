@@ -27,8 +27,8 @@
 }
 
 .topBar {
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   min-height: 80px;
   gap: 16px;
@@ -134,6 +134,15 @@
   width: 256px;
   height: 320px;
   flex-shrink: 0;
+}
+
+.recovery {
+  margin-left: 16px;
+  white-space: nowrap;
+  font-size: 30px;
+  background-color: var(--color-tactical);
+  padding: 5px 20px;
+  border-radius: 15px;
 }
 
 .scaledCard {
@@ -294,6 +303,11 @@
     padding: 15px 20px;
     min-height: 95px;
     gap: 10px;
+  }
+
+  .recovery {
+    font-size: 20px;
+    border-radius: 10px;
   }
 
   .footBadge {

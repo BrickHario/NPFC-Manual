@@ -6,6 +6,7 @@ import PotentialChart from "./PotentialChart";
 import {
   attributeImages,
   calculateAttributes,
+  calculateWeeklyRecovery,
   formatPrice,
   getFoot,
   getMarket,
@@ -98,6 +99,14 @@ if (!player) {
     : player.Potential_Curves;
 
   const attributes = skills ? calculateAttributes(skills) : [];
+  const weeklyRecovery = skills
+    ? calculateWeeklyRecovery(
+        Array.from({ length: 10 }, (_, index) => {
+          const level = Number(skills[`skill_${String(index + 1).padStart(2, "0")}`] ?? 0);
+          return LEVEL_THRESHOLDS[level] ?? 0;
+        })
+      )
+    : null;
   const position = String(getPosition(player.id_position) ?? "—");
   const foot = String(getFoot(player.id_foot) ?? "—").toUpperCase();
   const market = String(getMarket(player.id_market) ?? "—");
@@ -123,6 +132,13 @@ if (!player) {
         <header className={styles.topBar}>
           <div className={styles.position} title="Position">
             {position}
+          </div>
+          <div>
+             {weeklyRecovery !== null && (
+              <span title="Weekly fatigue recovery" className={styles.recovery}>
+                -{weeklyRecovery}/w
+              </span>
+            )}
           </div>
 
           <div className={styles.priceWrap} title={`Price: ${formatPrice(player.price)}`}>
