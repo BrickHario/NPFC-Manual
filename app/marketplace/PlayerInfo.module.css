@@ -33,7 +33,6 @@
   min-height: 80px;
   gap: 16px;
   padding: 18px 37px;
-  background: var(--color-physical);
   color: var(--font_white);
 }
 

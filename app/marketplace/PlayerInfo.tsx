@@ -129,7 +129,14 @@ if (!player) {
 </div>
 
       <article className={styles.panel}>
-        <header className={styles.topBar}>
+        <header className={styles.topBar}  style={{
+            backgroundColor: ({
+              GK: "#9955dd",
+              DF: "#dd555c",
+              MF: "#be9c10",
+              FW: "#5581dd",
+            } as Record<string, string>)[position] ?? "var(--color-physical)",
+          }}>
           <div className={styles.position} title="Position">
             {position}
           </div>
