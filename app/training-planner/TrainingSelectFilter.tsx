@@ -12,7 +12,7 @@ import {
 import type { DragEvent } from "react";
 import type { Language } from "../../lib/utils";
 import styles from "./TrainingSelectFilter.module.css";
-import { calculatePlayerPosition, calculateTrainingStep } from "./player-type-calculation";
+import { calculateTrainingStep } from "./player-type-calculation";
 import type {
   SelectedTraining,
   TrainingEntry,
@@ -50,7 +50,9 @@ const labels = {
   remove: "Remove training",
   reset: "Reset filters",
   match: {
-    all: "All: Match actions",
+    all: "No filter",
+    fatigueHigh: "Fatigue High",
+    fatigueLow: "Fatigue Low",
     only: "Yes: Match actions",
     excluded: "No: Match actions",
   },
@@ -192,16 +194,11 @@ function getTrainingVector(
   potChanges: number[]
 ) {
   const step = calculateTrainingStep(pots, potChanges);
-  const start = calculatePlayerPosition(pots);
-
-  const dx = step.position.xRaw - start.xRaw;
-  const dy = step.position.yRaw - start.yRaw;
+  const { dx, dy } = step;
 
   if (dx === 0 && dy === 0) {
     return {
       ...step,
-      dx,
-      dy,
       direction: "zero" as Direction,
     };
   }
@@ -212,8 +209,6 @@ function getTrainingVector(
 
   return {
     ...step,
-    dx,
-    dy,
     direction: directions[sector].value as Direction,
   };
 }
@@ -531,6 +526,16 @@ export default function TrainingSelectFilter({
         );
       })
       .sort((a, b) => {
+        if (matchFilter === "fatigueHigh") {
+          const difference = b.fatigueChange - a.fatigueChange;
+          if (difference !== 0) return difference;
+        }
+
+        if (matchFilter === "fatigueLow") {
+          const difference = a.fatigueChange - b.fatigueChange;
+          if (difference !== 0) return difference;
+        }
+
         if (selectedDirection) {
           const difference =
             projection(b) - projection(a);
@@ -855,7 +860,25 @@ export default function TrainingSelectFilter({
                     : "Select a player to add training"
                 }
               >
-                <span className={styles.availableImage}>
+                <span className={styles.availableImage} style={{ position: "relative" }}>
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: 4,
+                      right: 4,
+                      zIndex: 2,
+                      padding: "3px 5px",
+                      borderRadius: 5,
+                      background: "#0d0d0db4",
+                      color: "white",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      lineHeight: 1,
+                    }}
+                    title={`Fatigue +${entry.fatigueChange}`}
+                  >
+                    +{entry.fatigueChange}
+                  </span>
                   <Image
                     src={entry.imageUrl}
                     alt=""

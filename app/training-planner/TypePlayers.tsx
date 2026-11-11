@@ -176,14 +176,13 @@ useEffect(() => {
 )}
             </>
           )}
-          {player.isImported && player.fatigue !== null && (
             <div
               className={styles.fatigueHud}
               title={`Fatigue ${player.fatigue} · Recovery ${player.weeklyRecovery ?? 0}/w`}
               onClick={(event) => event.stopPropagation()}
             >
               <span className={styles.fatigueRecovery}>
-                {player.weeklyRecovery ?? 0}/w
+                -{player.weeklyRecovery ?? 0}/w
               </span>
               <div className={styles.fatigueMeter}>
                 <div className={styles.fatigueTail}>
@@ -202,7 +201,7 @@ useEffect(() => {
 />
               </div>
             </div>
-          )}
+          
           <div className={styles.playerHeading}>
             <span className={styles.playerName}>{player.name}</span>
                    <div className={styles.playerImage}>
