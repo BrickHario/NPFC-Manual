@@ -646,7 +646,7 @@ export default function PlayerTypesClient({
       players.length > 0
         ? players
         : [{
-            id: 0,
+            id: -1,
             name: "Dummy",
             imageUrl: "/Dummy.png",
             skills: Array<number>(10).fill(0),
@@ -694,7 +694,7 @@ export default function PlayerTypesClient({
 
   const playerViews = useMemo<PlayerDisplay[]>(() => {
     return displayPlayers.map((player) => {
-      const id = player.id === 0 ? null : player.id;
+      const id = players.length === 0 ? null : player.id;
       const key = id === null ? "dummy" : String(id);
 
       const imported = isImportedPlayer(player);
@@ -747,6 +747,11 @@ export default function PlayerTypesClient({
           : [0, 0];
       let finalExtraValues: [number, number] =
         [...initialExtraValues];
+      let fatigue = Math.max(
+        0,
+        imported ? player.fatigue ?? 0 : 0
+      );
+      let appliedTrainings = 0;
 
       for (const item of trainingsForPlayer) {
         const entry = trainingCatalog.get(
@@ -754,6 +759,22 @@ export default function PlayerTypesClient({
         );
 
         if (!entry) continue;
+
+const fatigueChange = entry.fatigueChange ?? 0;
+
+if (appliedTrainings > 0 || fatigueChange === 0) {
+  fatigue = Math.max(
+    0,
+    fatigue - calculateWeeklyRecovery(finalSkillPoints)
+  );
+}
+
+fatigue = Math.max(
+  0,
+  Math.min(1000, fatigue + fatigueChange)
+);
+
+appliedTrainings++;
 
         let rawChanges = [...entry.skillChanges];
 
@@ -828,8 +849,8 @@ export default function PlayerTypesClient({
         name: player.name,
         imageUrl: player.imageUrl,
         isImported: imported,
-        fatigue: imported ? player.fatigue ?? null : null,
-        weeklyRecovery: imported ? calculateWeeklyRecovery(finalSkillPoints) : null,
+        fatigue,
+        weeklyRecovery: calculateWeeklyRecovery(finalSkillPoints),
         potentialPercent,
         developmentWeeks: imported
           ? player.developmentWeeks
@@ -861,6 +882,7 @@ export default function PlayerTypesClient({
     });
   }, [
     displayPlayers,
+    players.length,
     positions,
     trainingOrders,
     trainingCatalog,

@@ -1,4 +1,3 @@
-
 export const PLAYER_SELECTION_COOKIE = "npfc-player-type-ids";
 
 export type PlayerTypeSelection = {
@@ -11,9 +10,10 @@ export type PlayerTypeSelection = {
 export function parsePlayerIds(value?: string | null): number[] {
   const ids = (value ?? "")
     .split(",")
+    .filter((value) => value.trim() !== "")
     .map(Number)
     .filter(
-      (id) => Number.isSafeInteger(id) && id > 0
+      (id) => Number.isSafeInteger(id) && id >= 0
     );
 
   return [...new Set(ids)];
@@ -36,7 +36,7 @@ export function getSavedPlayerIds(): number[] {
 export function savePlayerIds(ids: number[]) {
   const value = [...new Set(ids)]
     .filter(
-      (id) => Number.isSafeInteger(id) && id > 0
+      (id) => Number.isSafeInteger(id) && id >= 0
     )
     .join(",");
 
