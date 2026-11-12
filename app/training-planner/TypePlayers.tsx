@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { usePotentialCurves } from "./PotentialCurvesProvider";
 import styles from "./TypePlayers.module.css";
 import Image from "next/image";
 import Link from "next/link";
@@ -89,8 +88,6 @@ export function TypePlayers({
 
   const playerListRef = useRef<HTMLUListElement>(null);
 
-  const dbCurves = usePotentialCurves();
-
 useEffect(() => {
   if (!selectedPlayerKey || !playerListRef.current) return;
 
@@ -127,24 +124,13 @@ useEffect(() => {
         {[...players].reverse().map((player) => {
           const playerKey = player.id === null ? "dummy" : String(player.id);
           const isSelected = selectedPlayerKey === playerKey;
-          const curve = player.id === null
-            ? dbCurves.dummy
-            : dbCurves.players[player.id];
-
           const trainingWeeks = player.trainingCount ?? player.path.length;
           const developmentWeeks = Math.min(
             384,
             Math.max(0, (player.isImported ? player.developmentWeeks ?? 0 : 0) + trainingWeeks)
           );
 
-          const curvePosition = developmentWeeks / 12;
-          const curveIndex = Math.min(32, Math.floor(curvePosition));
-          const nextCurveIndex = Math.min(32, curveIndex + 1);
-          const dbPotentialPercent = curve
-            ? curve[curveIndex] +
-              (curve[nextCurveIndex] - curve[curveIndex]) * (curvePosition - curveIndex)
-            : undefined;
-          const potentialPercent = dbPotentialPercent ?? player.potentialPercent;
+          const potentialPercent = player.potentialPercent;
 
           return (
         <li

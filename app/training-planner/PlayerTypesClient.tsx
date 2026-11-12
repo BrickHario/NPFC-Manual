@@ -63,6 +63,11 @@ const SKILL_GROUPS = [
   [9],
 ];
 
+function getPotentialPercent(curve: number[] | null | undefined, trainingWeeks: number): number | undefined {
+  const index = Math.max(0, Math.min(32, Math.floor(trainingWeeks / 12)));
+  return curve?.[index];
+}
+
 function applySkillTraining(
   currentSkills: number[],
   rawChanges: number[],
@@ -746,9 +751,7 @@ export default function PlayerTypesClient({
             ? player.potentialCurve
             : null);
 
-      const potentialPercent = curve
-        ? curve[Math.min(32, Math.floor((imported ? player.developmentWeeks : 0) / 12))]
-        : undefined;
+      const developmentWeeks = imported ? player.developmentWeeks : 0;
 
       let finalSkillPoints = [...initialSkillPoints];
       const initialExtraValues: [number, number] =
@@ -800,17 +803,8 @@ export default function PlayerTypesClient({
           });
         }
 
-        const trainingWeeks = Math.min(
-          384,
-          Math.max(0, (imported ? player.developmentWeeks : 0) + appliedTrainings - 1)
-        );
-        const curvePosition = trainingWeeks / 12;
-        const curveIndex = Math.min(32, Math.floor(curvePosition));
-        const nextCurveIndex = Math.min(32, curveIndex + 1);
-        const trainingPotentialPercent = curve
-          ? curve[curveIndex] +
-            (curve[nextCurveIndex] - curve[curveIndex]) * (curvePosition - curveIndex)
-          : potentialPercent ?? 100;
+        const trainingWeeks = developmentWeeks + appliedTrainings - 1;
+        const trainingPotentialPercent = getPotentialPercent(curve, trainingWeeks) ?? 100;
 
         finalSkillPoints = applySkillTraining(
           finalSkillPoints,
@@ -870,11 +864,7 @@ export default function PlayerTypesClient({
         isImported: imported,
         fatigue,
         weeklyRecovery: calculateWeeklyRecovery(finalSkillPoints),
-        potentialPercent: curve ? (() => {
-          const position = Math.min(384, Math.max(0, (imported ? player.developmentWeeks : 0) + appliedTrainings)) / 12;
-          const index = Math.floor(position);
-          return curve[index] + (curve[Math.min(32, index + 1)] - curve[index]) * (position - index);
-        })() : potentialPercent,
+        potentialPercent: getPotentialPercent(curve, developmentWeeks + appliedTrainings),
         trainingCount: appliedTrainings,
         developmentWeeks: imported
           ? player.developmentWeeks

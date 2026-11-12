@@ -12,7 +12,11 @@ export default function PotentialChart({
   const y = (v: number) => 210 - (v / 100) * 190;
 
   const points = values
-    .map((v, i) => `${x(i)},${y(v)}`)
+    .flatMap((v, i) =>
+      i === 0
+        ? [`${x(i)},${y(v)}`]
+        : [`${x(i)},${y(values[i - 1])}`, `${x(i)},${y(v)}`]
+    )
     .join(" ");
 
   return (
