@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
+import { getTrainingGroups } from "./training-types";
 import type {
   SelectedTraining,
   TrainingEntry,
@@ -314,6 +315,10 @@ function readTrainingOrders(): TrainingOrders {
         return [{
           kind: item.kind,
           id: item.id,
+          ...(item.kind === "card" && typeof item.groupId === "number" &&
+            Number.isSafeInteger(item.groupId) && item.groupId >= 0
+              ? { groupId: item.groupId }
+              : {}),
           instanceId:
             typeof item.instanceId === "number" &&
             Number.isSafeInteger(item.instanceId)
@@ -732,6 +737,7 @@ export default function PlayerTypesClient({
 
       const trainingsForPlayer =
         trainingOrders[key] ?? [];
+      const trainingGroups = getTrainingGroups(trainingsForPlayer);
 
       const curve = id === null
         ? dbCurves.dummy
@@ -757,40 +763,45 @@ export default function PlayerTypesClient({
       );
       let appliedTrainings = 0;
 
-      for (const item of trainingsForPlayer) {
-        const entry = trainingCatalog.get(
-          `${item.kind}:${item.id}`
-        );
+      for (const group of trainingGroups) {
+        const entries = group.flatMap((item) => {
+          const entry = trainingCatalog.get(`${item.kind}:${item.id}`);
+          return entry ? [{ item, entry }] : [];
+        });
 
-        if (!entry) continue;
+        if (entries.length === 0) continue;
 
-const fatigueChange = entry.fatigueChange ?? 0;
+        const sum = entries.reduce((total, { entry }) =>
+          total + entry.skillChanges.slice(0, 9).reduce((a, b) => a + b, 0), 0);
+        const fatigueChange = entries.length === 1
+          ? entries[0].entry.fatigueChange ?? 0
+          : Math.max(0, Math.trunc(entries.length === 2 ? sum * 20 / 3 : sum * 5));
 
-if (appliedTrainings > 0 || fatigueChange === 0) {
-  fatigue = Math.max(
-    0,
-    fatigue - calculateWeeklyRecovery(finalSkillPoints)
-  );
-}
+        if (appliedTrainings > 0 || fatigueChange === 0) {
+          fatigue = Math.max(0, fatigue - calculateWeeklyRecovery(finalSkillPoints));
+        }
 
-fatigue = Math.max(
-  0,
-  Math.min(1000, fatigue + fatigueChange)
-);
+        fatigue = Math.max(0, Math.min(1000, fatigue + fatigueChange));
+        appliedTrainings++;
 
-appliedTrainings++;
+        const combinedChanges = Array<number>(10).fill(0);
+        for (const { item, entry } of entries) {
+          let rawChanges = [...entry.skillChanges];
 
-        let rawChanges = [...entry.skillChanges];
+          if (item.kind === "card" && item.id === 21) {
+            rawChanges = Array<number>(10).fill(0);
+            rawChanges[9] = 2;
 
-        if (item.kind === "card" && item.id === 21) {
-          rawChanges = Array<number>(10).fill(0);
-          rawChanges[9] = 2;
+            const randomIndex =
+              (((item.instanceId * 2654435761 +
+                player.id * 1013904223) >>> 0) % 9);
 
-          const randomIndex =
-            (((item.instanceId * 2654435761 +
-              player.id * 1013904223) >>> 0) % 9);
+            rawChanges[randomIndex] += 10;
+          }
 
-          rawChanges[randomIndex] += 10;
+          rawChanges.forEach((change, index) => {
+            combinedChanges[index] += change;
+          });
         }
 
         const trainingWeeks = Math.min(
@@ -807,13 +818,13 @@ appliedTrainings++;
 
         finalSkillPoints = applySkillTraining(
           finalSkillPoints,
-          rawChanges,
+          combinedChanges,
           trainingPotentialPercent
         );
         finalExtraValues = applyExtraValues(
           finalExtraValues,
-          entry.xtra_01 ?? 0,
-          entry.xtra_02 ?? 0
+          entries.reduce((sum, { entry }) => sum + (entry.xtra_01 ?? 0), 0),
+          entries.reduce((sum, { entry }) => sum + (entry.xtra_02 ?? 0), 0)
         );
       }
 
@@ -834,20 +845,19 @@ appliedTrainings++;
         typeof calculatePlayerPosition
       >[] = [];
 
-      for (const item of trainingsForPlayer) {
-        const entry = trainingCatalog.get(
-          `${item.kind}:${item.id}`
-        );
+      for (const group of trainingGroups) {
+        let position: ReturnType<typeof calculatePlayerPosition> | undefined;
 
-        if (!entry) continue;
+        for (const item of group) {
+          const entry = trainingCatalog.get(`${item.kind}:${item.id}`);
+          if (!entry) continue;
 
-        const step = calculateTrainingStep(
-          currentPots,
-          entry.potChanges
-        );
+          const step = calculateTrainingStep(currentPots, entry.potChanges);
+          currentPots = step.nextPots;
+          position = step.position;
+        }
 
-        currentPots = step.nextPots;
-        path.push(step.position);
+        if (position) path.push(position);
       }
 
       const finalPosition =
@@ -868,6 +878,7 @@ appliedTrainings++;
         fatigue,
         weeklyRecovery: calculateWeeklyRecovery(finalSkillPoints),
         potentialPercent,
+        trainingCount: appliedTrainings,
         developmentWeeks: imported
           ? player.developmentWeeks
           : undefined,
@@ -990,6 +1001,7 @@ appliedTrainings++;
             language={language}
             trainings={trainings}
             selected={selectedTrainings}
+            selectionScope={activePlayerKey}
             focusTrainingKey={requestedTrainingKey}
             selectedPlayerName={
               selectedPlayer?.name ?? null

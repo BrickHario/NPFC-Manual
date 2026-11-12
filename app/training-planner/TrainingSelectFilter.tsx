@@ -13,6 +13,7 @@ import type { DragEvent } from "react";
 import type { Language } from "../../lib/utils";
 import styles from "./TrainingSelectFilter.module.css";
 import { calculateTrainingStep } from "./player-type-calculation";
+import { getTrainingGroups } from "./training-types";
 import type {
   SelectedTraining,
   TrainingEntry,
@@ -28,6 +29,7 @@ type TrainingSelectFilterProps = {
   selectedPlayerName: string | null;
   hasSelectedPlayer: boolean;
   focusTrainingKey?: string | null;
+  selectionScope?: string | null;
 };
 
 export type TrainingNames = {
@@ -236,6 +238,7 @@ export default function TrainingSelectFilter({
   selectedPlayerName,
   hasSelectedPlayer,
   focusTrainingKey,
+  selectionScope,
 }: TrainingSelectFilterProps) {
   const [search, setSearch] = useState("");
   const [showCards, setShowCards] = useState(true);
@@ -401,33 +404,81 @@ export default function TrainingSelectFilter({
   setMatchFilter("all");
 }, [focusTrainingKey, catalog, language, filtersLoaded]);
 
-  const trainingGroups = useMemo(() => {
-    const groups: SelectedTraining[][] = [];
+  const trainingGroups = useMemo(
+    () => getTrainingGroups(selected),
+    [selected]
+  );
 
-    for (const item of selected) {
-      const last = groups[groups.length - 1];
+  const [marked, setMarked] = useState<{
+    scope: string | null | undefined;
+    ids: number[];
+  }>({ scope: undefined, ids: [] });
 
-      if (
-        item.kind === "card" &&
-        last?.[0]?.kind === "card" &&
-        last.length < 3 &&
-        !last.some((card) => card.id === item.id)
-      ) {
-        last.push(item);
-      } else {
-        groups.push([item]);
-      }
+  const markedIds = marked.scope === selectionScope ? marked.ids : [];
+  const markedGroups = trainingGroups.filter((group) =>
+    markedIds.includes(group[0].instanceId)
+  );
+  const canGroup = markedGroups.length >= 2 && markedGroups.length <= 3 &&
+    markedGroups.every((group) => group.length === 1 && group[0].kind === "card") &&
+    new Set(markedGroups.map((group) => group[0].id)).size === markedGroups.length;
+  const canUngroup = markedGroups.length === 1 && markedGroups[0].length > 1;
+
+  useEffect(() => {
+    function handleOutsideClick(event: PointerEvent) {
+      if (!(event.target instanceof Element)) return;
+      if (event.target.closest("[data-training-markable], [data-training-group-action]")) return;
+
+      setMarked((current) =>
+        current.ids.length > 0 ? { ...current, ids: [] } : current
+      );
     }
 
-    return groups;
-  }, [selected]);
+    document.addEventListener("pointerdown", handleOutsideClick);
+    return () => document.removeEventListener("pointerdown", handleOutsideClick);
+  }, []);
 
-  const lastTrainingGroup = trainingGroups[trainingGroups.length - 1];
-  const blockedCardIds = new Set(
-    lastTrainingGroup?.[0]?.kind === "card" && lastTrainingGroup.length < 3
-      ? lastTrainingGroup.map((item) => item.id)
-      : []
-  );
+  function clearMarked() {
+    setMarked({ scope: selectionScope, ids: [] });
+  }
+
+  function toggleMarked(group: SelectedTraining[]) {
+    if (group[0].kind !== "card") return;
+    const id = group[0].instanceId;
+
+    if (markedIds.includes(id)) {
+      setMarked({ scope: selectionScope, ids: markedIds.filter((value) => value !== id) });
+      return;
+    }
+
+    if (group.length > 1 || canUngroup) {
+      setMarked({ scope: selectionScope, ids: [id] });
+      return;
+    }
+
+    if (markedGroups.length >= 3 || markedGroups.some((value) => value[0].id === group[0].id)) return;
+    setMarked({ scope: selectionScope, ids: [...markedGroups.map((value) => value[0].instanceId), id] });
+  }
+
+  function groupMarked() {
+    if (!canGroup) return;
+    const ids = new Set(markedGroups.map((group) => group[0].instanceId));
+    const groupId = Math.max(-1, ...selected.map((item) => item.groupId ?? -1)) + 1;
+    const first = markedGroups[0][0].instanceId;
+    const grouped = markedGroups.map(([item]) => ({ ...item, groupId }));
+    onSelectionChange(selected.flatMap((item) =>
+      item.instanceId === first ? grouped : ids.has(item.instanceId) ? [] : [item]
+    ));
+    clearMarked();
+  }
+
+  function ungroupMarked() {
+    if (!canUngroup) return;
+    const ids = new Set(markedGroups[0].map((item) => item.instanceId));
+    onSelectionChange(selected.map((item) =>
+      ids.has(item.instanceId) ? { ...item, groupId: undefined } : item
+    ));
+    clearMarked();
+  }
 
   const { selectedVectors, previewPots } = useMemo(() => {
     const vectors = new Map<
@@ -591,7 +642,7 @@ export default function TrainingSelectFilter({
   ]);
 
   function addTraining(entry: TrainingEntry) {
-    if (!hasSelectedPlayer || (entry.kind === "card" && blockedCardIds.has(entry.id))) return;
+    if (!hasSelectedPlayer) return;
 
     const instanceId = Math.max(
       nextInstanceId.current,
@@ -612,6 +663,7 @@ export default function TrainingSelectFilter({
   }
 
   function removeTraining(group: SelectedTraining[]) {
+    clearMarked();
     const ids = new Set(group.map((item) => item.instanceId));
     onSelectionChange(
       selected.filter(
@@ -621,6 +673,7 @@ export default function TrainingSelectFilter({
   }
 
   function clearTrainings() {
+    clearMarked();
     onSelectionChange([]);
   }
 
@@ -628,14 +681,12 @@ export default function TrainingSelectFilter({
     fromId: number,
     toId: number
   ) {
-    const current = selected;
-
-    const fromIndex = current.findIndex(
-      (item) => item.instanceId === fromId
+    const fromIndex = trainingGroups.findIndex(
+      (group) => group[0].instanceId === fromId
     );
 
-    const toIndex = current.findIndex(
-      (item) => item.instanceId === toId
+    const toIndex = trainingGroups.findIndex(
+      (group) => group[0].instanceId === toId
     );
 
     if (
@@ -646,11 +697,11 @@ export default function TrainingSelectFilter({
       return;
     }
 
-    const updated = [...current];
+    const updated = [...trainingGroups];
     const [moved] = updated.splice(fromIndex, 1);
 
     updated.splice(toIndex, 0, moved);
-    onSelectionChange(updated);
+    onSelectionChange(updated.flat());
   }
 
   function handleDragStart(
@@ -881,14 +932,11 @@ export default function TrainingSelectFilter({
                 className={styles.availableItem}
                 key={entryKey(entry)}
                 onClick={() => addTraining(entry)}
-                disabled={!hasSelectedPlayer || (entry.kind === "card" && blockedCardIds.has(entry.id))}
-                style={entry.kind === "card" && blockedCardIds.has(entry.id) ? { opacity: 0.45, cursor: "not-allowed" } : undefined}
+                disabled={!hasSelectedPlayer}
                 aria-label={entry.names[language]}
                 title={
                   hasSelectedPlayer
-                    ? entry.kind === "card" && blockedCardIds.has(entry.id)
-                      ? "Card already in this training"
-                      : entry.names[language]
+                    ? entry.names[language]
                     : "Select a player to add training"
                 }
               >
@@ -950,9 +998,21 @@ export default function TrainingSelectFilter({
             Order for {selectedPlayerName || "Dummy"}:
           </h3>
         )}
+        {(canGroup || canUngroup) && (
+          <button
+            type="button"
+            style={{background: "#555555"}}
+            className={styles.deleteAllButton}
+            data-training-group-action
+            onClick={canGroup ? groupMarked : ungroupMarked}
+          >
+            {canGroup ? "Group" : "Ungroup"}
+          </button>
+        )}
         {selected.length > 0 && (
           <button
             type="button"
+            style={{background: "#cf3434"}}
             className={styles.deleteAllButton}
             onClick={clearTrainings}
           >
@@ -978,12 +1038,44 @@ export default function TrainingSelectFilter({
           .map(({ group, index }) => (
             <div
               key={group[0].instanceId}
+              data-training-markable={group[0].kind === "card" ? "true" : undefined}
+              role={group[0].kind === "card" ? "button" : undefined}
+              tabIndex={group[0].kind === "card" ? 0 : undefined}
+              aria-pressed={group[0].kind === "card" ? markedIds.includes(group[0].instanceId) : undefined}
+              onClick={(event) => {
+                if ((event.target as HTMLElement).closest("button, a")) return;
+                toggleMarked(group);
+              }}
+              onKeyDown={(event) => {
+                if (event.target !== event.currentTarget || group[0].kind !== "card") return;
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  toggleMarked(group);
+                }
+              }}
+              draggable
+              onDragStart={(event) =>
+                handleDragStart(event, group[0].instanceId)
+              }
+              onDragOver={(event) =>
+                handleDragOver(event, group[0].instanceId)
+              }
+              onDrop={(event) =>
+                handleDrop(event, group[0].instanceId)
+              }
+              onDragEnd={handleDragEnd}
               style={{
                 display: "flex",
                 flexShrink: 0,
                 alignItems: "center",
                 gap: 0,
                 isolation: "isolate",
+                cursor: group[0].kind === "card" ? "pointer" : undefined,
+                outline: markedIds.includes(group[0].instanceId)
+                  ? "3px solid var(--color-highlight, #5581dd)"
+                  : undefined,
+                outlineOffset: 5,
+                borderRadius: 12,
               }}
             >
               {group.map((item, cardIndex) => {
@@ -994,7 +1086,7 @@ export default function TrainingSelectFilter({
             return (
               <div
                 className={`${styles.selectedItem} ${
-                  dragOverId === item.instanceId
+                  dragOverId === group[0].instanceId
                     ? styles.dragOver
                     : ""
                 }`}
@@ -1003,26 +1095,7 @@ export default function TrainingSelectFilter({
                   marginLeft: cardIndex > 0 ? -12 : 0,
                   zIndex: group.length - cardIndex,
                 }}
-                draggable
-                onDragStart={(event) =>
-                  handleDragStart(
-                    event,
-                    item.instanceId
-                  )
-                }
-                onDragOver={(event) =>
-                  handleDragOver(
-                    event,
-                    item.instanceId
-                  )
-                }
-                onDrop={(event) =>
-                  handleDrop(
-                    event,
-                    item.instanceId
-                  )
-                }
-                onDragEnd={handleDragEnd}
+
               >
                 {cardIndex === 0 && (
                   <span className={styles.itemNumber}>
