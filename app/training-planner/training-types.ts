@@ -28,6 +28,7 @@ export type TrainingEntry = {
   fatigueChange: number;
   xtra_01?: number;
   xtra_02?: number;
+  random_01?: number;
   requiredCardIds?: number[];
 };
 

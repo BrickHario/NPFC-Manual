@@ -117,8 +117,8 @@ function applyExtraValues(
   xtra_02: number
 ): [number, number] {
   return [
-    Math.max(0, Math.min(100, current[0] + xtra_01 * 2)),
-    Math.max(0, Math.min(100, current[1] + xtra_02 * 2)),
+    Math.max(0, Math.min(100, current[0] + Math.max(-30, Math.min(30, xtra_01)) * 2)),
+    Math.max(0, Math.min(100, current[1] + Math.max(-30, Math.min(30, xtra_02)) * 2)),
   ];
 }
 
@@ -793,17 +793,16 @@ export default function PlayerTypesClient({
 
         const combinedChanges = Array<number>(10).fill(0);
         for (const { item, entry } of entries) {
-          let rawChanges = [...entry.skillChanges];
+          const rawChanges = [...entry.skillChanges];
+          const randomBonus = entry.random_01 ?? 0;
 
-          if (item.kind === "card" && item.id === 21) {
-            rawChanges = Array<number>(10).fill(0);
-            rawChanges[9] = 2;
+          if (item.kind === "card" && randomBonus !== 0) {
 
             const randomIndex =
               (((item.instanceId * 2654435761 +
                 player.id * 1013904223) >>> 0) % 9);
 
-            rawChanges[randomIndex] += 10;
+            rawChanges[randomIndex] = (rawChanges[randomIndex] ?? 0) + randomBonus;
           }
 
           rawChanges.forEach((change, index) => {

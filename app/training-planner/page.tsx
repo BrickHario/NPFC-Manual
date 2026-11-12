@@ -47,6 +47,9 @@ type TrainingRow = {
   card3_id?: number | null;
   has_match_actions?: boolean | number | null;
   gk_only?: boolean | number | null;
+  xtra_01: number | null;
+  xtra_02: number | null;
+  random_01?: number | null;
   skill_01: number | null;
   skill_02: number | null;
   skill_03: number | null;
@@ -96,7 +99,7 @@ const potColumns = Array.from(
 );
 
 const trainingSelect =
-  "skill_01,skill_02,skill_03,skill_04,skill_05,skill_06,skill_07,skill_08,skill_09,skill_10,pot_01,pot_02,pot_03,pot_04,pot_05,pot_06,pot_07,pot_08,pot_09,pot_10,pot_11,pot_12" as const;
+  "skill_01,skill_02,skill_03,skill_04,skill_05,skill_06,skill_07,skill_08,skill_09,skill_10,pot_01,pot_02,pot_03,pot_04,pot_05,pot_06,pot_07,pot_08,pot_09,pot_10,pot_11,pot_12,xtra_01,xtra_02" as const;
 
 const playerSkillsSelect =
   "id_player,skill_01,skill_02,skill_03,skill_04,skill_05,skill_06,skill_07,skill_08,skill_09,skill_10" as const;
@@ -208,7 +211,7 @@ async function PlayerTypesData({
   ] = await Promise.all([
     supabase
       .from("Cards")
-      .select(`card_id,${trainingSelect}` as const)
+      .select(`card_id,random_01,${trainingSelect}` as const)
       .order("card_id"),
 
     supabase
@@ -312,6 +315,9 @@ async function PlayerTypesData({
       kind: "card",
       id,
       hasMatchActions: false,
+      xtra_01: Number(row.xtra_01 ?? 0),
+      xtra_02: Number(row.xtra_02 ?? 0),
+      random_01: Number(row.random_01 ?? 0),
       skillChanges: getSkillChanges(row),
       fatigueChange: calculateTrainingFatigue([{ skillPoints: getSkillChanges(row) }]),
       names: namesOf(cardNames.get(id), `Card #${id}`),
@@ -338,6 +344,8 @@ async function PlayerTypesData({
       kind: "combo",
       id,
       gkOnly: row.gk_only === true || row.gk_only === 1,
+      xtra_01: Number(row.xtra_01 ?? 0),
+      xtra_02: Number(row.xtra_02 ?? 0),
       hasMatchActions:
         row.has_match_actions === true ||
         row.has_match_actions === 1,
