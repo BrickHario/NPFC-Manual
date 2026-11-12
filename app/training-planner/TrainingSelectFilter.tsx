@@ -13,7 +13,7 @@ import type { DragEvent } from "react";
 import type { Language } from "../../lib/utils";
 import styles from "./TrainingSelectFilter.module.css";
 import { calculateTrainingStep } from "./player-type-calculation";
-import { combineTrainingPots, getTrainingGroups } from "./training-types";
+import { canUseTraining, combineTrainingPots, getTrainingGroups } from "./training-types";
 import type {
   SelectedTraining,
   TrainingEntry,
@@ -28,6 +28,7 @@ type TrainingSelectFilterProps = {
   selected: SelectedTraining[];
   selectedPlayerName: string | null;
   hasSelectedPlayer: boolean;
+  isGoalkeeper: boolean;
   focusTrainingKey?: string | null;
   selectionScope?: string | null;
 };
@@ -229,13 +230,13 @@ function entryKey(entry: {
   return `${entry.kind}:${entry.id}`;
 }
 
-function findSpecialCombo(items: SelectedTraining[], trainings: TrainingEntry[]) {
+function findSpecialCombo(items: SelectedTraining[], trainings: TrainingEntry[], isGoalkeeper: boolean) {
   if (items.length < 2 || items.length > 3 || items.some((item) => item.kind !== "card")) return undefined;
 
   const ids = items.map((item) => item.id).sort((a, b) => a - b);
 
   return trainings.find((entry) => {
-    if (entry.kind !== "combo" || entry.requiredCardIds?.length !== ids.length) return false;
+    if (entry.kind !== "combo" || !canUseTraining(entry, isGoalkeeper) || entry.requiredCardIds?.length !== ids.length) return false;
 
     const required = [...entry.requiredCardIds].sort((a, b) => a - b);
     return required.every((id, index) => id === ids[index]);
@@ -250,6 +251,7 @@ export default function TrainingSelectFilter({
   selected,
   selectedPlayerName,
   hasSelectedPlayer,
+  isGoalkeeper,
   focusTrainingKey,
   selectionScope,
 }: TrainingSelectFilterProps) {
@@ -436,7 +438,7 @@ export default function TrainingSelectFilter({
     new Set(markedGroups.map((group) => group[0].id)).size === markedGroups.length;
   const canUngroup = markedGroups.length === 1 && markedGroups[0].length > 1;
   const markedCombo = canGroup
-    ? findSpecialCombo(markedGroups.flat(), trainings)
+    ? findSpecialCombo(markedGroups.flat(), trainings, isGoalkeeper)
     : undefined;
 
   useEffect(() => {
@@ -658,7 +660,7 @@ export default function TrainingSelectFilter({
   ]);
 
   function addTraining(entry: TrainingEntry) {
-    if (!hasSelectedPlayer) return;
+    if (!hasSelectedPlayer || !canUseTraining(entry, isGoalkeeper)) return;
 
     const instanceId = Math.max(
       nextInstanceId.current,
@@ -948,11 +950,13 @@ export default function TrainingSelectFilter({
                 className={styles.availableItem}
                 key={entryKey(entry)}
                 onClick={() => addTraining(entry)}
-                disabled={!hasSelectedPlayer}
+                disabled={!hasSelectedPlayer || !canUseTraining(entry, isGoalkeeper)}
                 aria-label={entry.names[language]}
                 title={
                   hasSelectedPlayer
-                    ? entry.names[language]
+                    ? canUseTraining(entry, isGoalkeeper)
+                      ? entry.names[language]
+                      : "GK only – select a goalkeeper"
                     : "Select a player to add training"
                 }
               >

@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
-import { combineTrainingPots, getGroupedTrainingFatigue, getTrainingGroups } from "./training-types";
+import { combineTrainingPots, getGroupedTrainingFatigue, getTrainingGroups, resolveTrainingSelection } from "./training-types";
 import type {
   SelectedTraining,
   TrainingEntry,
@@ -134,6 +134,7 @@ type PlayerTypesClientProps = {
   trainings: TrainingEntry[];
   initialLanguage: Language;
   initialPlayers: PlayerTypeSelection[];
+  goalkeeperIds: number[];
 };
 
 function isImportedPlayer(
@@ -387,6 +388,7 @@ export default function PlayerTypesClient({
   trainings,
   initialLanguage,
   initialPlayers,
+  goalkeeperIds,
 }: PlayerTypesClientProps) {
   const router = useRouter();
   const dbCurves = usePotentialCurves();
@@ -674,10 +676,15 @@ export default function PlayerTypesClient({
         ? String(players[0].id)
         : selectedPlayerKey;
 
-  const selectedTrainings =
+  const isGoalkeeper = activePlayerKey !== null && activePlayerKey !== "dummy" &&
+    goalkeeperIds.includes(Number(activePlayerKey));
+
+  const selectedTrainings = useMemo(() =>
     activePlayerKey === null
       ? []
-      : trainingOrders[activePlayerKey] ?? [];
+      : resolveTrainingSelection(trainingOrders[activePlayerKey] ?? [], trainingCatalog, isGoalkeeper),
+    [activePlayerKey, trainingOrders, trainingCatalog, isGoalkeeper]
+  );
 
   const handleSelectionChange = useCallback(
     (items: SelectedTraining[]) => {
@@ -691,7 +698,7 @@ export default function PlayerTypesClient({
       setTrainingOrders((current) => {
         const updated = {
           ...current,
-          [activePlayerKey]: items,
+          [activePlayerKey]: resolveTrainingSelection(items, trainingCatalog, isGoalkeeper),
         };
 
         localStorage.setItem(
@@ -702,7 +709,7 @@ export default function PlayerTypesClient({
         return updated;
       });
     },
-    [activePlayerKey, storageLoaded]
+    [activePlayerKey, storageLoaded, trainingCatalog, isGoalkeeper]
   );
 
   const playerViews = useMemo<PlayerDisplay[]>(() => {
@@ -741,7 +748,8 @@ export default function PlayerTypesClient({
         : positions[key]?.y ?? 50;
 
       const trainingsForPlayer =
-        trainingOrders[key] ?? [];
+        resolveTrainingSelection(trainingOrders[key] ?? [], trainingCatalog,
+          id !== null && goalkeeperIds.includes(id));
       const trainingGroups = getTrainingGroups(trainingsForPlayer);
 
       const curve = id === null
@@ -902,6 +910,7 @@ export default function PlayerTypesClient({
     trainingCatalog,
     language,
     dbCurves,
+    goalkeeperIds,
   ]);
 
   const selectedPlayer = playerViews.find(
@@ -989,6 +998,7 @@ export default function PlayerTypesClient({
             trainings={trainings}
             selected={selectedTrainings}
             selectionScope={activePlayerKey}
+            isGoalkeeper={isGoalkeeper}
             focusTrainingKey={requestedTrainingKey}
             selectedPlayerName={
               selectedPlayer?.name ?? null

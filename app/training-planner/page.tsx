@@ -16,7 +16,7 @@ import {
 } from "./player-selection";
 import { LoadingBig } from "../Loading";
 import styles from "./TrainingSelectFilter.module.css";
-import type { Language } from "../../lib/utils";
+import { getPosition, type Language } from "../../lib/utils";
 
 export const metadata: Metadata = {
   title: "Training Planner",
@@ -45,6 +45,7 @@ type TrainingRow = {
   card2_id?: number | null;
   card3_id?: number | null;
   has_match_actions?: boolean | number | null;
+  gk_only?: boolean | number | null;
   skill_01: number | null;
   skill_02: number | null;
   skill_03: number | null;
@@ -218,6 +219,8 @@ async function PlayerTypesData({
     playersResult,
     skillsResult,
     dummyCurveResult,
+    positionsFirstResult,
+    positionsSecondResult,
   ] = await Promise.all([
     supabase
       .from("Cards")
@@ -233,7 +236,7 @@ async function PlayerTypesData({
 
     supabase
       .from("Combos")
-      .select(`combo_id,card1_id,card2_id,card3_id,has_match_actions,${trainingSelect}` as const)
+      .select(`combo_id,card1_id,card2_id,card3_id,has_match_actions,gk_only,${trainingSelect}` as const)
       .order("combo_id"),
 
     supabase
@@ -262,6 +265,18 @@ async function PlayerTypesData({
       .select("*")
       .eq("id_potential", 0)
       .maybeSingle(),
+
+    supabase
+      .from("Player")
+      .select("id_player,id_position")
+      .order("id_player")
+      .range(0, 999),
+
+    supabase
+      .from("Player")
+      .select("id_player,id_position")
+      .order("id_player")
+      .range(1000, 1999),
   ]);
 
   const error =
@@ -271,7 +286,9 @@ async function PlayerTypesData({
     comboNamesResult.error ??
     playersResult.error ??
     skillsResult.error ??
-    dummyCurveResult.error;
+    dummyCurveResult.error ??
+    positionsFirstResult.error ??
+    positionsSecondResult.error;
 
   if (error) {
     return (
@@ -336,6 +353,7 @@ async function PlayerTypesData({
     return {
       kind: "combo",
       id,
+      gkOnly: row.gk_only === true || row.gk_only === 1,
       hasMatchActions:
         row.has_match_actions === true ||
         row.has_match_actions === 1,
@@ -408,6 +426,9 @@ async function PlayerTypesData({
         trainings={[...cards, ...combos]}
         initialLanguage={initialLanguage}
         initialPlayers={initialPlayers}
+        goalkeeperIds={[...(positionsFirstResult.data ?? []), ...(positionsSecondResult.data ?? [])]
+          .filter((player) => getPosition(player.id_position) === "GK")
+          .map((player) => Number(player.id_player))}
       />
     </PotentialCurvesProvider>
   );

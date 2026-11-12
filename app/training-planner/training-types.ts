@@ -20,6 +20,7 @@ export type TrainingEntry = {
   kind: TrainingKind;
   id: number;
   hasMatchActions: boolean;
+  gkOnly?: boolean;
   names: TrainingNames;
   imageUrl: string;
   potChanges: number[];
@@ -67,4 +68,34 @@ export function getGroupedTrainingFatigue(entries: TrainingEntry[]): number {
   if (entries.length === 2) return Math.max(0, Math.trunc(sum * 10 / 3));
   if (entries.length === 3) return Math.max(0, Math.trunc(sum * 10 / 2));
   return 0;
+}
+
+export function canUseTraining(entry: TrainingEntry, isGoalkeeper: boolean): boolean {
+  return entry.kind !== "combo" || !entry.gkOnly || isGoalkeeper;
+}
+
+export function resolveTrainingSelection(
+  selected: SelectedTraining[],
+  catalog: ReadonlyMap<string, TrainingEntry>,
+  isGoalkeeper: boolean
+): SelectedTraining[] {
+  let nextInstanceId = Math.max(-1, ...selected.map((item) => item.instanceId)) + 1;
+  let nextGroupId = Math.max(-1, ...selected.map((item) => item.groupId ?? -1)) + 1;
+
+  return selected.flatMap((item) => {
+    const entry = catalog.get(`${item.kind}:${item.id}`);
+    if (!entry || canUseTraining(entry, isGoalkeeper)) return [item];
+
+    const ids = entry.requiredCardIds ?? [];
+    if (ids.length < 2 || ids.length > 3 || new Set(ids).size !== ids.length ||
+        !ids.every((id) => catalog.has(`card:${id}`))) return [];
+
+    const groupId = nextGroupId++;
+    return ids.map((id, index) => ({
+      kind: "card" as const,
+      id,
+      instanceId: index === 0 ? item.instanceId : nextInstanceId++,
+      groupId,
+    }));
+  });
 }
