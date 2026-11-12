@@ -12,7 +12,7 @@ import {
 import type { DragEvent } from "react";
 import type { Language } from "../../lib/utils";
 import styles from "./TrainingSelectFilter.module.css";
-import { calculateTrainingStep } from "./player-type-calculation";
+import { calculatePlayerPosition, calculateTrainingStep } from "./player-type-calculation";
 import { canUseTraining, combineTrainingPots, getTrainingGroups } from "./training-types";
 import type {
   SelectedTraining,
@@ -196,12 +196,16 @@ function getTrainingVector(
   pots: number[],
   potChanges: number[]
 ) {
+  const start = calculatePlayerPosition(pots);
   const step = calculateTrainingStep(pots, potChanges);
-  const { dx, dy } = step;
+  const dx = step.position.xRaw - start.xRaw;
+  const dy = step.position.yRaw - start.yRaw;
 
   if (dx === 0 && dy === 0) {
     return {
       ...step,
+      dx,
+      dy,
       direction: "zero" as Direction,
     };
   }
@@ -212,6 +216,8 @@ function getTrainingVector(
 
   return {
     ...step,
+    dx,
+    dy,
     direction: directions[sector].value as Direction,
   };
 }
