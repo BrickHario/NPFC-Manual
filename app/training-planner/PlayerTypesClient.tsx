@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
-import { getTrainingGroups } from "./training-types";
+import { combineTrainingPots, getGroupedTrainingFatigue, getTrainingGroups } from "./training-types";
 import type {
   SelectedTraining,
   TrainingEntry,
@@ -85,7 +85,7 @@ function applySkillTraining(
       }
     }
 
-    if (redistributed > 0 && group.length > 1) {
+    if (redistributed > 0) {
       const share = Math.trunc(redistributed / group.length);
 
       for (const index of group) {
@@ -769,13 +769,9 @@ export default function PlayerTypesClient({
           return entry ? [{ item, entry }] : [];
         });
 
-        if (entries.length === 0) continue;
+        if (entries.length !== group.length) continue;
 
-        const sum = entries.reduce((total, { entry }) =>
-          total + entry.skillChanges.slice(0, 9).reduce((a, b) => a + b, 0), 0);
-        const fatigueChange = entries.length === 1
-          ? entries[0].entry.fatigueChange ?? 0
-          : Math.max(0, Math.trunc(entries.length === 2 ? sum * 20 / 3 : sum * 5));
+        const fatigueChange = getGroupedTrainingFatigue(entries.map(({ entry }) => entry));
 
         if (appliedTrainings > 0 || fatigueChange === 0) {
           fatigue = Math.max(0, fatigue - calculateWeeklyRecovery(finalSkillPoints));
@@ -846,18 +842,15 @@ export default function PlayerTypesClient({
       >[] = [];
 
       for (const group of trainingGroups) {
-        let position: ReturnType<typeof calculatePlayerPosition> | undefined;
-
-        for (const item of group) {
+        const entries = group.flatMap((item) => {
           const entry = trainingCatalog.get(`${item.kind}:${item.id}`);
-          if (!entry) continue;
+          return entry ? [entry] : [];
+        });
+        if (entries.length !== group.length) continue;
 
-          const step = calculateTrainingStep(currentPots, entry.potChanges);
-          currentPots = step.nextPots;
-          position = step.position;
-        }
-
-        if (position) path.push(position);
+        const step = calculateTrainingStep(currentPots, combineTrainingPots(entries));
+        currentPots = step.nextPots;
+        path.push(step.position);
       }
 
       const finalPosition =
@@ -877,7 +870,11 @@ export default function PlayerTypesClient({
         isImported: imported,
         fatigue,
         weeklyRecovery: calculateWeeklyRecovery(finalSkillPoints),
-        potentialPercent,
+        potentialPercent: curve ? (() => {
+          const position = Math.min(384, Math.max(0, (imported ? player.developmentWeeks : 0) + appliedTrainings)) / 12;
+          const index = Math.floor(position);
+          return curve[index] + (curve[Math.min(32, index + 1)] - curve[index]) * (position - index);
+        })() : potentialPercent,
         trainingCount: appliedTrainings,
         developmentWeeks: imported
           ? player.developmentWeeks

@@ -52,3 +52,19 @@ export function getTrainingGroups(selected: SelectedTraining[]): SelectedTrainin
 
   return groups;
 }
+
+export function combineTrainingPots(entries: TrainingEntry[]): number[] {
+  return Array.from({ length: 12 }, (_, index) => {
+    const sum = entries.reduce((total, entry) => total + (entry.potChanges[index] ?? 0), 0);
+    return Math.max(-30, Math.min(30, sum));
+  });
+}
+
+export function getGroupedTrainingFatigue(entries: TrainingEntry[]): number {
+  if (entries.length === 1) return entries[0].fatigueChange ?? 0;
+  const sum = entries.reduce((total, entry) =>
+    total + entry.skillChanges.slice(0, 9).reduce((a, b) => a + b, 0), 0);
+  if (entries.length === 2) return Math.max(0, Math.trunc(sum * 10 / 3));
+  if (entries.length === 3) return Math.max(0, Math.trunc(sum * 10 / 2));
+  return 0;
+}

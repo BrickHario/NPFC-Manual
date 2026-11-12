@@ -13,7 +13,7 @@ import type { DragEvent } from "react";
 import type { Language } from "../../lib/utils";
 import styles from "./TrainingSelectFilter.module.css";
 import { calculateTrainingStep } from "./player-type-calculation";
-import { getTrainingGroups } from "./training-types";
+import { combineTrainingPots, getTrainingGroups } from "./training-types";
 import type {
   SelectedTraining,
   TrainingEntry,
@@ -506,17 +506,15 @@ export default function TrainingSelectFilter({
 
     let currentPots = [...startPots];
 
-    for (const item of selected) {
-      const entry = catalog.get(entryKey(item));
+    for (const group of trainingGroups) {
+      const entries = group.flatMap((item) => {
+        const entry = catalog.get(entryKey(item));
+        return entry ? [entry] : [];
+      });
+      if (entries.length !== group.length) continue;
 
-      if (!entry) continue;
-
-      const vector = getTrainingVector(
-        currentPots,
-        entry.potChanges
-      );
-
-      vectors.set(item.instanceId, vector);
+      const vector = getTrainingVector(currentPots, combineTrainingPots(entries));
+      vectors.set(group[0].instanceId, vector);
       currentPots = vector.nextPots;
     }
 
@@ -524,7 +522,7 @@ export default function TrainingSelectFilter({
       selectedVectors: vectors,
       previewPots: currentPots,
     };
-  }, [selected, catalog, startPots]);
+  }, [trainingGroups, catalog, startPots]);
 
   const trainingVectors = useMemo(
     () =>
@@ -533,7 +531,7 @@ export default function TrainingSelectFilter({
           entryKey(entry),
           getTrainingVector(
             previewPots,
-            entry.potChanges
+            combineTrainingPots([entry])
           ),
         ])
       ),
@@ -1167,7 +1165,8 @@ export default function TrainingSelectFilter({
                       {entry.names[language]}
                     </span>
 
-                    <span className={styles.availableVector}>
+                    {cardIndex === 0 && (
+                    <span className={styles.availableVector} title={group.length > 1 ? "Combined training vector" : undefined}>
                       {(() => {
                         const vector = selectedVectors.get(
                           item.instanceId
@@ -1181,6 +1180,7 @@ export default function TrainingSelectFilter({
                           : "X 0 / Y 0";
                       })()}
                     </span>
+                    )}
                   </span>
                 </div>
 
