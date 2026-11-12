@@ -401,6 +401,34 @@ export default function TrainingSelectFilter({
   setMatchFilter("all");
 }, [focusTrainingKey, catalog, language, filtersLoaded]);
 
+  const trainingGroups = useMemo(() => {
+    const groups: SelectedTraining[][] = [];
+
+    for (const item of selected) {
+      const last = groups[groups.length - 1];
+
+      if (
+        item.kind === "card" &&
+        last?.[0]?.kind === "card" &&
+        last.length < 3 &&
+        !last.some((card) => card.id === item.id)
+      ) {
+        last.push(item);
+      } else {
+        groups.push([item]);
+      }
+    }
+
+    return groups;
+  }, [selected]);
+
+  const lastTrainingGroup = trainingGroups[trainingGroups.length - 1];
+  const blockedCardIds = new Set(
+    lastTrainingGroup?.[0]?.kind === "card" && lastTrainingGroup.length < 3
+      ? lastTrainingGroup.map((item) => item.id)
+      : []
+  );
+
   const { selectedVectors, previewPots } = useMemo(() => {
     const vectors = new Map<
       number,
@@ -563,7 +591,7 @@ export default function TrainingSelectFilter({
   ]);
 
   function addTraining(entry: TrainingEntry) {
-    if (!hasSelectedPlayer) return;
+    if (!hasSelectedPlayer || (entry.kind === "card" && blockedCardIds.has(entry.id))) return;
 
     const instanceId = Math.max(
       nextInstanceId.current,
@@ -583,10 +611,11 @@ export default function TrainingSelectFilter({
     ]);
   }
 
-  function removeTraining(instanceId: number) {
+  function removeTraining(group: SelectedTraining[]) {
+    const ids = new Set(group.map((item) => item.instanceId));
     onSelectionChange(
       selected.filter(
-        (item) => item.instanceId !== instanceId
+        (item) => !ids.has(item.instanceId)
       )
     );
   }
@@ -852,11 +881,14 @@ export default function TrainingSelectFilter({
                 className={styles.availableItem}
                 key={entryKey(entry)}
                 onClick={() => addTraining(entry)}
-                disabled={!hasSelectedPlayer}
+                disabled={!hasSelectedPlayer || (entry.kind === "card" && blockedCardIds.has(entry.id))}
+                style={entry.kind === "card" && blockedCardIds.has(entry.id) ? { opacity: 0.45, cursor: "not-allowed" } : undefined}
                 aria-label={entry.names[language]}
                 title={
                   hasSelectedPlayer
-                    ? entry.names[language]
+                    ? entry.kind === "card" && blockedCardIds.has(entry.id)
+                      ? "Card already in this training"
+                      : entry.names[language]
                     : "Select a player to add training"
                 }
               >
@@ -940,13 +972,21 @@ export default function TrainingSelectFilter({
           </p>
         ) : null}
 
-        {selected
-          .map((item, index) => ({
-            item,
-            index,
-          }))
+        {trainingGroups
+          .map((group, index) => ({ group, index }))
           .reverse()
-          .map(({ item, index }) => {
+          .map(({ group, index }) => (
+            <div
+              key={group[0].instanceId}
+              style={{
+                display: "flex",
+                flexShrink: 0,
+                alignItems: "center",
+                gap: 0,
+                isolation: "isolate",
+              }}
+            >
+              {group.map((item, cardIndex) => {
             const entry = catalog.get(entryKey(item));
 
             if (!entry) return null;
@@ -959,6 +999,10 @@ export default function TrainingSelectFilter({
                     : ""
                 }`}
                 key={item.instanceId}
+                style={{
+                  marginLeft: cardIndex > 0 ? -12 : 0,
+                  zIndex: group.length - cardIndex,
+                }}
                 draggable
                 onDragStart={(event) =>
                   handleDragStart(
@@ -980,9 +1024,11 @@ export default function TrainingSelectFilter({
                 }
                 onDragEnd={handleDragEnd}
               >
-                <span className={styles.itemNumber}>
-                  {index + 1}.
-                </span>
+                {cardIndex === 0 && (
+                  <span className={styles.itemNumber}>
+                    {index + 1}.
+                  </span>
+                )}
 
                 <div className={styles.trainingCard}>
                   <span className={styles.availableImage}>
@@ -1016,17 +1062,17 @@ export default function TrainingSelectFilter({
                   </span>
                 </div>
 
-                <button
-                  className={styles.removeButton}
-                  type="button"
-                  draggable={false}
-                  aria-label={`${labels.remove}: ${entry.names[language]}`}
-                  onClick={() =>
-                    removeTraining(item.instanceId)
-                  }
-                >
-                  ×
-                </button>
+                {cardIndex === group.length - 1 && (
+                  <button
+                    className={styles.removeButton}
+                    type="button"
+                    draggable={false}
+                    aria-label={labels.remove}
+                    onClick={() => removeTraining(group)}
+                  >
+                    ×
+                  </button>
+                )}
 
                 <Link
                   href={`/cards-and-combos?id=${entry.id}`}
@@ -1042,7 +1088,9 @@ export default function TrainingSelectFilter({
                 </Link>
               </div>
             );
-          })}
+              })}
+            </div>
+          ))}
       </div>
     </aside>
   );
