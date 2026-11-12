@@ -229,6 +229,19 @@ function entryKey(entry: {
   return `${entry.kind}:${entry.id}`;
 }
 
+function findSpecialCombo(items: SelectedTraining[], trainings: TrainingEntry[]) {
+  if (items.length < 2 || items.length > 3 || items.some((item) => item.kind !== "card")) return undefined;
+
+  const ids = items.map((item) => item.id).sort((a, b) => a - b);
+
+  return trainings.find((entry) => {
+    if (entry.kind !== "combo" || entry.requiredCardIds?.length !== ids.length) return false;
+
+    const required = [...entry.requiredCardIds].sort((a, b) => a - b);
+    return required.every((id, index) => id === ids[index]);
+  });
+}
+
 export default function TrainingSelectFilter({
   language,
   trainings,
@@ -422,6 +435,9 @@ export default function TrainingSelectFilter({
     markedGroups.every((group) => group.length === 1 && group[0].kind === "card") &&
     new Set(markedGroups.map((group) => group[0].id)).size === markedGroups.length;
   const canUngroup = markedGroups.length === 1 && markedGroups[0].length > 1;
+  const markedCombo = canGroup
+    ? findSpecialCombo(markedGroups.flat(), trainings)
+    : undefined;
 
   useEffect(() => {
     function handleOutsideClick(event: PointerEvent) {
@@ -464,7 +480,9 @@ export default function TrainingSelectFilter({
     const ids = new Set(markedGroups.map((group) => group[0].instanceId));
     const groupId = Math.max(-1, ...selected.map((item) => item.groupId ?? -1)) + 1;
     const first = markedGroups[0][0].instanceId;
-    const grouped = markedGroups.map(([item]) => ({ ...item, groupId }));
+    const grouped: SelectedTraining[] = markedCombo
+      ? [{ kind: "combo", id: markedCombo.id, instanceId: first }]
+      : markedGroups.map(([item]) => ({ ...item, groupId }));
     onSelectionChange(selected.flatMap((item) =>
       item.instanceId === first ? grouped : ids.has(item.instanceId) ? [] : [item]
     ));
@@ -1021,6 +1039,36 @@ export default function TrainingSelectFilter({
         )}
       </div>
 
+      <div style={{ position: "relative", width: "100%", minWidth: 0 }}>
+        <style>{`
+          @keyframes npfcSpecialComboPulse {
+            0%, 100% { opacity: 1; scale: 1; }
+            25% { opacity: 0.35; scale: 0.92; }
+            50% { opacity: 1; scale: 1.08; }
+            75% { opacity: 0.65; scale: 0.98; }
+          }
+          .npfc-special-combo-image {
+            animation: npfcSpecialComboPulse 1s ease-in-out infinite;
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .npfc-special-combo-image { animation: none; }
+          }
+        `}</style>
+        {markedCombo && (
+          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", zIndex: 20, pointerEvents: "none" }}>
+            <Image
+              src="/special-combo-text.png"
+              alt="Special Combo"
+              title={markedCombo.names[language]}
+              width={150}
+              height={80}
+              className="npfc-special-combo-image"
+              style={{ width: "150px", maxWidth: "80%", height: "auto", objectFit: "contain" }}
+              unoptimized
+              draggable={false}
+            />
+          </div>
+        )}
       <div className={styles.selectedList}>
         {!hasSelectedPlayer ? (
           <p className={styles.empty}>
@@ -1076,6 +1124,7 @@ export default function TrainingSelectFilter({
                   : undefined,
                 outlineOffset: 5,
                 borderRadius: 12,
+                position: "relative",
               }}
             >
               {group.map((item, cardIndex) => {
@@ -1164,6 +1213,7 @@ export default function TrainingSelectFilter({
               })}
             </div>
           ))}
+      </div>
       </div>
     </aside>
   );
