@@ -770,7 +770,7 @@ export default function PlayerTypesClient({
         [...initialExtraValues];
       let fatigue = Math.max(
         0,
-        imported ? player.fatigue ?? 0 : 0
+        Math.min(1000, imported ? player.fatigue ?? 0 : 0)
       );
       let appliedTrainings = 0;
 

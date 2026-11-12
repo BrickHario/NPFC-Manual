@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import PlayerTypesClient from "./PlayerTypesClient";
 import PotentialCurvesProvider from "./PotentialCurvesProvider";
+import { calculateTrainingFatigue } from "./training-types";
 import type {
   TrainingEntry,
   TrainingNames,
@@ -110,23 +111,6 @@ function getSkillChanges(row: TrainingRow): number[] {
   return skillColumns.map((column) =>
     Number(row[column as keyof TrainingRow] ?? 0)
   );
-}
-
-function calculateTrainingFatigue(cards: { skillPoints: number[] }[]): number {
-  const sum = cards.reduce(
-    (total, card) =>
-      total +
-      card.skillPoints.slice(0, 9).reduce((a, b) => a + b, 0),
-    0
-  );
-
-  const count = cards.length;
-
-  if (count === 1) return Math.max(0, sum * 10);
-  if (count === 2) return Math.max(0, Math.trunc(sum * 20 / 3));
-  if (count === 3) return Math.max(0, Math.trunc(sum * 5));
-
-  return 0;
 }
 
 function getPlayerSkills(row: PlayerSkillsRow): number[] {

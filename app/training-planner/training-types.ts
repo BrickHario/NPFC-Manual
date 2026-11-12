@@ -61,13 +61,20 @@ export function combineTrainingPots(entries: TrainingEntry[]): number[] {
   });
 }
 
-export function getGroupedTrainingFatigue(entries: TrainingEntry[]): number {
-  if (entries.length === 1) return entries[0].fatigueChange ?? 0;
-  const sum = entries.reduce((total, entry) =>
-    total + entry.skillChanges.slice(0, 9).reduce((a, b) => a + b, 0), 0);
-  if (entries.length === 2) return Math.max(0, Math.trunc(sum * 10 / 3));
-  if (entries.length === 3) return Math.max(0, Math.trunc(sum * 10 / 2));
+export function calculateTrainingFatigue(cards: { skillPoints: number[] }[]): number {
+  const sum = cards.reduce((total, card) =>
+    total + card.skillPoints.slice(0, 9).reduce((a, b) => a + b, 0), 0);
+  if (cards.length === 1) return Math.max(0, Math.trunc(sum * 10));
+  if (cards.length === 2) return Math.max(0, Math.trunc(sum * 20 / 3));
+  if (cards.length === 3) return Math.max(0, Math.trunc(sum * 5));
   return 0;
+}
+
+export function getGroupedTrainingFatigue(entries: TrainingEntry[]): number {
+  if (entries.length === 1 && entries[0].kind === "combo") {
+    return entries[0].fatigueChange;
+  }
+  return calculateTrainingFatigue(entries.map((entry) => ({ skillPoints: entry.skillChanges })));
 }
 
 export function canUseTraining(entry: TrainingEntry, isGoalkeeper: boolean): boolean {
