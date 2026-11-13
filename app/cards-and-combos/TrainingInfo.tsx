@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { LoadingSmall } from "../Loading";
 import HorizontalScrollArea from "./HorizontalScrollArea";
 import {
   ATTRIBUTES,
@@ -46,6 +47,9 @@ export default function TrainingInfo({
   const [failedPreviewUrl, setFailedPreviewUrl] =
     useState<string | null>(null);
   const [randomIndex, setRandomIndex] = useState(0);
+  const [loadedImageUrl, setLoadedImageUrl] = useState<string | null>(null);
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+  const [loadedPreviewUrl, setLoadedPreviewUrl] = useState<string | null>(null);
 
   const hasPreview =
     Boolean(comboPreviewUrl) &&
@@ -217,14 +221,23 @@ export default function TrainingInfo({
           >
             <div className={styles.imageArea}>
               <div className={styles.imageFrame}>
+                {imageUrl && loadedImageUrl !== imageUrl && failedImageUrl !== imageUrl && (
+                  <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+                    <LoadingSmall />
+                  </div>
+                )}
                 {imageUrl && (
                   <Image
+                    key={imageUrl}
                     src={imageUrl}
                     alt={data.name}
                     width={600}
                     height={400}
                     priority
                     className={styles.mainImage}
+                    style={{ opacity: loadedImageUrl === imageUrl || failedImageUrl === imageUrl ? 1 : 0 }}
+                    onLoad={() => setLoadedImageUrl(imageUrl)}
+                    onError={() => setFailedImageUrl(imageUrl)}
                   />
                 )}
               </div>
@@ -244,6 +257,11 @@ export default function TrainingInfo({
 
             {hasPreview && (
               <div className={styles.previewFrame}>
+                {loadedPreviewUrl !== comboPreviewUrl && (
+                  <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+                    <LoadingSmall />
+                  </div>
+                )}
                 <video
                   key={comboPreviewUrl}
                   className={styles.previewVideo}
@@ -253,6 +271,9 @@ export default function TrainingInfo({
                   muted
                   playsInline
                   preload="metadata"
+                  style={{ opacity: loadedPreviewUrl === comboPreviewUrl ? 1 : 0 }}
+                  onLoadedData={() => setLoadedPreviewUrl(comboPreviewUrl ?? null)}
+                  onCanPlay={() => setLoadedPreviewUrl(comboPreviewUrl ?? null)}
                   onError={() => {
                     console.warn(
                       "Combo preview could not be loaded:",
