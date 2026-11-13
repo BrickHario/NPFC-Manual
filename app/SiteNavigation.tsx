@@ -67,17 +67,17 @@ export default function SiteNavigation() {
     <div className="site-menu" ref={menuRef}>
       {/* Desktop Navigation */}
       <div className="site-nav-links">
-        <Link href="/marketplace">
-          Marketplace
+        <Link href="/training-planner">
+          Training Planner
         </Link>
 
         <Link href="/cards-and-combos">
           Cards and Combos
         </Link>
-
-          <Link href="/training-planner">
-          Training Planner
+        <Link href="/marketplace">
+          Marketplace
         </Link>
+
       </div>
 
       {/* Mobile Burger */}
@@ -109,23 +109,22 @@ export default function SiteNavigation() {
         inert={!isOpen}
       >
         <Link
-          href="/marketplace"
+          href="/training-planner"
           onClick={() => setIsOpen(false)}
         >
-          Marketplace
+          Training Planner
         </Link>
-
         <Link
           href="/cards-and-combos"
           onClick={() => setIsOpen(false)}
         >
           Cards and Combos
         </Link>
-                <Link
-          href="/training-planner"
+        <Link
+          href="/marketplace"
           onClick={() => setIsOpen(false)}
         >
-          Training Planner
+          Marketplace
         </Link>
       </div>
     </div>

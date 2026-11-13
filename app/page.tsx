@@ -5,14 +5,14 @@ export default function Home() {
     <main className="home-page">
       <h1>NPFC Manual</h1>
       <div className="home-actions">
-        <Link className="home-button" href="/marketplace">
-          Marketplace
+        <Link className="home-button" href="/training-planner">
+          Training Planner
         </Link>
         <Link className="home-button" href="/cards-and-combos">
           Cards and Combos
         </Link>
-        <Link className="home-button" href="/training-planner">
-          Training Planner
+        <Link className="home-button" href="/marketplace">
+          Marketplace
         </Link>
       </div>
     </main>

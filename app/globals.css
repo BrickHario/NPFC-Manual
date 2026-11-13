@@ -243,7 +243,7 @@ tr:hover td {
 .home-button:first-child::before {
   background-image:
     linear-gradient(#12180f44, #12180f44),
-    url("/marketplace.png");
+    url("/locker.png");
 }
 
 .home-button:nth-child(2)::before {
@@ -255,7 +255,7 @@ tr:hover td {
 .home-button:nth-child(3)::before {
   background-image:
     linear-gradient(#12180f44, #12180f44),
-    url("/locker.png");
+    url("/marketplace.png");
 }
 
 .home-button::after {
