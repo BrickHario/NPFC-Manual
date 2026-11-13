@@ -216,7 +216,6 @@ useEffect(() => {
       alt={player.name}
       fill
       sizes="64px"
-      unoptimized
       style={{ objectFit: "contain", imageRendering: "pixelated" }}
     />
   </div>

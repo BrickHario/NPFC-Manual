@@ -175,11 +175,7 @@ async function TrainingData({
     Object.fromEntries(
       cards.map((card) => [
         card.card_id,
-        supabase.storage
-          .from("card-images")
-          .getPublicUrl(
-            `${String(card.card_id).padStart(4, "0")}.png`
-          ).data.publicUrl,
+        `/card-images/${String(card.card_id).padStart(4, "0")}.png`,
       ])
     );
 
@@ -187,11 +183,7 @@ async function TrainingData({
     Object.fromEntries(
       combos.map((combo) => [
         combo.combo_id,
-        supabase.storage
-          .from("combo-images")
-          .getPublicUrl(
-            `${String(combo.combo_id).padStart(4, "0")}.png`
-          ).data.publicUrl,
+        `/combo-images/${String(combo.combo_id).padStart(4, "0")}.png`,
       ])
     );
 
@@ -228,10 +220,7 @@ async function TrainingData({
   const previewFilename =
     `${String(combo.combo_id).padStart(4, "0")}.mp4`;
 
-  const comboPreviewUrl = supabase.storage
-    .from("combo-previews")
-    .getPublicUrl(previewFilename)
-    .data.publicUrl;
+  const comboPreviewUrl = `/combo-previews/${previewFilename}`;
 
   return (
     <TrainingInfo

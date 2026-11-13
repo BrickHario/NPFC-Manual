@@ -111,10 +111,7 @@ if (!player) {
   const foot = String(getFoot(player.id_foot) ?? "—").toUpperCase();
   const market = String(getMarket(player.id_market) ?? "—");
 
-  const imageUrl = supabase.storage
-    .from("player-images")
-    .getPublicUrl(`${String(player.id_player).padStart(4, "0")}.png`)
-    .data.publicUrl;
+  const imageUrl = `/player-images/${String(player.id_player).padStart(4, "0")}.png`;
 
   return (
     <div className={styles.page}>

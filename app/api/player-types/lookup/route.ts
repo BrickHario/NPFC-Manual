@@ -142,11 +142,7 @@ const curveMap = new Map(
         name: player.name,
         potentialCurve:
   curveMap.get(player.id_potential) ?? null,
-        imageUrl: supabase.storage
-          .from("player-images")
-          .getPublicUrl(
-            `${String(id).padStart(4, "0")}.png`
-          ).data.publicUrl,
+        imageUrl: `/player-images/${String(id).padStart(4, "0")}.png`,
       };
     });
 

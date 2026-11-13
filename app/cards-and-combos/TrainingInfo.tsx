@@ -224,7 +224,6 @@ export default function TrainingInfo({
                     width={600}
                     height={400}
                     priority
-                    unoptimized
                     className={styles.mainImage}
                   />
                 )}
@@ -312,7 +311,6 @@ export default function TrainingInfo({
                             }
                             width={250}
                             height={135}
-                            unoptimized
                             className={styles.recipeImage}
                           />
                         )}

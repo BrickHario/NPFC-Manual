@@ -321,11 +321,7 @@ async function PlayerTypesData({
       skillChanges: getSkillChanges(row),
       fatigueChange: calculateTrainingFatigue([{ skillPoints: getSkillChanges(row) }]),
       names: namesOf(cardNames.get(id), `Card #${id}`),
-      imageUrl: supabase.storage
-        .from("card-images")
-        .getPublicUrl(
-          `${String(id).padStart(4, "0")}.png`
-        ).data.publicUrl,
+      imageUrl: `/card-images/${String(id).padStart(4, "0")}.png`,
       potChanges: getPotChanges(row),
     };
   });
@@ -355,11 +351,7 @@ async function PlayerTypesData({
       fatigueChange: ingredientSkills.length === requiredCardIds.length
         ? calculateTrainingFatigue(ingredientSkills.map((skillPoints) => ({ skillPoints })))
         : 0,
-      imageUrl: supabase.storage
-        .from("combo-images")
-        .getPublicUrl(
-          `${String(id).padStart(4, "0")}.png`
-        ).data.publicUrl,
+      imageUrl: `/combo-images/${String(id).padStart(4, "0")}.png`,
       potChanges: getPotChanges(row),
     };
   });
@@ -399,11 +391,7 @@ async function PlayerTypesData({
       return {
         id,
         name: player.name,
-        imageUrl: supabase.storage
-          .from("player-images")
-          .getPublicUrl(
-            `${String(id).padStart(4, "0")}.png`
-          ).data.publicUrl,
+        imageUrl: `/player-images/${String(id).padStart(4, "0")}.png`,
         skills: getPlayerSkills(skills),
       };
     })

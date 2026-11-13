@@ -990,7 +990,6 @@ export default function TrainingSelectFilter({
                     alt=""
                     width={150}
                     height={98}
-                    unoptimized
                   />
 
                   <span className={styles.availableName}>
@@ -1167,7 +1166,6 @@ export default function TrainingSelectFilter({
                       alt=""
                       width={150}
                       height={98}
-                      unoptimized
                       draggable={false}
                     />
 

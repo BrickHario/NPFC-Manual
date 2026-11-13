@@ -1,20 +1,18 @@
-
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
   devIndicators: false,
   images: {
-    unoptimized: true,
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: new URL(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!
-        ).hostname,
-        pathname: "/storage/v1/object/public/player-images/**",
-      },
-    ],
+    minimumCacheTTL: 604800,
+  },
+  async headers() {
+    return ["combo-previews", "combo-images", "card-images", "player-images"].map((folder) => ({
+      source: `/${folder}/:path*`,
+      headers: [
+        { key: "Cache-Control", value: "public, max-age=604800" },
+      ],
+    }));
   },
 };
 

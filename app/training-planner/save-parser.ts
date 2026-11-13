@@ -285,7 +285,10 @@ export function readImportedPlayers(): ImportedSavePlayer[] {
         if (valid) seenIds.add(item.id!);
         return valid;
       }
-    );
+    ).map((player) => ({
+      ...player,
+      imageUrl: `/player-images/${String(player.id).padStart(4, "0")}.png`,
+    }));
   } catch {
     return [];
   }

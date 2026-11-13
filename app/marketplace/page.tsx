@@ -410,11 +410,7 @@ async function Players({
           }}
         >
           {paginated.map((p) => {
-            const imageUrl = supabase.storage
-              .from("player-images")
-              .getPublicUrl(
-                `${String(p.id_player).padStart(4, "0")}.png`
-              ).data.publicUrl;
+            const imageUrl = `/player-images/${String(p.id_player).padStart(4, "0")}.png`;
 
             const card = (
               <PlayerImages
