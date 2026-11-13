@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   devIndicators: false,
   images: {
-    minimumCacheTTL: 604800,
+    unoptimized: true,
   },
   async headers() {
     return ["combo-previews", "combo-images", "card-images", "player-images"].map((folder) => ({
