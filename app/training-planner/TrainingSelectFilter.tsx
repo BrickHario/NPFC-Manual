@@ -262,6 +262,7 @@ export default function TrainingSelectFilter({
   selectionScope,
 }: TrainingSelectFilterProps) {
   const [search, setSearch] = useState("");
+  const [focusedSearch, setFocusedSearch] = useState<string | null>(null);
   const [showCards, setShowCards] = useState(true);
   const [showCombos, setShowCombos] = useState(true);
   const [selectedCardsOnly, setSelectedCardsOnly] =
@@ -303,7 +304,7 @@ export default function TrainingSelectFilter({
   }, []);
 
   useEffect(() => {
-    if (!filtersLoaded) return;
+    if (!filtersLoaded || focusedSearch !== null) return;
 
     const filters: SavedFilters = {
       search,
@@ -320,6 +321,7 @@ export default function TrainingSelectFilter({
     );
   }, [
     filtersLoaded,
+    focusedSearch,
     search,
     showCards,
     showCombos,
@@ -411,19 +413,25 @@ export default function TrainingSelectFilter({
   );
 
   useEffect(() => {
-  if (!focusTrainingKey || !filtersLoaded) return;
+    if (!focusTrainingKey || !filtersLoaded) return;
 
-  const entry = catalog.get(focusTrainingKey);
+    const entry = catalog.get(focusTrainingKey);
+    if (!entry) return;
 
-  if (!entry) return;
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("trainingKind") || !url.searchParams.has("trainingId")) return;
 
-  setSearch(entry.names[language]);
-  setShowCards(true);
-  setShowCombos(true);
-  setSelectedCardsOnly(false);
-  setDirection("all");
-  setMatchFilter("all");
-}, [focusTrainingKey, catalog, language, filtersLoaded]);
+    setFocusedSearch(entry.names[language]);
+    setShowCards(true);
+    setShowCombos(true);
+    setSelectedCardsOnly(false);
+    setDirection("all");
+    setMatchFilter("all");
+
+    url.searchParams.delete("trainingKind");
+    url.searchParams.delete("trainingId");
+    window.history.replaceState(null, "", url.toString());
+  }, [focusTrainingKey, catalog, language, filtersLoaded]);
 
   const trainingGroups = useMemo(
     () => getTrainingGroups(selected),
@@ -547,7 +555,7 @@ export default function TrainingSelectFilter({
   );
 
   const options = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase();
+    const query = (focusedSearch ?? search).trim().toLocaleLowerCase();
 
     const selectedDirection = directions.find(
       (option) => option.value === direction
@@ -659,6 +667,7 @@ export default function TrainingSelectFilter({
     search,
     showCards,
     showCombos,
+    focusedSearch,
     selectedCardsOnly,
     savedCardIds,
     matchFilter,
@@ -778,21 +787,22 @@ export default function TrainingSelectFilter({
   }
 
   function resetFilters() {
-    setSearch("");
-    setShowCards(true);
-    setShowCombos(true);
-    setSelectedCardsOnly(false);
-    setDirection("all");
-    setMatchFilter("all");
+  setFocusedSearch(null);
+  setSearch("");
+  setShowCards(true);
+  setShowCombos(true);
+  setSelectedCardsOnly(false);
+  setDirection("all");
+  setMatchFilter("all");
 
-    if (sortRef.current) {
-      sortRef.current.open = false;
-    }
+  if (sortRef.current) {
+    sortRef.current.open = false;
+  } 
 
-    if (matchRef.current) {
-      matchRef.current.open = false;
-    }
+  if (matchRef.current) {
+    matchRef.current.open = false;
   }
+}
 
   return (
     <aside className={styles.trainingPanel}>
@@ -808,10 +818,11 @@ export default function TrainingSelectFilter({
               type="search"
               placeholder={labels.search}
               aria-label={labels.search}
-              value={search}
-              onChange={(event) =>
-                setSearch(event.target.value)
-              }
+              value={focusedSearch ?? search}
+              onChange={(event) => {
+                setFocusedSearch(null);
+                setSearch(event.target.value);
+              }}
             />
 
             <label className={styles.optionLabel}>
