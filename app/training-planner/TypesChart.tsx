@@ -22,7 +22,7 @@ type TypesChartProps = {
   players: ChartPlayer[];
   selectedPlayerKey: string | null;
   language: Language;
-  onSelectPlayer: (key: string) => void;
+  onSelectPlayer: (key: string | null) => void;
 };
 
 const pathColors = ["#16a34a", "#2563eb", "#dc2626", "#9333ea", "#ea580c", "#0891b2", "#ca8a04", "#be185d"];
@@ -531,22 +531,21 @@ export default function TypesChart({
           key={`marker-${player.id ?? "dummy"}`}
           role="button"
           tabIndex={0}
-          aria-label={`Select ${player.name}`}
+          aria-label={`${player.name}${selectedPlayerKey === (player.id === null ? "dummy" : String(player.id)) ? ", selected" : ", select player"}`}
+          aria-pressed={selectedPlayerKey === (player.id === null ? "dummy" : String(player.id))}
           style={{ cursor: "pointer" }}
           onClick={(event) => {
             event.stopPropagation();
-            onSelectPlayer(
-              player.id === null ? "dummy" : String(player.id)
-            );
+            const key = player.id === null ? "dummy" : String(player.id);
+            onSelectPlayer(selectedPlayerKey === key ? null : key);
             setSelectedType(null);
           }}
           onKeyDown={(event) => {
             if (event.key !== "Enter" && event.key !== " ") return;
             event.preventDefault();
             event.stopPropagation();
-            onSelectPlayer(
-              player.id === null ? "dummy" : String(player.id)
-            );
+            const key = player.id === null ? "dummy" : String(player.id);
+            onSelectPlayer(selectedPlayerKey === key ? null : key);
             setSelectedType(null);
           }}
         >
@@ -580,6 +579,15 @@ export default function TypesChart({
               paintOrder="stroke"
             >{player.name}</text>
           </g>
+          <rect
+            x={anchorX - 37.5}
+            y={anchorY - 37.5}
+            width={75}
+            height={75}
+            fill="transparent"
+            pointerEvents="all"
+            aria-hidden="true"
+          />
         </g>
       ))}
 

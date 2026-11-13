@@ -502,17 +502,17 @@ export default function PlayerTypesClient({
     localStorage.removeItem("npfc-player-type-id");
   }, [initialPlayers, router]);
 
+  const availablePlayerKeys = players.map((player) => String(player.id)).sort().join(",");
+
   useEffect(() => {
     if (!storageLoaded) return;
 
-    if (players.length === 0) {
+    if (availablePlayerKeys === "") {
       setSelectedPlayerKey("dummy");
       return;
     }
 
-    const available = players.map(
-      (player) => String(player.id)
-    );
+    const available = availablePlayerKeys.split(",");
 
     setSelectedPlayerKey((current) => {
       if (available.length === 1) {
@@ -524,7 +524,7 @@ export default function PlayerTypesClient({
         ? current
         : null;
     });
-  }, [players, storageLoaded]);
+  }, [availablePlayerKeys, storageLoaded]);
 
   useEffect(() => {
     if (!storageLoaded) return;
@@ -672,9 +672,7 @@ export default function PlayerTypesClient({
   const activePlayerKey =
     players.length === 0
       ? "dummy"
-      : players.length === 1
-        ? String(players[0].id)
-        : selectedPlayerKey;
+      : selectedPlayerKey;
 
   const isGoalkeeper = activePlayerKey !== null && activePlayerKey !== "dummy" &&
     goalkeeperIds.includes(Number(activePlayerKey));
@@ -961,7 +959,7 @@ export default function PlayerTypesClient({
             players={playerViews}
             selectedPlayerKey={activePlayerKey}
             onSelectPlayer={(key) => {
-              if (players.length <= 1) return;
+              if (players.length === 0) return;
 
               setSelectedPlayerKey((current) =>
                 current === key ? null : key
@@ -985,7 +983,7 @@ export default function PlayerTypesClient({
               selectedPlayerKey={activePlayerKey}
               language={language}
               onSelectPlayer={(key) => {
-                if (players.length <= 1) return;
+                if (players.length === 0) return;
 
                 setSelectedPlayerKey(key);
               }}
