@@ -1,0 +1,169 @@
+.page {
+  position: relative;
+  width: 100%;
+}
+
+.languageDock {
+    position:absolute;
+  top: 20px;
+  right: 20px;
+}
+
+.leagues {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 35px var(--space-md);
+  width: 100%;
+  margin: 40px auto;
+}
+
+.league {
+  flex: 1 1 300px;
+  min-width: 100px;
+  max-width: 280px;
+}
+
+.leagueHeading {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2px;
+  color: var(--font_black);
+  font-family: var(--font-body);
+  font-size: 1em;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.leagueIcon {
+  width: 44px;
+  height: 32px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.tableWrapper {
+  overflow: hidden;
+  border: 5px solid var(--dark);
+  border-radius: calc(var(--radius) * 1.5);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-offset);
+}
+
+.teamTable {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.teamTable td {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--font_black);
+  text-align: left;
+}
+
+.teamContent {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 70px;
+  padding: 5px var(--space-md);
+}
+
+.teamIcon {
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+}
+
+.teamName {
+  font-family: var(--font-body);
+  font-size: 1em;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.teamRow:nth-child(odd) {
+  background: var(--color-surface);
+}
+
+.teamRow:nth-child(even) {
+  background: color-mix(
+    in srgb,
+    var(--color-surface) 65%,
+    white
+  );
+}
+
+.gold {
+  background: #ffe65c;
+}
+
+.silver {
+  background: #c8c8c8;
+}
+
+.bronze {
+  background: #b94320;
+}
+
+.teamTable tr {
+  transition: filter var(--anim);
+}
+
+.teamTable tr:hover td {
+  background: transparent;
+}
+
+.teamTable tr:hover {
+  filter: brightness(0.94);
+}
+
+@media (max-width: 600px) {
+  .leagues {
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+  }
+
+  .league {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    max-width: 380px;
+  }
+
+  .teamContent {
+    padding: 5px var(--space-sm);
+  }
+
+  .teamIcon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .teamName {
+    font-size: 1.1em;
+  }
+}
+
+.teamContent {
+  position: relative;
+}
+
+.teamStrength {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  padding: 3px 8px;
+  background: var(--dark);
+  color: white;
+  font-size: 0.7em;
+  border-radius: 5px;
+  line-height: 1;
+}

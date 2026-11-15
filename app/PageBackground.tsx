@@ -20,6 +20,10 @@ export default function PageBackground() {
       pathname.startsWith("/training-planner")
     ) {
       background = "/bg_pattern3.png";
+    } else if (
+      pathname.startsWith("/opponent-teams")
+    ) {
+      background = "/bg_pattern4.png";
     }
 
     document.body.style.backgroundImage = `url("${background}")`;

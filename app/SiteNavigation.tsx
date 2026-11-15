@@ -74,6 +74,9 @@ export default function SiteNavigation() {
         <Link href="/cards-and-combos">
           Cards and Combos
         </Link>
+        <Link href="/opponent-teams">
+          Opponent Teams
+        </Link>
         <Link href="/marketplace">
           Marketplace
         </Link>
@@ -119,6 +122,12 @@ export default function SiteNavigation() {
           onClick={() => setIsOpen(false)}
         >
           Cards and Combos
+        </Link>
+        <Link
+          href="/opponent-teams"
+          onClick={() => setIsOpen(false)}
+        >
+          Opponent Teams
         </Link>
         <Link
           href="/marketplace"
