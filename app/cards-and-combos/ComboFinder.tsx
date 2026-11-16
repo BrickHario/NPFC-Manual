@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -9,6 +8,7 @@ import {
   isEnabled,
   STORAGE_KEY,
   type SortValue,
+  type SkillSortKey,
 } from "./combo-config";
 import CardButtons from "./CardButtons";
 import { getTypeVector, getClockwiseAngle } from "./combo-type-vector";
@@ -95,7 +95,20 @@ function sortRows(
         getClockwiseAngle(vectorA, startAngle) -
         getClockwiseAngle(vectorB, startAngle);
     }
-  } else {
+  } else if (sort.startsWith("skill:")) {
+    const [, key, direction] = sort.split(":") as [
+      string,
+      SkillSortKey,
+      "asc" | "desc",
+    ];
+
+    const valueA = Number(a.data[key] ?? 0);
+    const valueB = Number(b.data[key] ?? 0);
+
+    comparison = direction === "desc"
+      ? valueB - valueA
+      : valueA - valueB;
+  } else if (sort.startsWith("attribute:")) {
     const [, key, direction] = sort.split(":") as [
       string,
       AttributeKey,
@@ -244,7 +257,6 @@ export default function CardsAndCombos({
     const specialFilterActive =
       twOnly || matchActionsOnly;
 
-    // Single cards are hidden when special combo filters are active.
     const singleRows: ResultRow[] =
       showSingleCards && !specialFilterActive
         ? cards
@@ -263,7 +275,6 @@ export default function CardsAndCombos({
 
     const comboRows: ResultRow[] = combos
       .filter((combo) => {
-        // Required training cards must be selected.
         if (
           !requiredCards(combo).every((id) =>
             selectedCards.has(id)
@@ -438,6 +449,11 @@ export default function CardsAndCombos({
           onSortChange={setSort}
           onReset={resetFilters}
         />
+
+        <div className={styles.tableTipp}>
+          <p><strong>Shooting: </strong>(Accuracy + Power) / 2</p>
+          <p><strong>Technique: </strong>(Dribbling + Tackling + Ball Control) / 3</p>
+        </div>
 
         <ComboTable
           rows={visibleRows}
