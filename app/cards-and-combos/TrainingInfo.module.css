@@ -287,7 +287,7 @@
   grid-template-columns: repeat(7, minmax(0, 1fr));
   width: 700px;
   max-width: 100%;
-  margin: 45px auto 12px;
+  margin: 0;
   overflow: hidden;
   border: 2px solid var(--dark);
   border-radius: 12px;
@@ -307,6 +307,8 @@
 }
 
 .attributeHeader {
+  position: relative;
+  isolation: isolate;
   display: block;
   width: 100%;
   aspect-ratio: 1;
@@ -328,6 +330,8 @@
 }
 
 .attributeValue {
+  flex: 1;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -459,10 +463,6 @@
     width: 700px;
     min-width: 700px;
     max-width: none;
-    margin-top: 35px;
-    margin-bottom: 0;
-    margin-left: 20px;
-    margin-right: 20px;
   }
 
   .attributeValue {
@@ -558,8 +558,6 @@
   }
 
   .attributeTable {
-    margin-left: 12px;
-    margin-right: 12px;
     border-radius: 8px;
     box-shadow: 5px 5px 0 var(--dark);
   }
@@ -727,5 +725,134 @@
 
   .fatigueBox {
     font-size: 0.7rem;
+  }
+}
+
+
+.attributeTable {
+  --sub-skill-size: 32px;
+  --sub-value-height: 30px;
+}
+
+.subSkillIcons,
+.subSkillValues {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  text-align: center;
+}
+
+.subSkillIcons {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 1;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  justify-items: center;
+  align-items: end;
+}
+
+.attributeHeader .subSkillIcon {
+  display: block;
+  width: var(--sub-skill-size);
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  object-fit: contain;
+  image-rendering: pixelated;
+  border: black solid 2px;
+}
+
+.attributeValue.groupedStatCell {
+  position: relative;
+  padding: 8px 0 calc(var(--sub-value-height) + 8px);
+}
+
+.mainStatValue {
+  display: block;
+  min-height: 1.2em;
+  line-height: 1.2;
+}
+
+.subSkillValues {
+  position: absolute;
+  inset: auto 0 0;
+  height: var(--sub-value-height);
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.subSkillValues span {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+@media (min-width: 701px) and (max-width: 1300px) {
+  .attributeTable {
+    --sub-skill-size: 30px;
+  }
+}
+
+@media (max-width: 700px) {
+  .attributeTable {
+    --sub-skill-size: 25px;
+    --sub-value-height: 24px;
+  }
+
+  .attributeValue.groupedStatCell {
+    padding: 6px 0 calc(var(--sub-value-height) + 6px);
+  }
+
+  .subSkillValues {
+    font-size: 0.7rem;
+  }
+}
+
+.attributeTableBlock {
+  width: 700px;
+  max-width: 100%;
+  margin: 45px auto 12px;
+}
+
+.tableTipp {
+  display: flow-root;
+  width: 100%;
+  margin-bottom: 10px;
+  color: var(--font_black);
+  text-align: left;
+}
+
+.tableTipp p {
+  margin: 0;
+}
+
+@media (max-width: 700px) {
+  .attributeTableBlock {
+    min-width: 700px;
+    max-width: none;
+    margin-top: 35px;
+    margin-bottom: 0;
+    margin-left: 20px;
+    margin-right: 20px;
+  }
+
+  .tableTipp {
+    font-size: 0.7em;
+  }
+}
+
+@media (max-width: 800px) {
+  .attributeTableBlock {
+    margin-left: 12px;
+    margin-right: 12px;
   }
 }

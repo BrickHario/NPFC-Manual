@@ -22,6 +22,7 @@ import {
 } from "./combo-config";
 import styles from "./TrainingInfo.module.css";
 import { formatTypeVector, getTypeVector } from "./combo-type-vector";
+import { getSubSkills } from "@/lib/utils";
 
 type TrainingSelection =
   | { kind: "card"; data: TrainingCard }
@@ -351,6 +352,11 @@ export default function TrainingInfo({
 
        <div className={styles.attributeScrollOuter}>
   <HorizontalScrollArea label="Training effects">
+        <div className={styles.attributeTableBlock}>
+          <div className={styles.tableTipp}>
+            <p><strong>Shooting: </strong>(Accuracy + Power) / 2</p>
+            <p><strong>Technique: </strong>(Dribbling + Tackling + Ball Control) / 3</p>
+          </div>
           <section
             className={styles.attributeTable}
             aria-label="Training effects"
@@ -364,6 +370,10 @@ export default function TrainingInfo({
                     : randomBonus
                 : 0;
               const value = values[attribute.key] + bonus;
+              const subSkills = getSubSkills(attribute.key);
+              const subSkillGrid = {
+                gridTemplateColumns: `repeat(${subSkills.length}, minmax(0, 1fr))`,
+              };
 
               return (
                 <div
@@ -375,37 +385,80 @@ export default function TrainingInfo({
                     title={attribute.label}
                   >
                     <Image
-                      src={attributeIcon(
-                        attribute.label,
-                        index
-                      )}
+                      src={attributeIcon(attribute.label, index)}
                       alt={attribute.label}
                       width={100}
                       height={100}
                       unoptimized
                       className={styles.attributeIcon}
                     />
+                    {subSkills.length > 0 && (
+                      <div className={styles.subSkillIcons} style={subSkillGrid}>
+                        {subSkills.map((skill) => (
+                          <Image
+                            key={skill.key}
+                            src={skill.icon}
+                            alt={skill.label}
+                            title={skill.label}
+                            width={40}
+                            height={40}
+                            unoptimized
+                            className={styles.subSkillIcon}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div
-                    className={`${
-                      styles.attributeValue
-                    } ${
+                    className={`${styles.attributeValue} ${
                       value > 0
                         ? styles.positive
                         : value < 0
                           ? styles.negative
                           : styles.zero
-                    }`}
+                    } ${subSkills.length ? styles.groupedStatCell : ""}`}
                   >
-                    {value === 0
-                      ? ""
-                      : formatBonus(value)}
+                    {subSkills.length ? (
+                      <>
+                        <span className={styles.mainStatValue}>
+                          {formatBonus(value)}
+                        </span>
+                        <div className={styles.subSkillValues} style={subSkillGrid}>
+                          {subSkills.map((skill) => {
+                            const skillBonus = randomBonus && Number(skill.key.slice(-2)) === randomIndex + 1
+                              ? randomBonus
+                              : 0;
+                            const skillValue = Number(data[skill.key] ?? 0) + skillBonus;
+                            const skillClass = skillValue > 0
+                              ? styles.positive
+                              : skillValue < 0
+                                ? styles.negative
+                                : styles.zero;
+                            const displayValue = formatBonus(skillValue);
+
+                            return (
+                              <span
+                                key={skill.key}
+                                className={skillClass}
+                                title={`${skill.label}: ${displayValue}`}
+                                aria-label={`${skill.label}: ${displayValue}`}
+                              >
+                                {displayValue}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </>
+                    ) : (
+                      formatBonus(value)
+                    )}
                   </div>
                 </div>
               );
             })}
           </section>
+        </div>
         </HorizontalScrollArea></div>
       </div>
     </article>
