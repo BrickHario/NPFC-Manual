@@ -1,4 +1,3 @@
-
 import HorizontalScrollArea from "./HorizontalScrollArea";
 import { getTypeVector, formatTypeVector } from "./combo-type-vector";
 import vectorStyles from "./combo-type-vector.module.css";
@@ -19,7 +18,9 @@ import {
 } from "./combo-config";
 import type { CSSProperties } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import styles from "./cards-and-combos.module.css";
+import { getSubSkills } from "@/lib/utils";
 
 export type ResultRow =
   | {
@@ -88,25 +89,57 @@ export default function ComboTable({
             </th>
 
 
-            {ATTRIBUTES.map((attribute, index) => (
-              <th
-                key={attribute.key}
-                scope="col"
-                className={styles.statHead}
-                title={attribute.label}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={attributeIcon(
-                    attribute.label,
-                    index
+            {ATTRIBUTES.map((attribute, index) => {
+              const subSkills = getSubSkills(attribute.key);
+              const mainIcon = attributeIcon(attribute.label, index);
+
+              return (
+                <th
+                  key={attribute.key}
+                  scope="col"
+                  className={`${styles.statHead} ${subSkills.length ? styles.groupedStatHead : ""}`}
+                  title={attribute.label}
+                >
+                  {subSkills.length ? (
+                    <div className={styles.statHeadLayout}>
+                      <Image
+                        src={mainIcon}
+                        alt={attribute.label}
+                        width={110}
+                        height={110}
+                        unoptimized
+                        className={styles.mainStatIcon}
+                      />
+                      <div
+                        className={styles.subSkillIcons}
+                        style={{ gridTemplateColumns: `repeat(${subSkills.length}, minmax(0, 1fr))` }}
+                      >
+                        {subSkills.map((skill) => (
+                          <Image
+                            key={skill.key}
+                            src={skill.icon}
+                            alt={skill.label}
+                            title={skill.label}
+                            width={40}
+                            height={40}
+                            unoptimized
+                            className={styles.subSkillIcon}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <Image
+                      src={mainIcon}
+                      alt={attribute.label}
+                      width={110}
+                      height={110}
+                      unoptimized
+                    />
                   )}
-                  alt={attribute.label}
-                  width={110}
-                  height={110}
-                />
-              </th>
-            ))}
+                </th>
+              );
+            })}
           </tr>
         </thead>
 
@@ -173,7 +206,7 @@ export default function ComboTable({
                   </div>
                 </td>
 
-                                <td className={`${styles.value} ${styles.zero}`}>
+                <td className={`${styles.value} ${styles.zero}`}>
                   {row.fatigue > 0 ? `+${row.fatigue}` : "0"}
                 </td>
 
@@ -202,7 +235,7 @@ export default function ComboTable({
                   </div>
                 </td>
 
-                                <td
+                <td
                   className={`${
                     styles.categoryCell
                   } ${
@@ -217,6 +250,7 @@ export default function ComboTable({
 
                 {ATTRIBUTES.map((attribute, index) => {
                   const value = values[attribute.key];
+                  const subSkills = getSubSkills(attribute.key);
 
                   const random_01 =
                     row.kind === "card"
@@ -238,13 +272,43 @@ export default function ComboTable({
                   return (
                     <td
                       key={attribute.key}
-                      className={`${
-                        styles.value
-                      } ${valueClass}`}
+                      className={`${styles.value} ${valueClass} ${subSkills.length ? styles.groupedStatCell : ""}`}
                     >
-                      {formatBonus(
-                        value,
-                        hasRandomBonus ? random_01 : 0
+                      {subSkills.length ? (
+                        <>
+                          <span className={styles.mainStatValue}>
+                            {formatBonus(value, hasRandomBonus ? random_01 : 0)}
+                          </span>
+                          <div
+                            className={styles.subSkillValues}
+                            style={{ gridTemplateColumns: `repeat(${subSkills.length}, minmax(0, 1fr))` }}
+                          >
+                            {subSkills.map((skill) => {
+                              const skillValue = Number(row.data[skill.key]);
+                              const skillClass = skillValue > 0
+                                ? styles.subSkillPositive
+                                : skillValue < 0
+                                  ? styles.subSkillNegative
+                                  : styles.subSkillZero;
+                              const displayValue = Number.isFinite(skillValue)
+                                ? formatBonus(skillValue)
+                                : "—";
+
+                              return (
+                                <span
+                                  key={skill.key}
+                                  className={skillClass}
+                                  title={`${skill.label}: ${displayValue}`}
+                                  aria-label={`${skill.label}: ${displayValue}`}
+                                >
+                                  {displayValue}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </>
+                      ) : (
+                        formatBonus(value, hasRandomBonus ? random_01 : 0)
                       )}
                     </td>
                   );

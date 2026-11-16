@@ -329,3 +329,37 @@ export function getFatigueProgress(
 }
 
 
+type SubSkillKey =
+  | "skill_01"
+  | "skill_02"
+  | "skill_05"
+  | "skill_06"
+  | "skill_07";
+
+type SubSkill = {
+  key: SubSkillKey;
+  label: string;
+  icon: string;
+};
+
+const SUB_SKILLS = {
+  shoot: [
+    { key: "skill_01", label: "Shoot Accuracy", icon: "/shooting-accuracy.png" },
+    { key: "skill_02", label: "Shoot Power", icon: "/shooting-power.png" },
+  ],
+  technic: [
+    { key: "skill_05", label: "Dribbling", icon: "/dribbling.png" },
+    { key: "skill_06", label: "Tackling", icon: "/tackling.png" },
+    { key: "skill_07", label: "Ball Control", icon: "/ballcontrole.png" },
+  ],
+} as const satisfies Record<string, readonly SubSkill[]>;
+
+export function getSubSkills(key: string): readonly SubSkill[] {
+  if (key === "shoot" || key === "technic") {
+    return SUB_SKILLS[key];
+  }
+
+  return [];
+}
+
+

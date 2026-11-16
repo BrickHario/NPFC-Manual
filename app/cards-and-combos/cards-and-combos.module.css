@@ -536,6 +536,15 @@
   cursor: pointer;
 }
 
+.tableTipp {
+  display: flow-root;
+  margin-bottom: 10px;
+}
+
+.tableTipp p {
+  margin: 0;
+}
+
 .table td.comboName::before {
   content: "";
   position: absolute;
@@ -1055,5 +1064,123 @@
 
   .table td.value {
     font-size: 1.15rem;
+  }
+}
+.table th.groupedStatHead {
+  --stat-head-height: 112px;
+  --sub-skill-size: 36px;
+  padding: 0;
+}
+
+.statHeadLayout {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  height: var(--stat-head-height);
+  overflow: hidden;
+}
+
+.table th.groupedStatHead .mainStatIcon {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+}
+
+.subSkillIcons,
+.subSkillValues {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  text-align: center;
+}
+
+.subSkillIcons {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 1;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  justify-items: center;
+  align-items: end;
+  image-rendering: pixelated;
+}
+
+.table th.groupedStatHead .subSkillIcon {
+  display: block;
+  width: var(--sub-skill-size);
+  height: var(--sub-skill-size);
+  min-width: 0;
+  object-fit: contain;
+  border: black solid 2px;
+}
+
+.table td.groupedStatCell {
+  --sub-value-height: 30px;
+  position: relative;
+  padding: 8px 0 calc(var(--sub-value-height) + 8px);
+}
+
+.mainStatValue {
+  display: block;
+  min-height: 1.2em;
+  line-height: 1.2;
+}
+
+.subSkillValues {
+  position: absolute;
+  inset: auto 0 0;
+  height: var(--sub-value-height);
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.subSkillValues span {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.subSkillPositive {
+  color: #198a32;
+}
+
+.subSkillNegative {
+  color: #c62828;
+}
+
+.subSkillZero {
+  color: var(--font_black);
+}
+
+@media (min-width: 701px) and (max-width: 1300px) {
+  .table th.groupedStatHead {
+    --sub-skill-size: 30px;
+  }
+}
+
+@media (max-width: 700px) {
+  .table th.groupedStatHead {
+    --stat-head-height: 85px;
+    --sub-skill-size: 25px;
+  }
+
+  .table td.groupedStatCell {
+    --sub-value-height: 24px;
+    padding: 6px 0 calc(var(--sub-value-height) + 6px);
+  }
+
+  .subSkillValues {
+    font-size: 0.7rem;
+  }
+
+  .tableTipp {
+    font-size: 0.7em;
   }
 }

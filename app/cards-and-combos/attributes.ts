@@ -5,7 +5,7 @@ export const ATTRIBUTES = [
   { key: 'shoot', label: 'Shoot', fields: ['skill_01', 'skill_02'] },
   { key: 'speed', label: 'Speed', fields: ['skill_03'] },
   { key: 'stamina', label: 'Stamina', fields: ['skill_04'] },
-  { key: 'technic', label: 'Technic', fields: ['skill_05', 'skill_06', 'skill_07'] },
+  { key: 'technic', label: 'Technique', fields: ['skill_05', 'skill_06', 'skill_07'] },
   { key: 'strength', label: 'Strength', fields: ['skill_08'] },
   { key: 'jump', label: 'Jump', fields: ['skill_09'] },
   { key: 'will', label: 'Will', fields: ['skill_10'] },

@@ -1,10 +1,25 @@
-import { AttributeKey, ATTRIBUTES } from "./attributes";
+import type { AttributeKey } from "./attributes";
 
 export type CardGroup =
   | "tactical"
   | "technical"
   | "physical"
   | "support";
+
+export const SORT_SKILLS = [
+  { key: "skill_01", label: "Shoot Accuracy" },
+  { key: "skill_02", label: "Shoot Power" },
+  { key: "skill_03", label: "Speed" },
+  { key: "skill_04", label: "Stamina" },
+  { key: "skill_05", label: "Dribbling" },
+  { key: "skill_06", label: "Tackling" },
+  { key: "skill_07", label: "Ball Control" },
+  { key: "skill_08", label: "Strength" },
+  { key: "skill_09", label: "Jump" },
+  { key: "skill_10", label: "Will" },
+] as const;
+
+export type SkillSortKey = (typeof SORT_SKILLS)[number]["key"];
 
 export type SortValue =
   | "name_asc"
@@ -18,7 +33,8 @@ export type SortValue =
   | "direction:zero"
   | "fatigue_desc"
   | "fatigue_asc"
-  | `attribute:${AttributeKey}:${"asc" | "desc"}`;
+  | `attribute:${AttributeKey}:${"asc" | "desc"}`
+  | `skill:${SkillSortKey}:${"asc" | "desc"}`;
 
 export const CARD_GROUPS: {
   key: CardGroup;
@@ -58,14 +74,14 @@ export const SORT_OPTIONS: {
   { value: "direction:zero", label: "Direction Zero" },
   { value: "fatigue_desc", label: "Fatigue High" },
   { value: "fatigue_asc", label: "Fatigue Low" },
-  ...ATTRIBUTES.flatMap((attribute) => [
+  ...SORT_SKILLS.flatMap((skill) => [
     {
-      value: `attribute:${attribute.key}:desc` as SortValue,
-      label: `${attribute.label} ↓`,
+      value: `skill:${skill.key}:desc` as SortValue,
+      label: `${skill.label} ↓`,
     },
     {
-      value: `attribute:${attribute.key}:asc` as SortValue,
-      label: `${attribute.label} ↑`,
+      value: `skill:${skill.key}:asc` as SortValue,
+      label: `${skill.label} ↑`,
     },
   ]),
 ];
@@ -73,7 +89,6 @@ export const SORT_OPTIONS: {
 export const STORAGE_KEY =
   "npfc-combo-finder-selection-v1";
 
-// Keep the existing provisional grouping.
 export function getCardGroup(cardId: number): CardGroup {
   if (cardId <= 6) return "tactical";
   if (cardId <= 13) return "technical";
