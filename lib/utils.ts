@@ -361,5 +361,28 @@ export function getSubSkills(key: string): readonly SubSkill[] {
 
   return [];
 }
+export const PLAYER_TEAMS: Partial<Record<number, number>> = {
+  397: 13,
+  564: 29,
+  607: 15,
+  617: 12,
+  647: 6,
+  656: 17,
+  663: 30,
+  686: 27,
+  695: 23,
+  719: 21,
+};
+
+export function getPlayerTeam(playerId: number) {
+  const teamId = PLAYER_TEAMS[playerId];
+
+  if (teamId === undefined) return undefined;
+
+  return {
+    id: teamId,
+    logoUrl: `/team-images/${String(teamId).padStart(4, "0")}.png`,
+  };
+}
 
 

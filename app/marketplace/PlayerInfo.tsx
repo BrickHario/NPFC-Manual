@@ -11,6 +11,7 @@ import {
   getFoot,
   getMarket,
   getOverall,
+  getPlayerTeam,
   getPosition,
   MARKET_LABELS,
   rankImages,
@@ -72,23 +73,21 @@ export default async function PlayerInfo({ id, backHref }: PlayerInfoProps) {
     .maybeSingle();
 
   if (error) return <p>{error.message}</p>;
-  
-if (!player) {
-  return (
-    <div className="notFound">
-      <Image
-        src="/unhappy.png"
-        alt="Unhappy"
-        width={220}
-        height={220}
-        className="notFoundImage"
-      />
-      <h2 className="notFoundText">
-        Player not found.
-      </h2>
-    </div>
-  );
-}
+
+  if (!player) {
+    return (
+      <div className="notFound">
+        <Image
+          src="/unhappy.png"
+          alt="Unhappy"
+          width={220}
+          height={220}
+          className="notFoundImage"
+        />
+        <h2 className="notFoundText">Player not found.</h2>
+      </div>
+    );
+  }
 
   const skills = Array.isArray(player.Player_Skills)
     ? player.Player_Skills[0]
@@ -102,50 +101,75 @@ if (!player) {
   const weeklyRecovery = skills
     ? calculateWeeklyRecovery(
         Array.from({ length: 10 }, (_, index) => {
-          const level = Number(skills[`skill_${String(index + 1).padStart(2, "0")}`] ?? 0);
+          const level = Number(
+            skills[`skill_${String(index + 1).padStart(2, "0")}`] ?? 0,
+          );
           return LEVEL_THRESHOLDS[level] ?? 0;
-        })
+        }),
       )
     : null;
   const position = String(getPosition(player.id_position) ?? "—");
   const foot = String(getFoot(player.id_foot) ?? "—").toUpperCase();
   const market = String(getMarket(player.id_market) ?? "—");
 
-  const imageUrl = `/player-images/${String(player.id_player).padStart(4, "0")}.png`;
+  const team = getPlayerTeam(player.id_player);
+
+  const imageUrl = `/player-images/${String(player.id_player).padStart(
+    4,
+    "0",
+  )}.png`;
 
   return (
     <div className={styles.page}>
-<div className={styles.navigationRow}>
-  <Link href={backHref} className={styles.backLink}>
-    ◀ Back
-  </Link>
+      <div className={styles.navigationRow}>
+        <Link href={backHref} className={styles.backLink}>
+          ◀ Back
+        </Link>
 
-  {skills && (
-    <AddPlayerTypeButton playerId={player.id_player} />
-  )}
-</div>
+        {skills && <AddPlayerTypeButton playerId={player.id_player} />}
+      </div>
 
       <article className={styles.panel}>
-        <header className={styles.topBar}  style={{
-            backgroundColor: ({
-              GK: "#9955dd",
-              DF: "#dd555c",
-              MF: "#be9c10",
-              FW: "#5581dd",
-            } as Record<string, string>)[position] ?? "var(--color-physical)",
-          }}>
+        <header
+          className={styles.topBar}
+          style={{
+            backgroundColor:
+              (
+                {
+                  GK: "#9955dd",
+                  DF: "#dd555c",
+                  MF: "#be9c10",
+                  FW: "#5581dd",
+                } as Record<string, string>
+              )[position] ?? "var(--color-physical)",
+          }}
+        >
           <div className={styles.position} title="Position">
             {position}
           </div>
+          {team && (
+            <Image
+              src={team.logoUrl}
+              alt={"Core Team"}
+              title={"Core Team"}
+              width={70}
+              height={70}
+              unoptimized
+              className={styles.teamLogo}
+            />
+          )}
           <div>
-             {weeklyRecovery !== null && (
+            {weeklyRecovery !== null && (
               <span title="Weekly fatigue recovery" className={styles.recovery}>
-               Recovery -{weeklyRecovery}/w
+                Recovery -{weeklyRecovery}/w
               </span>
             )}
           </div>
 
-          <div className={styles.priceWrap} title={`Price: ${formatPrice(player.price)}`}>
+          <div
+            className={styles.priceWrap}
+            title={`Price: ${formatPrice(player.price)}`}
+          >
             <span className={styles.price}>{formatPrice(player.price)}</span>
             <Image
               src="/coins-icon.png"
@@ -183,19 +207,33 @@ if (!player) {
           </div>
 
           <div className={styles.rightColumn}>
-            <section className={styles.attributes} aria-label="Player attributes">
+            <section
+              className={styles.attributes}
+              aria-label="Player attributes"
+            >
               <div className={styles.attributeLayout}>
                 {attributes.length > 0 ? (
                   <div className={styles.attributeGrid}>
                     {attributes.map((attribute, index) => {
-                      const grade = String(attribute.grade ?? "—").trim().toUpperCase();
+                      const grade = String(attribute.grade ?? "—")
+                        .trim()
+                        .toUpperCase();
                       const rankImage = rankImages[grade];
-                      const icon = getAttributeImage(String(attribute.name), index);
-                      const progress = getLevelProgress(attribute.value, attribute.level);
-                      const maxLevel = attribute.level === LEVEL_THRESHOLDS.length - 1;
+                      const icon = getAttributeImage(
+                        String(attribute.name),
+                        index,
+                      );
+                      const progress = getLevelProgress(
+                        attribute.value,
+                        attribute.level,
+                      );
+                      const maxLevel =
+                        attribute.level === LEVEL_THRESHOLDS.length - 1;
                       const progressLabel = maxLevel
                         ? `${attribute.name}: Max grade (S)`
-                        : `${attribute.name}: ${Math.round(progress)}% to next grade`;
+                        : `${attribute.name}: ${Math.round(
+                            progress,
+                          )}% to next grade`;
 
                       return (
                         <div
@@ -224,7 +262,9 @@ if (!player) {
                                   className={styles.gradeImage}
                                 />
                               ) : (
-                                <span className={styles.gradeText}>{grade}</span>
+                                <span className={styles.gradeText}>
+                                  {grade}
+                                </span>
                               )}
                             </div>
 
@@ -254,7 +294,9 @@ if (!player) {
                 <div className={styles.attributeBadges}>
                   <div className={styles.footWrap} title="Preferred foot">
                     <span
-                      className={`${styles.footBadge} ${foot === "L" ? styles.leftFoot : styles.rightFoot}`}
+                      className={`${styles.footBadge} ${
+                        foot === "L" ? styles.leftFoot : styles.rightFoot
+                      }`}
                     >
                       {foot}
                     </span>
@@ -273,7 +315,10 @@ if (!player) {
               </div>
             </section>
 
-            <section className={styles.potentialPanel} aria-label="Potential curve">
+            <section
+              className={styles.potentialPanel}
+              aria-label="Potential curve"
+            >
               {potential ? (
                 <PotentialChart potential={potential} />
               ) : (

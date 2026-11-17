@@ -61,8 +61,12 @@
   line-height: 1;
 }
 
-.leftFoot { background: var(--color-technical); }
-.rightFoot { background: #2041b0; }
+.leftFoot {
+  background: var(--color-technical);
+}
+.rightFoot {
+  background: #2041b0;
+}
 
 .marketWrap {
   display: flex;
@@ -136,7 +140,6 @@
 }
 
 .recovery {
-  margin-left: 16px;
   white-space: nowrap;
   font-size: 30px;
   background-color: var(--color-tactical);
@@ -302,6 +305,11 @@
     padding: 15px 20px;
     min-height: 95px;
     gap: 10px;
+  }
+
+  .teamLogo {
+    width: 40px;
+    height: 40px;
   }
 
   .recovery {
@@ -509,4 +517,10 @@
 
 .navigationRow .addPlayerType {
   margin: 0;
+}
+
+.teamLogo {
+  display: block;
+  object-fit: contain;
+  image-rendering: pixelated;
 }
