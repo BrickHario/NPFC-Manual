@@ -46,12 +46,14 @@ function MultiFilter({
   open: boolean;
   onToggle: () => void;
 }) {
-  const orderedOptions = name === "market"
-    ? [...options].sort((a, b) =>
-        (MARKET_ORDER[marketKey(a)] ?? 99) - (MARKET_ORDER[marketKey(b)] ?? 99) ||
-        a.localeCompare(b, "de")
-      )
-    : options;
+  const orderedOptions =
+    name === "market"
+      ? [...options].sort(
+          (a, b) =>
+            (MARKET_ORDER[marketKey(a)] ?? 99) -
+              (MARKET_ORDER[marketKey(b)] ?? 99) || a.localeCompare(b, "de"),
+        )
+      : options;
 
   return (
     <details
@@ -88,8 +90,8 @@ function MultiFilter({
               {name === "market"
                 ? MARKET_LABELS[marketKey(option)] ?? option
                 : name === "tier" && option === "Silber"
-                  ? "Silver"
-                  : option}
+                ? "Silver"
+                : option}
             </span>
           </label>
         ))}
@@ -97,7 +99,6 @@ function MultiFilter({
     </details>
   );
 }
-
 
 type SingleOption = {
   value: string;
@@ -121,11 +122,14 @@ function SingleFilter({
   onSelect: (value: string) => void;
   wide?: boolean;
 }) {
-  const selectedLabel = options.find((option) => option.value === selected)?.label ?? label;
+  const selectedLabel =
+    options.find((option) => option.value === selected)?.label ?? label;
 
   return (
     <div
-      className={`${styles.multiFilter} ${styles.singleFilter} ${wide ? styles.sortFilter : ""}`}
+      className={`${styles.multiFilter} ${styles.singleFilter} ${
+        wide ? styles.sortFilter : ""
+      }`}
       data-marketplace-multifilter
       data-open={open}
     >
@@ -148,7 +152,9 @@ function SingleFilter({
               type="button"
               role="option"
               aria-selected={option.value === selected}
-              className={`${styles.optionButton} ${option.value === selected ? styles.optionSelected : ""}`}
+              className={`${styles.optionButton} ${
+                option.value === selected ? styles.optionSelected : ""
+              }`}
               onClick={() => onSelect(option.value)}
             >
               {option.label}
@@ -185,6 +191,7 @@ export default function MarketplaceFilters({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => setQuery(search), [search]);
   useEffect(() => setMinPriceValue(minPrice), [minPrice]);
@@ -211,6 +218,35 @@ export default function MarketplaceFilters({
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, []);
 
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (
+        event.key !== "Enter" ||
+        event.defaultPrevented ||
+        event.isComposing ||
+        event.repeat ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.shiftKey
+      )
+        return;
+
+      const form = formRef.current;
+      const target = event.target;
+
+      if (!form || !(target instanceof Element)) return;
+      if (target !== document.body && !form.contains(target)) return;
+      if (target.closest("a, textarea, [contenteditable='true']")) return;
+
+      event.preventDefault();
+      form.requestSubmit();
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   const suggestions = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("de");
     if (needle.length < 2) return [];
@@ -225,10 +261,12 @@ export default function MarketplaceFilters({
       .slice(0, 8);
   }, [playerNames, query]);
 
-  const priceSortActive = sortValue === "price_asc" || sortValue === "price_desc";
+  const priceSortActive =
+    sortValue === "price_asc" || sortValue === "price_desc";
 
   return (
     <form
+      ref={formRef}
       className={styles.toolbar}
       action="/marketplace"
       method="get"
@@ -307,7 +345,10 @@ export default function MarketplaceFilters({
       <input type="hidden" name="foot" value={footValue} />
       <SingleFilter
         label="All feet"
-        options={[{ value: "", label: "All feet" }, ...feet.map((foot) => ({ value: foot, label: foot }))]}
+        options={[
+          { value: "", label: "All feet" },
+          ...feet.map((foot) => ({ value: foot, label: foot })),
+        ]}
         selected={footValue}
         open={openDropdown === "foot"}
         onToggle={() => {
@@ -372,7 +413,9 @@ export default function MarketplaceFilters({
         />
 
         <button
-          className={`${styles.control} ${styles.priceSortButton} ${priceSortActive ? styles.priceSortActive : ""}`}
+          className={`${styles.control} ${styles.priceSortButton} ${
+            priceSortActive ? styles.priceSortActive : ""
+          }`}
           type="button"
           aria-label={
             sortValue === "price_asc"
@@ -383,14 +426,14 @@ export default function MarketplaceFilters({
             sortValue === "price_asc"
               ? "Current: low to high. Click for high to low"
               : sortValue === "price_desc"
-                ? "Current: high to low. Click for low to high"
-                : "Sort by price: low to high"
+              ? "Current: high to low. Click for low to high"
+              : "Sort by price: low to high"
           }
           aria-pressed={priceSortActive}
           onClick={() => {
             setOpenDropdown(null);
             setSortValue((current) =>
-              current === "price_asc" ? "price_desc" : "price_asc"
+              current === "price_asc" ? "price_desc" : "price_asc",
             );
           }}
         >
@@ -448,8 +491,12 @@ export default function MarketplaceFilters({
         }}
       />
 
-      <button className={styles.applyButton} type="submit">Apply</button>
-      <a className={styles.resetLink} href="/marketplace">Reset</a>
+      <button className={styles.applyButton} type="submit">
+        Apply
+      </button>
+      <a className={styles.resetLink} href="/marketplace">
+        Reset
+      </a>
     </form>
   );
 }
