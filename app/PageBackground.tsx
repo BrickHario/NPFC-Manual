@@ -1,4 +1,3 @@
-
 "use client";
 
 import { usePathname } from "next/navigation";
@@ -12,17 +11,11 @@ export default function PageBackground() {
 
     if (pathname.startsWith("/marketplace")) {
       background = "/bg_pattern.png";
-    } else if (
-      pathname.startsWith("/cards-and-combos")
-    ) {
+    } else if (pathname.startsWith("/cards-and-combos")) {
       background = "/bg_pattern2.png";
-    }  else if (
-      pathname.startsWith("/training-planner")
-    ) {
+    } else if (pathname.startsWith("/training-planner")) {
       background = "/bg_pattern3.png";
-    } else if (
-      pathname.startsWith("/opponent-teams")
-    ) {
+    } else if (pathname.startsWith("/match-manager")) {
       background = "/bg_pattern4.png";
     }
 

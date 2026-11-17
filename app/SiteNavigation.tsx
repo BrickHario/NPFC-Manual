@@ -1,11 +1,6 @@
-
 "use client";
 
-import {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
@@ -30,36 +25,19 @@ export default function SiteNavigation() {
     }
 
     function handlePointerDown(event: PointerEvent) {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(
-          event.target as Node
-        )
-      ) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     }
 
-    document.addEventListener(
-      "keydown",
-      handleKeyDown
-    );
+    document.addEventListener("keydown", handleKeyDown);
 
-    document.addEventListener(
-      "pointerdown",
-      handlePointerDown
-    );
+    document.addEventListener("pointerdown", handlePointerDown);
 
     return () => {
-      document.removeEventListener(
-        "keydown",
-        handleKeyDown
-      );
+      document.removeEventListener("keydown", handleKeyDown);
 
-      document.removeEventListener(
-        "pointerdown",
-        handlePointerDown
-      );
+      document.removeEventListener("pointerdown", handlePointerDown);
     };
   }, []);
 
@@ -67,34 +45,18 @@ export default function SiteNavigation() {
     <div className="site-menu" ref={menuRef}>
       {/* Desktop Navigation */}
       <div className="site-nav-links">
-        <Link href="/training-planner">
-          Training Planner
-        </Link>
-
-        <Link href="/cards-and-combos">
-          Cards and Combos
-        </Link>
-        <Link href="/opponent-teams">
-          Opponent Teams
-        </Link>
-        <Link href="/marketplace">
-          Marketplace
-        </Link>
-
+        <Link href="/match-manager">Match Manager</Link>
+        <Link href="/training-planner">Training Planner</Link>
+        <Link href="/cards-and-combos">Cards and Combos</Link>
+        <Link href="/marketplace">Marketplace</Link>
       </div>
 
       {/* Mobile Burger */}
       <button
         type="button"
-        className={`site-menu-toggle ${
-          isOpen ? "is-open" : ""
-        }`}
-        onClick={() =>
-          setIsOpen((prev) => !prev)
-        }
-        aria-label={
-          isOpen ? "Close menu" : "Open menu"
-        }
+        className={`site-menu-toggle ${isOpen ? "is-open" : ""}`}
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-label={isOpen ? "Close menu" : "Open menu"}
         aria-expanded={isOpen}
         aria-controls="site-menu-panel"
       >
@@ -106,33 +68,19 @@ export default function SiteNavigation() {
       {/* Mobile Dropdown */}
       <div
         id="site-menu-panel"
-        className={`site-menu-panel ${
-          isOpen ? "is-open" : ""
-        }`}
+        className={`site-menu-panel ${isOpen ? "is-open" : ""}`}
         inert={!isOpen}
       >
-        <Link
-          href="/training-planner"
-          onClick={() => setIsOpen(false)}
-        >
+        <Link href="/match-manager" onClick={() => setIsOpen(false)}>
+          Match Manager
+        </Link>
+        <Link href="/training-planner" onClick={() => setIsOpen(false)}>
           Training Planner
         </Link>
-        <Link
-          href="/cards-and-combos"
-          onClick={() => setIsOpen(false)}
-        >
+        <Link href="/cards-and-combos" onClick={() => setIsOpen(false)}>
           Cards and Combos
         </Link>
-        <Link
-          href="/opponent-teams"
-          onClick={() => setIsOpen(false)}
-        >
-          Opponent Teams
-        </Link>
-        <Link
-          href="/marketplace"
-          onClick={() => setIsOpen(false)}
-        >
+        <Link href="/marketplace" onClick={() => setIsOpen(false)}>
           Marketplace
         </Link>
       </div>

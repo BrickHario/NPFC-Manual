@@ -5,10 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import Image from "next/image";
 import LanguageSwitcher from "../LanguageSwitcher";
 import { LoadingBig } from "../Loading";
-import styles from "./opponent-teams-page.module.css";
+import styles from "./match-manager-page.module.css";
 
 export const metadata: Metadata = {
-  title: "Opponent Teams",
+  title: "Match Manager",
 };
 
 type NameColumn =
@@ -86,16 +86,15 @@ type TeamStrengthData = {
 
 function getTeamStrength(team: TeamStrengthData): number {
   return Math.trunc(
-    (team.strength_lvl + 1) *
-    (
-      team.bonus_skill +
-      team.bonus_shoot +
-      team.bonus_speed +
-      team.bonus_stamina +
-      team.bonus_tech +
-      team.bonus_toughness +
-      team.bonus_jump
-    ) / 10
+    ((team.strength_lvl + 1) *
+      (team.bonus_skill +
+        team.bonus_shoot +
+        team.bonus_speed +
+        team.bonus_stamina +
+        team.bonus_tech +
+        team.bonus_toughness +
+        team.bonus_jump)) /
+      10,
   );
 }
 
@@ -106,24 +105,19 @@ function getTeamIcon(teamId: number): string {
 async function OpponentTeamsData() {
   const cookieStore = await cookies();
 
-  const language =
-    cookieStore.get("npfc-language")?.value ?? "en";
+  const language = cookieStore.get("npfc-language")?.value ?? "en";
 
-  const nameColumn =
-    LANGUAGE_COLUMNS[language] ?? "english_name";
+  const nameColumn = LANGUAGE_COLUMNS[language] ?? "english_name";
 
   const supabase = await createClient();
 
   const [teamsResult, teamNamesResult] = await Promise.all([
-    supabase
-      .from("Teams")
-      .select("*")
-      .order("team_id"),
+    supabase.from("Teams").select("*").order("team_id"),
 
     supabase
       .from("TeamNames")
       .select(
-        "team_id, english_name, german_name, french_name, italian_name, spanish_name"
+        "team_id, english_name, german_name, french_name, italian_name, spanish_name",
       )
       .order("team_id"),
   ]);
@@ -135,10 +129,7 @@ async function OpponentTeamsData() {
   }
 
   const teamNames = new Map<number, TeamNameRow>(
-    (teamNamesResult.data ?? []).map((row) => [
-      row.team_id,
-      row,
-    ])
+    (teamNamesResult.data ?? []).map((row) => [row.team_id, row]),
   );
 
   const teams = (teamsResult.data ?? []).map((team) => {
@@ -158,14 +149,11 @@ async function OpponentTeamsData() {
     <div className={styles.leagues}>
       {LEAGUES.map((league) => {
         const leagueTeams = teams
-            .filter((team) => team.leagueId === league.id)
-            .sort((a, b) => getTeamStrength(b) - getTeamStrength(a));
+          .filter((team) => team.leagueId === league.id)
+          .sort((a, b) => getTeamStrength(b) - getTeamStrength(a));
 
         return (
-          <section
-            key={league.id}
-            className={styles.league}
-          >
+          <section key={league.id} className={styles.league}>
             <h2 className={styles.leagueHeading}>
               <Image
                 src={league.icon}
@@ -187,30 +175,28 @@ async function OpponentTeamsData() {
                         index === 0
                           ? styles.gold
                           : index === 1
-                            ? styles.silver
-                            : index === 2
-                              ? styles.bronze
-                              : styles.teamRow
+                          ? styles.silver
+                          : index === 2
+                          ? styles.bronze
+                          : styles.teamRow
                       }
                     >
                       <td>
                         <div className={styles.teamContent}>
-                            <Image
-                                src={getTeamIcon(team.team_id)}
-                                alt=""
-                                width={60}
-                                height={60}
-                                className={styles.teamIcon}
-                            />
+                          <Image
+                            src={getTeamIcon(team.team_id)}
+                            alt=""
+                            width={60}
+                            height={60}
+                            className={styles.teamIcon}
+                          />
 
-                            <span className={styles.teamName}>
-                                {team.name}
-                            </span>
+                          <span className={styles.teamName}>{team.name}</span>
 
-                            <span className={styles.teamStrength}>
-                                {getTeamStrength(team)}
-                            </span>
-                            </div>
+                          <span className={styles.teamStrength}>
+                            {getTeamStrength(team)}
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -231,7 +217,7 @@ export default function OpponentTeamsPage() {
         <LanguageSwitcher />
       </div>
 
-      <h1>Opponent Teams</h1>
+      <h1>Match Manager</h1>
 
       <Suspense fallback={<LoadingBig />}>
         <OpponentTeamsData />
