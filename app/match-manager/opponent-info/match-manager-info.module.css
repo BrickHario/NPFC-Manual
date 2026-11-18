@@ -1,0 +1,168 @@
+.page {
+  position: relative;
+  width: 100%;
+}
+
+.languageDock {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+}
+
+.backButton {
+  display: inline-block;
+  margin: 0 0 var(--space-sm);
+  color: var(--font_black);
+  text-decoration: none;
+  font-size: 25px;
+}
+
+.backButton:hover {
+  text-decoration: underline;
+  filter: brightness(0.94);
+}
+
+.backButton:focus-visible {
+  outline: 3px solid var(--color-highlight);
+  outline-offset: 3px;
+}
+
+.page h1 {
+  overflow-wrap: anywhere;
+  font-size: 4em;
+  margin: 0;
+  text-align: left;
+}
+
+.panel-opp-info {
+  width: 100%;
+  min-height: 100px;
+  box-sizing: border-box;
+  padding: var(--space-md);
+  background-color: var(--color-bg);
+  border: 6px solid black;
+  border-radius: 8px;
+  box-shadow: 6px 6px black;
+}
+
+.teamOverview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.teamIcon {
+  display: block;
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.teamDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.leagueRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.leagueIcon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.kits {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.kit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.kitImage {
+  display: block;
+  width: 54px;
+  height: 28px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(rgba(0, 0, 0, 0.452) 0px 0px 8px);
+}
+
+.tactics {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 260px;
+  max-width: 100%;
+  margin-top: 16px;
+}
+
+.tacticBar {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.tacticTitle {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 16px;
+  line-height: 1;
+}
+
+.tacticTrack {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  background-color: black;
+  border-radius: 10px;
+}
+
+.tacticRange {
+  position: absolute;
+  inset: 0 12px;
+}
+
+.tacticMarker {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  box-sizing: border-box;
+  background-color: #808080;
+  color: white;
+  border: 3px solid black;
+  border-radius: 50%;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.tacticLabels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 14px;
+  font-size: 15px;
+  line-height: 1;
+}

@@ -9,7 +9,7 @@ export const getPosition = (id: number) =>
 
 
 const SKILL_VALUES = [0, 50, 150, 350, 600, 1000];
-const GRADES = ["E", "D", "C", "B", "A", "S"];
+export const GRADES = ["E", "D", "C", "B", "A", "S"];
 
 
 export function calculateAttributes(

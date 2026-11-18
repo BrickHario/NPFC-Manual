@@ -4,7 +4,7 @@
 }
 
 .languageDock {
-    position:absolute;
+  position: absolute;
   top: 20px;
   right: 20px;
 }
@@ -72,6 +72,9 @@
   gap: var(--space-sm);
   min-height: 70px;
   padding: 5px var(--space-md);
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .teamIcon {
@@ -93,11 +96,7 @@
 }
 
 .teamRow:nth-child(even) {
-  background: color-mix(
-    in srgb,
-    var(--color-surface) 65%,
-    white
-  );
+  background: color-mix(in srgb, var(--color-surface) 65%, white);
 }
 
 .gold {

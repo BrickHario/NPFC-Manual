@@ -15,6 +15,7 @@
   --color-support: #f3c40a;
   --color-highlight: #9955dd;
   --color-table-hover: #dbdbdb;
+  --color-bg: #f1f1f1;
 
   --color-text: var(--font_black);
   --color-ink: var(--font_black);
@@ -30,5 +31,7 @@
 }
 
 @media (max-width: 600px) {
-  :root { --font_size: 1em; }
+  :root {
+    --font_size: 1em;
+  }
 }

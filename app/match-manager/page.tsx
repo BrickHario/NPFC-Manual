@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import Image from "next/image";
+import Link from "next/link";
 import LanguageSwitcher from "../LanguageSwitcher";
 import { LoadingBig } from "../Loading";
 import styles from "./match-manager-page.module.css";
@@ -104,7 +105,7 @@ function getTeamStrength(team: TeamStrengthData): number {
   );
 }
 
-function getTeamIcon(teamId: number): string {
+export function getTeamIcon(teamId: number): string {
   return `/team-images/${String(teamId).padStart(4, "0")}.png`;
 }
 
@@ -116,12 +117,7 @@ async function OpponentTeamsData() {
 
   const [teamsResult, teamNamesResult] = await Promise.all([
     supabase.from("Teams").select("*").order("team_id"),
-    supabase
-      .from("TeamNames")
-      .select(
-        "team_id, english_name, german_name, french_name, italian_name, spanish_name",
-      )
-      .order("team_id"),
+    supabase.from("TeamNames").select("*").order("team_id"),
   ]);
 
   const error = teamsResult.error ?? teamNamesResult.error;
@@ -185,7 +181,11 @@ async function OpponentTeamsData() {
                       }
                     >
                       <td>
-                        <div className={styles.teamContent}>
+                        <Link
+                          href={`/match-manager/opponent-info?team_id=${team.team_id}`}
+                          className={styles.teamContent}
+                          prefetch={false}
+                        >
                           <Image
                             src={getTeamIcon(team.team_id)}
                             alt=""
@@ -199,7 +199,7 @@ async function OpponentTeamsData() {
                           <span className={styles.teamStrength}>
                             {Math.round(team.rating)}
                           </span>
-                        </div>
+                        </Link>
                       </td>
                     </tr>
                   ))}
