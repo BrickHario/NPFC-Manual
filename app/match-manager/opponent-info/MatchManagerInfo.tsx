@@ -1,4 +1,3 @@
-import Link from "next/link";
 import Image from "next/image";
 import { rankImages, formatPrice, GRADES } from "@/lib/utils";
 import styles from "./match-manager-info.module.css";
@@ -138,10 +137,6 @@ export default function MatchManagerInfo({ title, team }: Props) {
 
   return (
     <>
-      <Link href="/match-manager" className={styles.backButton}>
-        ◀ Back
-      </Link>
-
       <h1>{title}</h1>
 
       <div className={styles["panel-opp-info"]}>
@@ -250,12 +245,14 @@ export default function MatchManagerInfo({ title, team }: Props) {
               }
             >
               Crowd Pressure:{" "}
-              {crowdLevel !== undefined ? `${crowdLevel}/7` : "—"}
+              <strong>
+                {crowdLevel !== undefined ? `${crowdLevel}/7` : "—"}
+              </strong>
             </div>
           </div>
 
           <div className={styles.positionFamiliarity}>
-            <strong>Position Familiarity</strong>
+            <strong>Position Familiarity:</strong>
             <GradeIcon value={team.pos_loyalty} />
           </div>
 
@@ -265,7 +262,7 @@ export default function MatchManagerInfo({ title, team }: Props) {
             <div className={styles.actionList}>
               {actionSkills.map((skill) => (
                 <div key={skill.name} className={styles.actionRow}>
-                  <span>{skill.name}</span>
+                  <span>{skill.name}:</span>
                   <GradeIcon value={skill.value} />
                 </div>
               ))}
