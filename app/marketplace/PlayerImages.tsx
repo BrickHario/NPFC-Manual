@@ -3,7 +3,13 @@
 import Image from "next/image";
 import { useState } from "react";
 import type { CSSProperties } from "react";
-import { formatPrice, getPositionGradient, getTier, MARKET_LABELS } from "@/lib/utils";
+import {
+  formatPrice,
+  getPlayerTeam,
+  getPositionGradient,
+  getTier,
+  MARKET_LABELS,
+} from "@/lib/utils";
 import { LoadingSmall } from "../Loading";
 
 function getMarketLabel(market: string): string {
@@ -33,6 +39,7 @@ const chipStyle: CSSProperties = {
 };
 
 export default function PlayerImages({
+  playerId,
   imageUrl,
   name,
   topText,
@@ -45,6 +52,7 @@ export default function PlayerImages({
   showMarketChip = false,
   enableHover = false,
 }: {
+  playerId?: number;
   imageUrl: string;
   name: string;
   topText: number;
@@ -62,14 +70,23 @@ export default function PlayerImages({
   const [frameLoaded, setFrameLoaded] = useState(false);
 
   const ready = playerLoaded && bodyLoaded && frameLoaded;
-  const rahmen = isAlien ? "/rahmen-alien.png" : `/rahmen-${getTier(topText)}.png`;
+
+  const rahmen = isAlien
+    ? "/rahmen-alien.png"
+    : `/rahmen-${getTier(topText)}.png`;
+
+  const team = playerId !== undefined ? getPlayerTeam(playerId) : undefined;
+
+  const bodyUrl = team
+    ? `/kits-images/home/${String(team.id).padStart(4, "0")}.png`
+    : "/body.png";
 
   return (
     <>
       {!ready && <LoadingSmall />}
 
       <div
-      className= {enableHover && !isAlien ? "player-card" : ""}
+        className={enableHover && !isAlien ? "player-card" : ""}
         style={{
           position: "relative",
           width: 128,
@@ -99,6 +116,29 @@ export default function PlayerImages({
           }}
         >
           <Image
+            src={bodyUrl}
+            alt=""
+            fill
+            sizes="64px"
+            unoptimized
+            onLoad={() => setBodyLoaded(true)}
+            onError={() => setBodyLoaded(true)}
+            style={{
+              zIndex: 0,
+              imageRendering: "pixelated",
+              objectFit: team ? "contain" : "fill",
+              objectPosition: "bottom center",
+              filter: team
+                ? `
+                drop-shadow(2px 0 0 black)
+                drop-shadow(-2px 0 0 black)
+                drop-shadow(0 2px 0 black)
+                drop-shadow(0 -2px 0 black)
+              `
+                : undefined,
+            }}
+          />
+          <Image
             src={imageUrl}
             alt={name}
             fill
@@ -106,19 +146,10 @@ export default function PlayerImages({
             onLoad={() => setPlayerLoaded(true)}
             style={{ zIndex: 1 }}
           />
-
-          <Image
-            src="/body.png"
-            alt=""
-            fill
-            sizes="64px"
-            onLoad={() => setBodyLoaded(true)}
-            style={{ zIndex: 0 }}
-          />
         </div>
 
         <Image
-        className= {!isAlien ? "player-frame" : ""}
+          className={!isAlien ? "player-frame" : ""}
           src={rahmen}
           alt=""
           fill
@@ -149,7 +180,10 @@ export default function PlayerImages({
         )}
 
         {showMarketChip && market && (
-          <span style={{ ...chipStyle, right: 0 }} title={getMarketLabel(market)}>
+          <span
+            style={{ ...chipStyle, right: 0 }}
+            title={getMarketLabel(market)}
+          >
             {getMarketLabel(market)}
           </span>
         )}

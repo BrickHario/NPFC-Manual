@@ -192,6 +192,7 @@ export default async function PlayerInfo({ id, backHref }: PlayerInfoProps) {
                 >
                   <PlayerImages
                     key={player.id_player}
+                    playerId={player.id_player}
                     imageUrl={imageUrl}
                     name={player.name}
                     topText={getOverall(skills)}

@@ -52,10 +52,19 @@ function gradeToNumber(grade: unknown): number | null {
   const letter = value.match(/^(S{1,3}|[A-F])([+-]?)$/);
   if (letter) {
     const scores: Record<string, number> = {
-      SSS: 120, SS: 110, S: 100,
-      A: 90, B: 80, C: 70, D: 60, E: 50, F: 40,
+      SSS: 120,
+      SS: 110,
+      S: 100,
+      A: 90,
+      B: 80,
+      C: 70,
+      D: 60,
+      E: 50,
+      F: 40,
     };
-    return scores[letter[1]] + (letter[2] === "+" ? 3 : letter[2] === "-" ? -3 : 0);
+    return (
+      scores[letter[1]] + (letter[2] === "+" ? 3 : letter[2] === "-" ? -3 : 0)
+    );
   }
 
   return null;
@@ -79,9 +88,19 @@ function parsePrice(value?: string): number | null {
 type PotentialMode = keyof typeof POTENTIAL_CURVE_ORDER;
 
 const CURVE_NUMBER_FIELDS = [
-  "curve_number", "curve_no", "curve_code", "curveNumber", "curve_id",
-  "id_curve", "id_potential_curve", "potential_curve_id", "potential_curve",
-  "potential_curve_number", "curve", "potential", "id_potential",
+  "curve_number",
+  "curve_no",
+  "curve_code",
+  "curveNumber",
+  "curve_id",
+  "id_curve",
+  "id_potential_curve",
+  "potential_curve_id",
+  "potential_curve",
+  "potential_curve_number",
+  "curve",
+  "potential",
+  "id_potential",
 ] as const;
 
 function getCurveNumber(data: unknown): string | null {
@@ -97,11 +116,7 @@ function getCurveNumber(data: unknown): string | null {
   return null;
 }
 
-async function Players({
-  filters,
-}: {
-  filters: MarketplaceParams;
-}) {
+async function Players({ filters }: { filters: MarketplaceParams }) {
   const supabase = await createClient();
   const { id, page } = filters;
 
@@ -112,10 +127,7 @@ async function Players({
       .order("id_player")
       .range(start, start + 999);
 
-  const [a, b] = await Promise.all([
-    load(0),
-    load(1000),
-  ]);
+  const [a, b] = await Promise.all([load(0), load(1000)]);
 
   if (a.error || b.error) {
     return <p>{a.error?.message || b.error?.message}</p>;
@@ -133,16 +145,14 @@ async function Players({
       ? calculateWeeklyRecovery(
           Array.from({ length: 10 }, (_, index) => {
             const level = Number(
-              skills[`skill_${String(index + 1).padStart(2, "0")}`] ?? 0
+              skills[`skill_${String(index + 1).padStart(2, "0")}`] ?? 0,
             );
             return [0, 50, 150, 350, 600, 1000][level] ?? 0;
-          })
+          }),
         )
       : 0;
 
-    const attributes = skills
-      ? calculateAttributes(skills)
-      : [];
+    const attributes = skills ? calculateAttributes(skills) : [];
 
     const potential = Array.isArray(p.Potential_Curves)
       ? p.Potential_Curves[0]
@@ -154,7 +164,7 @@ async function Players({
       attributes.map((attribute) => [
         attribute.name,
         gradeToNumber(attribute.grade),
-      ])
+      ]),
     ) as Record<string, number | null>;
 
     return {
@@ -175,20 +185,21 @@ async function Players({
 
   const unique = (values: string[]) =>
     [...new Set(values.filter(Boolean))].sort((a, b) =>
-      a.localeCompare(b, "de")
+      a.localeCompare(b, "de"),
     );
 
   const positions = unique(all.map((p) => p.position));
   const feet = unique(all.map((p) => p.foot));
   const markets = unique(
-    all.map((p) => p.market).filter(
-      (market) => market.trim().toLowerCase() !== "null" &&
-                  market.trim().toLowerCase() !== "undefined"
-    )
+    all
+      .map((p) => p.market)
+      .filter(
+        (market) =>
+          market.trim().toLowerCase() !== "null" &&
+          market.trim().toLowerCase() !== "undefined",
+      ),
   );
-  const skillNames = unique(
-    all.flatMap((p) => Object.keys(p.abilities))
-  );
+  const skillNames = unique(all.flatMap((p) => Object.keys(p.abilities)));
 
   const selectedPositions = toArray(filters.pos);
   const selectedMarkets = toArray(filters.market);
@@ -201,39 +212,35 @@ async function Players({
   const selectedPotential = filters.potential ?? "";
   const potentialOrder = Object.prototype.hasOwnProperty.call(
     POTENTIAL_CURVE_ORDER,
-    selectedPotential
+    selectedPotential,
   )
     ? POTENTIAL_CURVE_ORDER[selectedPotential as PotentialMode]
     : null;
   const potentialRanks = potentialOrder
-    ? new Map<string, number>(potentialOrder.map((curve, index) => [curve, index]))
+    ? new Map<string, number>(
+        potentialOrder.map((curve, index) => [curve, index]),
+      )
     : null;
 
   const playerNames = unique(
-    all.filter((p) =>
-      p.tier !== "Alien" || selectedTiers.includes("Alien")
-    ).map((p) => p.name)
+    all
+      .filter((p) => p.tier !== "Alien" || selectedTiers.includes("Alien"))
+      .map((p) => p.name),
   );
 
   const filtered = all.filter((p) => {
-    if (
-      search &&
-      !p.name.toLocaleLowerCase("de").includes(search)
-    ) return false;
+    if (search && !p.name.toLocaleLowerCase("de").includes(search))
+      return false;
 
-    if (
-      selectedPositions.length &&
-      !selectedPositions.includes(p.position)
-    ) return false;
+    if (selectedPositions.length && !selectedPositions.includes(p.position))
+      return false;
 
     if (selectedFoot && p.foot !== selectedFoot) {
       return false;
     }
 
-    if (
-      selectedMarkets.length &&
-      !selectedMarkets.includes(p.market)
-    ) return false;
+    if (selectedMarkets.length && !selectedMarkets.includes(p.market))
+      return false;
 
     if (p.tier === "Alien" && !selectedTiers.includes("Alien")) {
       return false;
@@ -261,9 +268,10 @@ async function Players({
       if (a.price === null && b.price !== null) return 1;
       if (b.price === null && a.price !== null) return -1;
 
-      const difference = sort === "price_asc"
-        ? (a.price ?? 0) - (b.price ?? 0)
-        : (b.price ?? 0) - (a.price ?? 0);
+      const difference =
+        sort === "price_asc"
+          ? (a.price ?? 0) - (b.price ?? 0)
+          : (b.price ?? 0) - (a.price ?? 0);
 
       return difference || a.name.localeCompare(b.name, "de");
     }
@@ -312,9 +320,7 @@ async function Players({
             if (aValue == null && bValue != null) return 1;
             if (bValue == null && aValue != null) return -1;
             if (aValue != null && bValue != null) {
-              result = match[2] === "asc"
-                ? aValue - bValue
-                : bValue - aValue;
+              result = match[2] === "asc" ? aValue - bValue : bValue - aValue;
             }
           }
         }
@@ -325,22 +331,16 @@ async function Players({
   });
 
   const pageSize = 100;
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filtered.length / pageSize)
-  );
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
 
   const requestedPage = Number(page ?? 1);
   const currentPage = Number.isFinite(requestedPage)
-    ? Math.max(
-        1,
-        Math.min(totalPages, Math.floor(requestedPage))
-      )
+    ? Math.max(1, Math.min(totalPages, Math.floor(requestedPage)))
     : 1;
 
   const paginated = filtered.slice(
     (currentPage - 1) * pageSize,
-    currentPage * pageSize
+    currentPage * pageSize,
   );
 
   const baseParams = new URLSearchParams();
@@ -351,15 +351,9 @@ async function Players({
   if (filters.maxPrice?.trim()) baseParams.set("maxPrice", filters.maxPrice);
   if (potentialOrder) baseParams.set("potential", selectedPotential);
 
-  selectedPositions.forEach((value) =>
-    baseParams.append("pos", value)
-  );
-  selectedMarkets.forEach((value) =>
-    baseParams.append("market", value)
-  );
-  selectedTiers.forEach((value) =>
-    baseParams.append("tier", value)
-  );
+  selectedPositions.forEach((value) => baseParams.append("pos", value));
+  selectedMarkets.forEach((value) => baseParams.append("market", value));
+  selectedTiers.forEach((value) => baseParams.append("tier", value));
 
   baseParams.set("sort", sort);
 
@@ -410,10 +404,14 @@ async function Players({
           }}
         >
           {paginated.map((p) => {
-            const imageUrl = `/player-images/${String(p.id_player).padStart(4, "0")}.png`;
+            const imageUrl = `/player-images/${String(p.id_player).padStart(
+              4,
+              "0",
+            )}.png`;
 
             const card = (
               <PlayerImages
+                playerId={p.id_player}
                 imageUrl={imageUrl}
                 name={p.name}
                 topText={p.overall}
@@ -422,8 +420,8 @@ async function Players({
                 isAlien={!p.price}
                 price={p.price}
                 market={p.market}
-                showPriceChip={!(!p.price)}
-                showMarketChip={!(!p.price)}
+                showPriceChip={!!p.price}
+                showMarketChip={!!p.price}
                 enableHover={true}
               />
             );
@@ -483,13 +481,7 @@ async function Players({
     );
   }
 
-
-  return (
-    <PlayerInfo
-      id={Number(id)}
-      backHref={pageHref(currentPage)}
-    />
-  );
+  return <PlayerInfo id={Number(id)} backHref={pageHref(currentPage)} />;
 }
 
 async function PlayersWrapper({
@@ -511,7 +503,6 @@ async function MarketplaceHeading({
   if (!filters.id || !Number.isInteger(Number(filters.id))) {
     return <h1>Marketplace</h1>;
   }
-
 }
 
 export default function Home({
