@@ -376,7 +376,7 @@ export default function MarketplaceFilters({
       <MultiFilter
         label="Tier"
         name="tier"
-        options={["Ultra", "Gold", "Silber", "Bronze", "Alien"]}
+        options={["Ultra", "Gold", "Silber", "Bronze", "Mondial", "Alien"]}
         selected={selectedTiers}
         open={openDropdown === "tier"}
         onToggle={() => {

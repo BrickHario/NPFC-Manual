@@ -72,7 +72,11 @@ export default function PlayerImages({
 
   const ready = playerLoaded && bodyLoaded && frameLoaded;
 
-  const rahmen = isAlien
+  const isMondial = playerId >= 792 && playerId <= 1015;
+
+  const rahmen = isMondial
+    ? "/rahmen-mondial.png"
+    : isAlien
     ? "/rahmen-alien.png"
     : `/rahmen-${getTier(topText)}.png`;
 
@@ -82,8 +86,7 @@ export default function PlayerImages({
     ? `/kits-images/home/${String(teamId).padStart(4, "0")}.png`
     : "/body.png";
 
-  const canHover =
-    enableHover && !isAlien && (playerId < 792 || playerId > 1015);
+  const canHover = enableHover && !isAlien && !isMondial;
 
   return (
     <div
@@ -187,7 +190,7 @@ export default function PlayerImages({
         </div>
 
         <Image
-          className={!isAlien ? "player-frame" : ""}
+          className={!isAlien && !isMondial ? "player-frame" : ""}
           src={rahmen}
           alt=""
           fill
@@ -214,13 +217,17 @@ export default function PlayerImages({
           {topText}
         </div>
 
-        {showPriceChip && price != null && Number.isFinite(price) && (
-          <span style={{ ...chipStyle, left: 0 }} title={`Preis: ${price}`}>
-            {formatPrice(price)}
-          </span>
-        )}
+        {showPriceChip &&
+          !isAlien &&
+          !isMondial &&
+          price != null &&
+          Number.isFinite(price) && (
+            <span style={{ ...chipStyle, left: 0 }} title={`Preis: ${price}`}>
+              {formatPrice(price)}
+            </span>
+          )}
 
-        {showMarketChip && market && (
+        {showMarketChip && !isAlien && !isMondial && market && (
           <span
             style={{ ...chipStyle, right: 0 }}
             title={getMarketLabel(market)}

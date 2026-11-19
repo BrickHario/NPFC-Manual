@@ -119,14 +119,20 @@ function getCurveNumber(data: unknown): string | null {
 async function Players({ filters }: { filters: MarketplaceParams }) {
   const supabase = await createClient();
   const { id, page } = filters;
+  const selectedTiers = toArray(filters.tier);
+  const includeMondial = selectedTiers.includes("Mondial");
 
-  const load = (start: number) =>
-    supabase
+  const load = (start: number) => {
+    const query = supabase
       .from("Player")
-      .select("*, Player_Skills(*), Potential_Curves(*)")
-      .or("id_player.lt.792,id_player.gt.1015")
-      .order("id_player")
-      .range(start, start + 999);
+      .select("*, Player_Skills(*), Potential_Curves(*)");
+
+    const visibleQuery = includeMondial
+      ? query
+      : query.or("id_player.lt.792,id_player.gt.1015");
+
+    return visibleQuery.order("id_player").range(start, start + 999);
+  };
 
   const [a, b] = await Promise.all([load(0), load(1000)]);
 
@@ -179,7 +185,12 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
       position: String(getPosition(p.id_position) ?? ""),
       foot: String(getFoot(p.id_foot) ?? ""),
       market: String(getMarket(p.id_market) ?? ""),
-      tier: !p.price ? "Alien" : normalizeTier(String(getTier(overall))),
+      tier:
+        p.id_player >= 792 && p.id_player <= 1015
+          ? "Mondial"
+          : !p.price
+          ? "Alien"
+          : normalizeTier(String(getTier(overall))),
       curveNumber,
       abilities,
     };
@@ -205,7 +216,6 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
 
   const selectedPositions = toArray(filters.pos);
   const selectedMarkets = toArray(filters.market);
-  const selectedTiers = toArray(filters.tier);
   const selectedFoot = filters.foot ?? "";
   const search = (filters.q ?? "").trim().toLocaleLowerCase("de");
   const sort = filters.sort ?? "overall_desc";
@@ -224,13 +234,30 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
       )
     : null;
 
+  const hasMarketOrPriceFilter =
+    selectedMarkets.length > 0 ||
+    minPrice !== null ||
+    maxPrice !== null ||
+    sort === "price_asc" ||
+    sort === "price_desc";
+
+  const isSpecialTier = (tier: string) =>
+    tier === "Alien" || tier === "Mondial";
+
   const playerNames = unique(
     all
-      .filter((p) => p.tier !== "Alien" || selectedTiers.includes("Alien"))
+      .filter(
+        (p) =>
+          (!hasMarketOrPriceFilter || !isSpecialTier(p.tier)) &&
+          (p.tier !== "Alien" || selectedTiers.includes("Alien")) &&
+          (p.tier !== "Mondial" || includeMondial),
+      )
       .map((p) => p.name),
   );
 
   const filtered = all.filter((p) => {
+    if (hasMarketOrPriceFilter && isSpecialTier(p.tier)) return false;
+
     if (search && !p.name.toLocaleLowerCase("de").includes(search))
       return false;
 
@@ -243,6 +270,10 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
 
     if (selectedMarkets.length && !selectedMarkets.includes(p.market))
       return false;
+
+    if (p.tier === "Mondial" && !includeMondial) {
+      return false;
+    }
 
     if (p.tier === "Alien" && !selectedTiers.includes("Alien")) {
       return false;
@@ -411,6 +442,8 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
               "0",
             )}.png`;
 
+            const canOpen = !!p.price && p.tier !== "Mondial";
+
             const card = (
               <PlayerImages
                 playerId={p.id_player}
@@ -420,16 +453,16 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
                 topText={p.overall}
                 bottomText={p.name}
                 position={getPosition(p.id_position)}
-                isAlien={!p.price}
+                isAlien={p.tier === "Alien"}
                 price={p.price}
                 market={p.market}
                 showPriceChip={!!p.price}
                 showMarketChip={!!p.price}
-                enableHover={true}
+                enableHover={canOpen}
               />
             );
 
-            return p.price ? (
+            return canOpen ? (
               <Link
                 key={p.id_player}
                 href={playerHref(p.id_player)}
