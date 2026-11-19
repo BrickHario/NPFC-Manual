@@ -1,5 +1,10 @@
 import Image from "next/image";
-import { rankImages, formatPrice, GRADES } from "@/lib/utils";
+import {
+  GRADES,
+  rankImages,
+  formatPrice,
+  getAttributeImage,
+} from "@/lib/utils";
 import styles from "./match-manager-info.module.css";
 
 type Team = {
@@ -16,6 +21,13 @@ type Team = {
   action_through_passing: number | null;
   action_dribbling: number | null;
   action_direct_passing: number | null;
+  bonus_shoot: number;
+  bonus_speed: number;
+  bonus_stamina: number;
+  bonus_tech: number;
+  bonus_toughness: number;
+  bonus_jump: number;
+  bonus_willpower: number | null;
 };
 
 type Props = {
@@ -79,6 +91,7 @@ function GradeIcon({ value }: { value: number | null }) {
       title={grade}
       width={30}
       height={32}
+      unoptimized
       className={styles.gradeIcon}
     />
   );
@@ -135,6 +148,16 @@ export default function MatchManagerInfo({ title, team }: Props) {
     { name: "Direct Passing", value: team.action_direct_passing },
   ];
 
+  const skillBoosts = [
+    { name: "Shoot", value: team.bonus_shoot },
+    { name: "Speed", value: team.bonus_speed },
+    { name: "Stamina", value: team.bonus_stamina },
+    { name: "Technic", value: team.bonus_tech },
+    { name: "Strength", value: team.bonus_toughness },
+    { name: "Jump", value: team.bonus_jump },
+    { name: "Will", value: team.bonus_willpower },
+  ];
+
   return (
     <>
       <h1>{title}</h1>
@@ -146,6 +169,7 @@ export default function MatchManagerInfo({ title, team }: Props) {
             alt={title}
             width={150}
             height={150}
+            unoptimized
             className={styles.teamIcon}
           />
 
@@ -159,6 +183,7 @@ export default function MatchManagerInfo({ title, team }: Props) {
                 title={league.name}
                 width={32}
                 height={32}
+                unoptimized
                 className={styles.leagueIcon}
               />
             </div>
@@ -185,6 +210,7 @@ export default function MatchManagerInfo({ title, team }: Props) {
                   alt={`${kit.name} kit`}
                   width={54}
                   height={28}
+                  unoptimized
                   className={styles.kitImage}
                 />
 
@@ -233,6 +259,7 @@ export default function MatchManagerInfo({ title, team }: Props) {
               alt="International Stadion"
               width={300}
               height={230}
+              unoptimized
               className={styles.stadiumImage}
             />
 
@@ -245,14 +272,12 @@ export default function MatchManagerInfo({ title, team }: Props) {
               }
             >
               Crowd Pressure:{" "}
-              <strong>
-                {crowdLevel !== undefined ? `${crowdLevel}/7` : "—"}
-              </strong>
+              {crowdLevel !== undefined ? `${crowdLevel}/7` : "—"}
             </div>
           </div>
 
           <div className={styles.positionFamiliarity}>
-            <strong>Position Familiarity:</strong>
+            <strong>Position Familiarity</strong>
             <GradeIcon value={team.pos_loyalty} />
           </div>
 
@@ -262,11 +287,38 @@ export default function MatchManagerInfo({ title, team }: Props) {
             <div className={styles.actionList}>
               {actionSkills.map((skill) => (
                 <div key={skill.name} className={styles.actionRow}>
-                  <span>{skill.name}:</span>
+                  <span>{skill.name}</span>
                   <GradeIcon value={skill.value} />
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+
+        <div className={styles.skillBoostSection}>
+          <h2 className={styles.skillBoostTitle}>Player Skill Boost</h2>
+
+          <div className={styles.skillBoostGrid}>
+            {skillBoosts.map((attribute, index) => (
+              <div
+                key={attribute.name}
+                className={styles.skillBoostItem}
+                title={`${attribute.name}: ${attribute.value ?? "—"}`}
+              >
+                <Image
+                  src={getAttributeImage(attribute.name, index)}
+                  alt={attribute.name}
+                  width={30}
+                  height={30}
+                  unoptimized
+                  className={styles.skillBoostIcon}
+                />
+
+                <span className={styles.skillBoostValue}>
+                  {attribute.value ?? "—"}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

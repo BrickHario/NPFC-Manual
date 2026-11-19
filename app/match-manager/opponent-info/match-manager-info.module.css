@@ -269,7 +269,6 @@
   gap: 12px;
   font-size: 18px;
   line-height: 1.2;
-  font-weight: bold;
 }
 
 @media (max-width: 850px) {
@@ -281,4 +280,54 @@
     flex-basis: 320px;
     max-width: 100%;
   }
+}
+
+.skillBoostSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 1 300px;
+  min-width: 0;
+  max-width: 100%;
+  gap: 16px;
+  margin-left: 100px;
+}
+
+.skillBoostTitle {
+  font-size: 30px;
+  font-weight: bold;
+  text-align: center;
+  margin: 0;
+}
+
+.skillBoostGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  width: 100%;
+  max-width: 420px;
+  gap: 0;
+}
+
+.skillBoostItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.skillBoostIcon {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.skillBoostValue {
+  font-size: 28px;
+  font-weight: bold;
+  line-height: 1;
+  text-align: center;
 }
