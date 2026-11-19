@@ -278,7 +278,9 @@ export default function MatchManagerInfo({
               }
             >
               Crowd Pressure:{" "}
-              {crowdLevel !== undefined ? `${crowdLevel}/7` : "—"}
+              <strong>
+                {crowdLevel !== undefined ? `${crowdLevel}/7` : "—"}
+              </strong>
             </div>
           </div>
 

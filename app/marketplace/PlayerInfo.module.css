@@ -32,7 +32,7 @@
   align-items: center;
   min-height: 80px;
   gap: 16px;
-  padding: 18px 37px;
+  padding: 5px 37px;
   color: var(--font_white);
 }
 
@@ -85,9 +85,9 @@
   text-align: center;
   font-size: clamp(20px, 2.5vw, 25px);
   font-weight: 800;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.05;
   border: var(--font_black) 3px solid;
 }
 
@@ -119,8 +119,9 @@
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
   gap: 16px;
-  align-items: center;
+  align-items: flex-start;
   padding: 15px 24px;
+  min-height: 430px;
 }
 
 .portraitPanel {
@@ -162,7 +163,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 10px;
   min-width: 0;
 }
@@ -280,8 +281,10 @@
   width: 100%;
   min-width: 0;
   padding: 4px;
+  margin-top: 30px;
   background: transparent;
   overflow: hidden;
+  height: 200px;
 }
 
 .potentialPanel :global(canvas),
@@ -294,189 +297,11 @@
 }
 
 .empty {
-  margin: 16px;
+  margin-top: 100px;
   font-size: 14px;
   color: var(--button_grey);
-}
-
-@media (max-width: 830px) {
-  .topBar {
-    grid-template-columns: 1fr auto;
-    padding: 15px 20px;
-    min-height: 95px;
-    gap: 10px;
-  }
-
-  .teamLogo {
-    width: 40px;
-    height: 40px;
-  }
-
-  .recovery {
-    font-size: 15px;
-    border-radius: 10px;
-    padding: 5px 10px;
-  }
-
-  .footBadge {
-    width: 55px;
-    height: 55px;
-    border-radius: 12px;
-    font-size: 35px;
-  }
-
-  .marketBadge {
-    min-width: 0;
-    padding: 10px 15px;
-  }
-
-  .priceWrap {
-    gap: 8px;
-  }
-
-  .content {
-    grid-template-columns: minmax(0, 1fr);
-    padding: 15px;
-    gap: 12px;
-  }
-
-  .portraitPanel {
-    width: 260px;
-    min-height: 0;
-    margin: auto;
-    max-width: 100%;
-  }
-
-  .cardStage {
-    width: 256px;
-    height: 320px;
-  }
-
-  .scaledCard {
-    transform: scale(2);
-  }
-
-  .attributes {
-    min-height: 0;
-  }
-
-  .rightColumn {
-    gap: 10px;
-  }
-
-  .attributeBadges {
-    flex-basis: 115px;
-  }
-
-  .potentialPanel {
-    padding: 4px;
-  }
-}
-
-@media (max-width: 480px) {
-  .topBar {
-    grid-template-columns: 1fr auto;
-    gap: 6px;
-    padding: 12px;
-    min-height: 76px;
-  }
-
-  .position {
-    font-size: 27px;
-  }
-
-  .footBadge {
-    width: 40px;
-    height: 43px;
-    border-radius: 9px;
-    font-size: 27px;
-  }
-
-  .marketBadge {
-    padding: 9px 7px;
-    border-radius: 9px;
-    font-size: 15px;
-  }
-
-  .price {
-    font-size: 19px;
-    letter-spacing: 0;
-  }
-
-  .priceWrap {
-    gap: 4px;
-  }
-
-  .coins {
-    flex-basis: 24px;
-    transform: scale(0.65);
-    transform-origin: left center;
-  }
-
-  .content {
-    padding: 12px 10px;
-    gap: 10px;
-  }
-
-  .portraitPanel {
-    width: 224px;
-    min-height: 0;
-  }
-
-  .cardStage {
-    width: 224px;
-    height: 280px;
-  }
-
-  .scaledCard {
-    transform: scale(1.75);
-  }
-
-  .rightColumn {
-    gap: 8px;
-  }
-
-  .attributeLayout {
-    gap: 6px;
-  }
-
-  .attributeGrid {
-    width: min(100%, 350px);
-  }
-
-  .attributeBadges {
-    flex-basis: 83px;
-    gap: 8px;
-  }
-
-  .gradeSlot {
-    gap: 2px;
-    min-height: 40px;
-    padding-top: 2px;
-  }
-
-  .levelTrack {
-    height: 30px;
-    margin-right: 4px;
-  }
-
-  .levelDot {
-    width: 8px;
-    height: 8px;
-  }
-
-  .gradeText {
-    font-size: 20px;
-    -webkit-text-stroke: 1px var(--font_black);
-  }
-
-  .potentialPanel {
-    padding: 2px;
-  }
-
-  .potentialPanel :global(.recharts-responsive-container) {
-    height: 170px !important;
-  }
+  display: flex;
+  justify-content: center;
 }
 
 .addPlayerType {
@@ -523,4 +348,392 @@
   display: block;
   object-fit: contain;
   image-rendering: pixelated;
+}
+
+@media (max-width: 1050px) {
+  .page {
+    margin-top: 30px;
+  }
+
+  .topBar {
+    flex-wrap: wrap;
+    min-height: 64px;
+    padding: 10px 20px;
+    gap: 10px;
+  }
+
+  .topBar > div:empty {
+    display: none;
+  }
+
+  .teamLogo {
+    width: 54px;
+    height: 54px;
+    flex-shrink: 0;
+  }
+
+  .recovery {
+    display: inline-block;
+    font-size: clamp(16px, 2.2vw, 24px);
+    padding: 5px 12px;
+    border-radius: 10px;
+  }
+
+  .priceWrap {
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .coins {
+    flex: 0 0 34px;
+    width: 34px;
+    height: 42px;
+  }
+
+  .content {
+    grid-template-columns: 192px minmax(0, 1fr);
+    min-height: 0;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .portraitPanel {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .cardStage {
+    width: 192px;
+    height: 240px;
+  }
+
+  .scaledCard {
+    transform: scale(1.5);
+  }
+
+  .attributeLayout {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .attributeBadges {
+    flex: 0 0 auto;
+    flex-direction: row;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .footBadge {
+    width: 40px;
+    height: 40px;
+    font-size: 30px;
+  }
+
+  .marketBadge {
+    min-width: 0;
+    padding: 7px 12px;
+    font-size: 18px;
+  }
+
+  .attributeGrid {
+    flex: none;
+    width: min(100%, 400px);
+  }
+
+  .gradeSlot {
+    min-height: 32px;
+    gap: 2px;
+  }
+
+  .levelTrack {
+    height: 32px;
+    margin-right: 4px;
+  }
+
+  .levelDot {
+    width: 8px;
+    height: 8px;
+  }
+
+  .potentialPanel {
+    height: auto;
+    margin-top: 8px;
+  }
+
+  .potentialPanel :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .empty {
+    margin-top: 0;
+    text-align: center;
+  }
+}
+
+@media (max-width: 830px) {
+  .content {
+    grid-template-columns: 144px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .rightColumn {
+    display: contents;
+  }
+
+  .portraitPanel {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .cardStage {
+    width: 144px;
+    height: 180px;
+  }
+
+  .scaledCard {
+    transform: scale(1.125);
+  }
+
+  .attributes {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    align-self: center;
+  }
+
+  .attributeGrid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .potentialPanel {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-top: 0;
+    padding: 0;
+  }
+
+  .potentialPanel :global(svg) {
+    margin-inline: auto;
+  }
+
+  .potentialPanel :global(svg text) {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .page {
+    margin-top: 16px;
+  }
+
+  .panel {
+    border-width: 3px;
+    box-shadow: 5px 5px 0 black;
+  }
+
+  .navigationRow {
+    gap: 8px;
+  }
+
+  .backLink {
+    font-size: 20px;
+  }
+
+  .navigationRow .addPlayerType {
+    padding: 7px 10px;
+    font-size: 13px;
+    border-width: 2px;
+    border-radius: 9px;
+  }
+
+  .topBar {
+    min-height: 52px;
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .position {
+    font-size: 26px;
+    letter-spacing: 0;
+  }
+
+  .teamLogo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .recovery {
+    font-size: 13px;
+    padding: 5px 7px;
+    border-radius: 7px;
+  }
+
+  .priceWrap {
+    gap: 4px;
+  }
+
+  .price {
+    font-size: 20px;
+    letter-spacing: 0;
+  }
+
+  .coins {
+    flex-basis: 23px;
+    width: 23px;
+    height: 30px;
+    transform: none;
+  }
+
+  .content {
+    grid-template-columns: 128px minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .cardStage {
+    width: 128px;
+    height: 160px;
+  }
+
+  .scaledCard {
+    transform: scale(1);
+  }
+
+  .attributeLayout {
+    gap: 8px;
+  }
+
+  .attributeBadges {
+    gap: 6px;
+  }
+
+  .footWrap {
+    flex-shrink: 0;
+  }
+
+  .footBadge {
+    width: 30px;
+    height: 32px;
+    border-radius: 7px;
+    font-size: 23px;
+  }
+
+  .marketWrap {
+    flex: 0 1 auto;
+  }
+
+  .marketBadge {
+    padding: 5px 7px;
+    font-size: 13px;
+    border-radius: 7px;
+    border-width: 2px;
+  }
+
+  .attributeGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px 2px;
+  }
+
+  .attributeIcon {
+    max-width: 46px;
+  }
+
+  .gradeSlot {
+    max-width: 48px;
+    min-height: 26px;
+    padding-top: 2px;
+    gap: 2px;
+  }
+
+  .gradeImage {
+    max-width: 34px;
+  }
+
+  .levelTrack {
+    flex-basis: 2px;
+    width: 2px;
+    height: 26px;
+    margin-right: 3px;
+  }
+
+  .levelDot {
+    width: 6px;
+    height: 6px;
+    border-width: 1px;
+  }
+
+  .gradeText {
+    font-size: 18px;
+    -webkit-text-stroke: 1px var(--font_black);
+  }
+
+  .potentialPanel :global(svg > text),
+  .potentialPanel :global(svg text[text-anchor="middle"]) {
+    font-size: 21px;
+  }
+}
+
+@media (max-width: 380px) {
+  .page {
+    width: calc(100% + 16px);
+    margin-inline: -8px;
+  }
+
+  .topBar {
+    padding-inline: 7px;
+    gap: 5px;
+  }
+
+  .position {
+    font-size: 23px;
+  }
+
+  .teamLogo {
+    width: 27px;
+    height: 27px;
+  }
+
+  .recovery {
+    font-size: 12px;
+    padding-inline: 5px;
+  }
+
+  .price {
+    font-size: 18px;
+  }
+
+  .coins {
+    flex-basis: 20px;
+    width: 20px;
+    height: 26px;
+  }
+
+  .content {
+    grid-template-columns: 112px minmax(0, 1fr);
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .cardStage {
+    width: 112px;
+    height: 140px;
+  }
+
+  .scaledCard {
+    transform: scale(0.875);
+  }
+
+  .attributeLayout {
+    gap: 6px;
+  }
+
+  .marketBadge {
+    font-size: 12px;
+    padding-inline: 5px;
+  }
 }
