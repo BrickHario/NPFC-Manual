@@ -6,6 +6,9 @@ import { createClient } from "@/lib/supabase/server";
 import LanguageSwitcher from "../../LanguageSwitcher";
 import { LoadingBig } from "../../Loading";
 import MatchManagerInfo from "./MatchManagerInfo";
+import { PLAYER_TEAMS } from "@/lib/utils";
+import type { AssignedPlayer } from "./PlayersOnTeam";
+import { getPossiblePlayers } from "./possible-players";
 import styles from "./match-manager-info.module.css";
 
 type PageProps = {
@@ -27,7 +30,9 @@ function getTeamId(value: string | string[] | undefined): number {
 
   const teamId = Number(value);
 
-  if (!Number.isSafeInteger(teamId) || teamId > 2147483647) notFound();
+  if (!Number.isSafeInteger(teamId) || teamId > 2147483647) {
+    notFound();
+  }
 
   return teamId;
 }
@@ -36,6 +41,7 @@ const getOpponentInfo = cache(async (teamId: number) => {
   const cookieStore = await cookies();
   const language = cookieStore.get("npfc-language")?.value ?? "en";
   const columns = LANGUAGE_COLUMNS[language as Language] ?? LANGUAGE_COLUMNS.en;
+
   const supabase = await createClient();
 
   const [nameResult, abbrResult, teamResult] = await Promise.all([
@@ -46,6 +52,7 @@ const getOpponentInfo = cache(async (teamId: number) => {
       )
       .eq("team_id", teamId)
       .maybeSingle(),
+
     supabase
       .from("TeamAbbr")
       .select(
@@ -53,6 +60,7 @@ const getOpponentInfo = cache(async (teamId: number) => {
       )
       .eq("team_id", teamId)
       .maybeSingle(),
+
     supabase.from("Teams").select("*").eq("team_id", teamId).maybeSingle(),
   ]);
 
@@ -87,11 +95,62 @@ export async function generateMetadata({
   return { title };
 }
 
+async function getAssignedPlayers(teamId: number): Promise<AssignedPlayer[]> {
+  const playerIds = Object.entries(PLAYER_TEAMS)
+    .filter(([, assignedTeamId]) => assignedTeamId === teamId)
+    .map(([playerId]) => Number(playerId));
+
+  if (playerIds.length === 0) return [];
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("Player")
+    .select("id_player, name, id_position, price, Player_Skills(*)")
+    .in("id_player", playerIds)
+    .order("id_player");
+
+  if (error) throw new Error(error.message);
+
+  return data ?? [];
+}
+
+async function getCandidatePlayers(): Promise<AssignedPlayer[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("Player")
+    .select("id_player, name, id_position, price, Player_Skills(*)")
+    .gte("id_player", 0)
+    .lt("id_player", 792)
+    .gt("price", 0)
+    .order("id_player")
+    .limit(792);
+
+  if (error) throw new Error(error.message);
+
+  return data ?? [];
+}
+
 async function OpponentInfoData({ searchParams }: PageProps) {
   const teamId = getTeamId((await searchParams).team_id);
-  const { title, team } = await getOpponentInfo(teamId);
 
-  return <MatchManagerInfo title={title} team={team} />;
+  const [{ title, team }, assignedPlayers, candidates] = await Promise.all([
+    getOpponentInfo(teamId),
+    getAssignedPlayers(teamId),
+    getCandidatePlayers(),
+  ]);
+
+  const possiblePlayers = getPossiblePlayers(team, candidates, assignedPlayers);
+
+  return (
+    <MatchManagerInfo
+      title={title}
+      team={team}
+      assignedPlayers={assignedPlayers}
+      possiblePlayers={possiblePlayers}
+    />
+  );
 }
 
 export default function OpponentInfoPage({ searchParams }: PageProps) {

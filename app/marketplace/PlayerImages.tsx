@@ -82,15 +82,48 @@ export default function PlayerImages({
     : "/body.png";
 
   return (
-    <>
-      {!ready && <LoadingSmall />}
+    <div
+      style={{
+        position: "relative",
+        width: 128,
+        height: 160,
+        minWidth: 128,
+        minHeight: 160,
+        maxHeight: 160,
+        flexShrink: 0,
+        padding: 0,
+        margin: 0,
+        boxSizing: "border-box",
+      }}
+    >
+      {!ready && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden",
+          }}
+        >
+          <LoadingSmall />
+        </div>
+      )}
 
       <div
         className={enableHover && !isAlien ? "player-card" : ""}
         style={{
-          position: "relative",
+          position: "absolute",
+          top: 0,
+          left: 0,
           width: 128,
           height: 160,
+          minHeight: 160,
+          maxHeight: 160,
+          margin: 0,
+          padding: 0,
+          boxSizing: "border-box",
           visibility: ready ? "visible" : "hidden",
         }}
       >
@@ -130,14 +163,15 @@ export default function PlayerImages({
               objectPosition: "bottom center",
               filter: team
                 ? `
-                drop-shadow(2px 0 0 black)
-                drop-shadow(-2px 0 0 black)
-                drop-shadow(0 2px 0 black)
-                drop-shadow(0 -2px 0 black)
-              `
+                  drop-shadow(2px 0 0 black)
+                  drop-shadow(-2px 0 0 black)
+                  drop-shadow(0 2px 0 black)
+                  drop-shadow(0 -2px 0 black)
+                `
                 : undefined,
             }}
           />
+
           <Image
             src={imageUrl}
             alt={name}
@@ -155,7 +189,10 @@ export default function PlayerImages({
           fill
           sizes="128px"
           onLoad={() => setFrameLoaded(true)}
-          style={{ zIndex: 3, pointerEvents: "none" }}
+          style={{
+            zIndex: 3,
+            pointerEvents: "none",
+          }}
         />
 
         <div
@@ -206,6 +243,6 @@ export default function PlayerImages({
           {bottomText}
         </div>
       </div>
-    </>
+    </div>
   );
 }

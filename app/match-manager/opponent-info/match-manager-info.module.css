@@ -266,7 +266,6 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
   font-size: 18px;
   line-height: 1.2;
 }
@@ -330,4 +329,83 @@
   font-weight: bold;
   line-height: 1;
   text-align: center;
+}
+
+.assignedPlayers {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.assignedTitle {
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+  margin: 0;
+}
+
+.assignedEmpty {
+  font-size: 16px;
+  text-align: center;
+  margin: 12px 0;
+  opacity: 0.65;
+}
+
+.assignedScroll {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+  scrollbar-width: auto;
+  scrollbar-color: #222 #999;
+}
+
+.assignedList {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 20px;
+  width: max-content;
+  min-width: 100%;
+  box-sizing: border-box;
+  padding: 4px 4px 0;
+}
+
+.assignedPlayer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 175px;
+  gap: 8px;
+}
+
+.assignedSkillGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 25px);
+  gap: 0;
+}
+
+.assignedSkill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.assignedSkillIcon,
+.assignedGrade {
+  display: block;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+@media (max-width: 850px) {
+  .skillBoostSection {
+    margin-left: 0;
+    flex-basis: 350px;
+  }
 }

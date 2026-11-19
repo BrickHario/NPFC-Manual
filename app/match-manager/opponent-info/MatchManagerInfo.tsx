@@ -5,6 +5,8 @@ import {
   formatPrice,
   getAttributeImage,
 } from "@/lib/utils";
+import PlayersOnTeam, { type AssignedPlayer } from "./PlayersOnTeam";
+import { SQUAD_BUDGETS, getSquadSize } from "./possible-players";
 import styles from "./match-manager-info.module.css";
 
 type Team = {
@@ -33,6 +35,8 @@ type Team = {
 type Props = {
   title: string;
   team: Team;
+  assignedPlayers: AssignedPlayer[];
+  possiblePlayers: AssignedPlayer[];
 };
 
 type TacticBarProps = {
@@ -49,10 +53,6 @@ const LEAGUES = [
   { id: 3, name: "Pro League 1", icon: "/1-liga.png" },
   { id: 4, name: "Europe", icon: "/mondial-icon.png" },
   { id: 5, name: "International", icon: "/mondial-icon.png" },
-];
-
-const squadBudgets = [
-  5000, 8000, 12000, 24000, 36000, 45000, 60000, 90000, 130000,
 ];
 
 const crowdLevels = [1, 1, 2, 3, 4, 5, 6, 7, 7];
@@ -127,14 +127,18 @@ function TacticBar({ title, value, leftLabel, rightLabel }: TacticBarProps) {
   );
 }
 
-export default function MatchManagerInfo({ title, team }: Props) {
+export default function MatchManagerInfo({
+  title,
+  team,
+  assignedPlayers,
+  possiblePlayers,
+}: Props) {
   const teamImageId = String(team.team_id).padStart(4, "0");
 
   const league = LEAGUES[getInitialLeague(team.team_id)];
 
-  const squadSize = team.team_id >= 31 ? 22 : team.strength_lvl === 0 ? 18 : 23;
-
-  const targetSquadBudget = squadBudgets[team.strength_lvl];
+  const squadSize = getSquadSize(team);
+  const targetSquadBudget = SQUAD_BUDGETS[team.strength_lvl];
 
   const crowdLevel = crowdLevels[team.strength_lvl];
   const crowdPressure = crowdFactors[crowdLevel];
@@ -157,6 +161,8 @@ export default function MatchManagerInfo({ title, team }: Props) {
     { name: "Jump", value: team.bonus_jump },
     { name: "Will", value: team.bonus_willpower },
   ];
+
+  const teamBonuses = skillBoosts.map((attribute) => attribute.value ?? 0);
 
   return (
     <>
@@ -320,6 +326,20 @@ export default function MatchManagerInfo({ title, team }: Props) {
               </div>
             ))}
           </div>
+
+          <PlayersOnTeam
+            title="Assigned Players"
+            emptyMessage="No assigned players"
+            players={assignedPlayers}
+            teamBonuses={teamBonuses}
+          />
+
+          <PlayersOnTeam
+            title="Possible Players"
+            emptyMessage="No possible players"
+            players={possiblePlayers}
+            teamBonuses={teamBonuses}
+          />
         </div>
       </div>
     </>
