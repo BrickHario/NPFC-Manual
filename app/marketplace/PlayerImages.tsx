@@ -5,7 +5,6 @@ import { useState } from "react";
 import type { CSSProperties } from "react";
 import {
   formatPrice,
-  getPlayerTeam,
   getPositionGradient,
   getTier,
   MARKET_LABELS,
@@ -40,6 +39,7 @@ const chipStyle: CSSProperties = {
 
 export default function PlayerImages({
   playerId,
+  teamId,
   imageUrl,
   name,
   topText,
@@ -52,7 +52,8 @@ export default function PlayerImages({
   showMarketChip = false,
   enableHover = false,
 }: {
-  playerId?: number;
+  playerId: number;
+  teamId: number | null;
   imageUrl: string;
   name: string;
   topText: number;
@@ -75,11 +76,14 @@ export default function PlayerImages({
     ? "/rahmen-alien.png"
     : `/rahmen-${getTier(topText)}.png`;
 
-  const team = playerId !== undefined ? getPlayerTeam(playerId) : undefined;
+  const hasTeam = teamId != null;
 
-  const bodyUrl = team
-    ? `/kits-images/home/${String(team.id).padStart(4, "0")}.png`
+  const bodyUrl = hasTeam
+    ? `/kits-images/home/${String(teamId).padStart(4, "0")}.png`
     : "/body.png";
+
+  const canHover =
+    enableHover && !isAlien && (playerId < 792 || playerId > 1015);
 
   return (
     <div
@@ -112,7 +116,7 @@ export default function PlayerImages({
       )}
 
       <div
-        className={enableHover && !isAlien ? "player-card" : ""}
+        className={canHover ? "player-card" : ""}
         style={{
           position: "absolute",
           top: 0,
@@ -159,9 +163,9 @@ export default function PlayerImages({
             style={{
               zIndex: 0,
               imageRendering: "pixelated",
-              objectFit: team ? "contain" : "fill",
+              objectFit: hasTeam ? "contain" : "fill",
               objectPosition: "bottom center",
-              filter: team
+              filter: hasTeam
                 ? `
                   drop-shadow(2px 0 0 black)
                   drop-shadow(-2px 0 0 black)
