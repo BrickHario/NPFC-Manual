@@ -1,5 +1,3 @@
-import { PLAYER_TEAMS } from "@/lib/utils";
-
 export const SQUAD_BUDGETS = [
   5000, 8000, 12000, 24000, 36000, 45000, 60000, 90000, 130000,
 ];
@@ -14,6 +12,7 @@ type Team = {
 type Player = {
   id_player: number;
   price: number | null;
+  team_id: number | null;
 };
 
 export function getSquadSize(team: Team): number {
@@ -33,14 +32,20 @@ export function getPossiblePlayers<T extends Player>(
     return [];
   }
 
-  const maxPrice = Math.floor(budget / 5);
+  const assignedValue = assignedPlayers.reduce(
+    (sum, player) => sum + (player.price ?? 0),
+    0,
+  );
+
+  const remainingBudget = Math.max(0, budget - assignedValue);
+  const maxPrice = Math.floor(remainingBudget / 5);
 
   return players.filter((player) => {
     const id = player.id_player;
     const price = player.price;
 
     if (id < 0 || id >= 792) return false;
-    if (id in PLAYER_TEAMS) return false;
+    if (player.team_id !== null) return false;
     if (EXCLUDED_PLAYER_IDS.has(id)) return false;
     if (price === null || price <= 0) return false;
     if (price > maxPrice) return false;

@@ -124,6 +124,7 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
     supabase
       .from("Player")
       .select("*, Player_Skills(*), Potential_Curves(*)")
+      .or("id_player.lt.792,id_player.gt.1015")
       .order("id_player")
       .range(start, start + 999);
 
@@ -171,6 +172,7 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
       id_player: p.id_player,
       name: p.name,
       id_position: p.id_position,
+      team_id: p.team_id,
       price: p.price == null ? null : Number(p.price),
       overall,
       recovery,
@@ -412,6 +414,7 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
             const card = (
               <PlayerImages
                 playerId={p.id_player}
+                teamId={p.team_id}
                 imageUrl={imageUrl}
                 name={p.name}
                 topText={p.overall}

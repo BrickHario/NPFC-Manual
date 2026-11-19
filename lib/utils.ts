@@ -110,12 +110,15 @@ export const MARKET_LABELS: Record<string, string> = {
   "20%": "Rare",
 };
 
-export function formatPrice(price: number): string {
+export function formatPrice(price: number | null): string {
+  if (price === null) return "Vorp?";
+
   if (Math.abs(price) >= 1000) {
     return `${new Intl.NumberFormat("de-DE", {
       maximumFractionDigits: 1,
     }).format(price / 1000)}k`;
   }
+
   return new Intl.NumberFormat("de-DE", {
     maximumFractionDigits: 0,
   }).format(price);
@@ -361,28 +364,7 @@ export function getSubSkills(key: string): readonly SubSkill[] {
 
   return [];
 }
-export const PLAYER_TEAMS: Partial<Record<number, number>> = {
-  397: 13,
-  564: 29,
-  607: 15,
-  617: 12,
-  647: 6,
-  656: 17,
-  663: 30,
-  686: 27,
-  695: 23,
-  719: 21,
-};
 
-export function getPlayerTeam(playerId: number) {
-  const teamId = PLAYER_TEAMS[playerId];
-
-  if (teamId === undefined) return undefined;
-
-  return {
-    id: teamId,
-    logoUrl: `/team-images/${String(teamId).padStart(4, "0")}.png`,
-  };
+export function isPlayerDetailAvailable(playerId: number): boolean {
+  return playerId < 792 || playerId > 1015;
 }
-
-

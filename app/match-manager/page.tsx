@@ -116,7 +116,7 @@ async function OpponentTeamsData() {
   const supabase = await createClient();
 
   const [teamsResult, teamNamesResult] = await Promise.all([
-    supabase.from("Teams").select("*").order("team_id"),
+    supabase.from("Teams").select("*").neq("team_id", 52).order("team_id"),
     supabase.from("TeamNames").select("*").order("team_id"),
   ]);
 
@@ -138,7 +138,7 @@ async function OpponentTeamsData() {
       name:
         names?.[nameColumn]?.trim() ||
         names?.english_name?.trim() ||
-        `Team ${team.team_id}`,
+        (team.team_id === 52 ? "Galatik V" : `Team ${team.team_id}`),
       leagueId: getInitialLeague(team.team_id),
       rating: getTeamStrength(team),
     };

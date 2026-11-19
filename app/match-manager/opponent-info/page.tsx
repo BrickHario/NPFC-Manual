@@ -6,9 +6,9 @@ import { createClient } from "@/lib/supabase/server";
 import LanguageSwitcher from "../../LanguageSwitcher";
 import { LoadingBig } from "../../Loading";
 import MatchManagerInfo from "./MatchManagerInfo";
-import { PLAYER_TEAMS } from "@/lib/utils";
 import type { AssignedPlayer } from "./PlayersOnTeam";
 import { getPossiblePlayers } from "./possible-players";
+import Image from "next/image";
 import styles from "./match-manager-info.module.css";
 
 type PageProps = {
@@ -68,11 +68,9 @@ const getOpponentInfo = cache(async (teamId: number) => {
 
   if (error) throw new Error(error.message);
 
-  if (!nameResult.data || !teamResult.data) notFound();
-
   const name =
-    nameResult.data[columns.name]?.trim() ||
-    nameResult.data.english_name?.trim() ||
+    nameResult.data?.[columns.name]?.trim() ||
+    nameResult.data?.english_name?.trim() ||
     `Team ${teamId}`;
 
   const abbr =
@@ -96,18 +94,12 @@ export async function generateMetadata({
 }
 
 async function getAssignedPlayers(teamId: number): Promise<AssignedPlayer[]> {
-  const playerIds = Object.entries(PLAYER_TEAMS)
-    .filter(([, assignedTeamId]) => assignedTeamId === teamId)
-    .map(([playerId]) => Number(playerId));
-
-  if (playerIds.length === 0) return [];
-
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("Player")
-    .select("id_player, name, id_position, price, Player_Skills(*)")
-    .in("id_player", playerIds)
+    .select("id_player, name, id_position, price, team_id, Player_Skills(*)")
+    .eq("team_id", teamId)
     .order("id_player");
 
   if (error) throw new Error(error.message);
@@ -120,7 +112,8 @@ async function getCandidatePlayers(): Promise<AssignedPlayer[]> {
 
   const { data, error } = await supabase
     .from("Player")
-    .select("id_player, name, id_position, price, Player_Skills(*)")
+    .select("id_player, name, id_position, price, team_id, Player_Skills(*)")
+    .is("team_id", null)
     .gte("id_player", 0)
     .lt("id_player", 792)
     .gt("price", 0)
@@ -135,8 +128,24 @@ async function getCandidatePlayers(): Promise<AssignedPlayer[]> {
 async function OpponentInfoData({ searchParams }: PageProps) {
   const teamId = getTeamId((await searchParams).team_id);
 
-  const [{ title, team }, assignedPlayers, candidates] = await Promise.all([
-    getOpponentInfo(teamId),
+  const { title, team } = await getOpponentInfo(teamId);
+
+  if (!team) {
+    return (
+      <div className="notFound">
+        <Image
+          src="/unhappy.png"
+          alt="Unhappy"
+          width={220}
+          height={220}
+          className="notFoundImage"
+        />
+        <h2 className="notFoundText">Team not found.</h2>
+      </div>
+    );
+  }
+
+  const [assignedPlayers, candidates] = await Promise.all([
     getAssignedPlayers(teamId),
     getCandidatePlayers(),
   ]);

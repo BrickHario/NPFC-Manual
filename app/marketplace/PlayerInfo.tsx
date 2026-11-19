@@ -11,7 +11,6 @@ import {
   getFoot,
   getMarket,
   getOverall,
-  getPlayerTeam,
   getPosition,
   MARKET_LABELS,
   rankImages,
@@ -110,9 +109,10 @@ export default async function PlayerInfo({ id, backHref }: PlayerInfoProps) {
     : null;
   const position = String(getPosition(player.id_position) ?? "—");
   const foot = String(getFoot(player.id_foot) ?? "—").toUpperCase();
-  const market = String(getMarket(player.id_market) ?? "—");
+  const marketValue = getMarket(player.id_market);
+  const market = marketValue === "NULL" ? "Unavailable" : marketValue;
 
-  const team = getPlayerTeam(player.id_player);
+  const teamId = player.team_id;
 
   const imageUrl = `/player-images/${String(player.id_player).padStart(
     4,
@@ -147,9 +147,9 @@ export default async function PlayerInfo({ id, backHref }: PlayerInfoProps) {
           <div className={styles.position} title="Position">
             {position}
           </div>
-          {team && (
+          {teamId != null && (
             <Image
-              src={team.logoUrl}
+              src={`/team-images/${String(teamId).padStart(4, "0")}.png`}
               alt={"Core Team"}
               title={"Core Team"}
               width={70}
@@ -193,6 +193,7 @@ export default async function PlayerInfo({ id, backHref }: PlayerInfoProps) {
                   <PlayerImages
                     key={player.id_player}
                     playerId={player.id_player}
+                    teamId={teamId}
                     imageUrl={imageUrl}
                     name={player.name}
                     topText={getOverall(skills)}
