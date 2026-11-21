@@ -6,11 +6,14 @@ import {
   getAttributeImage,
 } from "@/lib/utils";
 import PlayersOnTeam, { type AssignedPlayer } from "./PlayersOnTeam";
+import TeamFormation from "./TeamFormation";
+import type { TeamFormationSlot } from "./team-formation";
 import { SQUAD_BUDGETS, getSquadSize } from "./possible-players";
 import styles from "./match-manager-info.module.css";
 
 type Team = {
   team_id: number;
+  formation: string;
   strength_lvl: number;
   play_style: number;
   discipline: number;
@@ -37,6 +40,7 @@ type Props = {
   team: Team;
   assignedPlayers: AssignedPlayer[];
   possiblePlayers: AssignedPlayer[];
+  formationSlots: TeamFormationSlot[];
 };
 
 type TacticBarProps = {
@@ -132,6 +136,7 @@ export default function MatchManagerInfo({
   team,
   assignedPlayers,
   possiblePlayers,
+  formationSlots,
 }: Props) {
   const teamImageId = String(team.team_id).padStart(4, "0");
 
@@ -255,6 +260,8 @@ export default function MatchManagerInfo({
             />
           </div>
         </div>
+
+        <TeamFormation slots={formationSlots} />
 
         <div className={styles.teamAbilities}>
           <div className={styles.stadium}>

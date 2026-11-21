@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import LanguageSwitcher from "../../LanguageSwitcher";
 import { LoadingBig } from "../../Loading";
 import MatchManagerInfo from "./MatchManagerInfo";
+import { decodeFormation } from "./team-formation";
 import type { AssignedPlayer } from "./PlayersOnTeam";
 import { getPossiblePlayers } from "./possible-players";
 import Image from "next/image";
@@ -151,6 +152,9 @@ async function OpponentInfoData({ searchParams }: PageProps) {
   ]);
 
   const possiblePlayers = getPossiblePlayers(team, candidates, assignedPlayers);
+  const formationSlots = /^[0-9a-f]{32}$/i.test(team.formation)
+    ? decodeFormation(team.formation)
+    : [];
 
   return (
     <MatchManagerInfo
@@ -158,6 +162,7 @@ async function OpponentInfoData({ searchParams }: PageProps) {
       team={team}
       assignedPlayers={assignedPlayers}
       possiblePlayers={possiblePlayers}
+      formationSlots={formationSlots}
     />
   );
 }
