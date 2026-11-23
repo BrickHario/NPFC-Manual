@@ -61,11 +61,31 @@ const LEAGUES = [
   { id: 5, name: "International", icon: "/mondial-icon.png" },
 ];
 
-const crowdLevels = [1, 1, 2, 3, 4, 5, 6, 7, 7];
+const CROWD_LEVELS = [1, 1, 2, 3, 4, 5, 6, 7, 7] as const;
 
-const crowdFactors = [0, 1, 1, 1, 2, 2, 3, 3];
+const CROWD_PRESSURE_FACTORS = [0, 1, 1, 1, 2, 2, 3, 3] as const;
 
-const crowdLabels = ["None", "Low", "Medium", "High"];
+const CROWD_LABELS = ["None", "Low", "Medium", "High"] as const;
+const CROWD_TONES = [
+  styles.crowdNone,
+  styles.crowdLow,
+  styles.crowdMedium,
+  styles.crowdHigh,
+] as const;
+
+export function getCrowdPressure(strengthLevel: number) {
+  const strength = Math.max(0, Math.min(8, Math.trunc(strengthLevel)));
+
+  const crowdLevel = CROWD_LEVELS[strength];
+  const pressureFactor = CROWD_PRESSURE_FACTORS[crowdLevel];
+
+  return {
+    crowdLevel,
+    pressureFactor,
+    maxCrowdLevel: 7,
+    maxPressureFactor: 3,
+  };
+}
 
 const KITS = [
   { folder: "goalkeeper", name: "Keeper" },
@@ -151,9 +171,11 @@ export default function MatchManagerInfo({
   const squadSize = getSquadSize(team);
   const targetSquadBudget = SQUAD_BUDGETS[team.strength_lvl];
 
-  const crowdLevel = crowdLevels[team.strength_lvl];
-  const crowdPressure = crowdFactors[crowdLevel];
-  const crowdLabel = crowdLabels[crowdPressure];
+  const { crowdLevel, pressureFactor, maxCrowdLevel } = getCrowdPressure(
+    team.strength_lvl,
+  );
+  const crowdLabel = CROWD_LABELS[pressureFactor];
+  const crowdTone = CROWD_TONES[pressureFactor];
 
   const actionSkills = [
     { name: "Shooting", value: team.action_shooting },
@@ -287,18 +309,38 @@ export default function MatchManagerInfo({
               />
             )}
 
-            <div
-              className={styles.crowdPressure}
-              title={
-                crowdLabel !== undefined
-                  ? `${crowdLabel} – Factor ${crowdPressure}`
-                  : undefined
-              }
-            >
-              Crowd Pressure:{" "}
-              <strong>
-                {crowdLevel !== undefined ? `${crowdLevel}/7` : "—"}
-              </strong>
+            <div className={styles.crowdPressure}>
+              <div className={styles.crowdRow}>
+                <span>Crowd Pressure:</span>
+                <strong
+                  className={`${styles.crowdValue} ${crowdTone}`}
+                  title={`Pressure Factor ${pressureFactor}`}
+                >
+                  {crowdLabel}
+                </strong>
+              </div>
+              <div className={styles.crowdRow}>
+                <span>Crowd Level:</span>
+
+                <div
+                  className={styles.crowdLevelIcons}
+                  title={`${crowdLevel}/${maxCrowdLevel}`}
+                  aria-label={`Crowd Level ${crowdLevel} of ${maxCrowdLevel}`}
+                >
+                  {Array.from({ length: crowdLevel }).map((_, index) => (
+                    <Image
+                      key={index}
+                      src="/crowd.png"
+                      alt=""
+                      width={20}
+                      height={20}
+                      unoptimized
+                      aria-hidden="true"
+                      className={styles.crowdLevelIcon}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
