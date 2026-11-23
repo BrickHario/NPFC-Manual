@@ -289,8 +289,7 @@ export default function MatchManagerInfo({
           </div>
         </div>
 
-        <TeamFormation slots={formationSlots} />
-
+        <TeamFormation slots={formationSlots} stadiumId={team.stadium_id} />
         <div className={styles.teamAbilities}>
           <div className={styles.stadium}>
             <div className={styles.stadiumTitle}>

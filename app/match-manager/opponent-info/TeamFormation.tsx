@@ -1,8 +1,10 @@
 import { getFormationName, type TeamFormationSlot } from "./team-formation";
+import { getFieldImage } from "@/lib/utils";
 import styles from "./match-manager-info.module.css";
 
 type Props = {
   slots: TeamFormationSlot[];
+  stadiumId: number | null;
 };
 
 type Position = "goalkeeper" | "defender" | "midfielder" | "forward";
@@ -49,7 +51,9 @@ function getSlotStyle(slot: TeamFormationSlot) {
   };
 }
 
-export default function TeamFormation({ slots }: Props) {
+export default function TeamFormation({ slots, stadiumId }: Props) {
+  const fieldImage = getFieldImage(stadiumId);
+
   return (
     <section className={styles.formationSection} aria-label="Team Formation">
       <h2 className={styles.formationHeading}>Team Formation</h2>
@@ -58,7 +62,12 @@ export default function TeamFormation({ slots }: Props) {
         <p className={styles.formationMissing}>Formation not available.</p>
       ) : (
         <>
-          <div className={styles.formationPitch}>
+          <div
+            className={styles.formationPitch}
+            style={{
+              backgroundImage: `url("/field-images/${fieldImage}.png")`,
+            }}
+          >
             <div className={styles.formationGrid} />
 
             <div className={styles.formationField}>

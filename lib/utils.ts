@@ -396,3 +396,51 @@ export const STADIUMS = [
   { model: "ST_NZAsia", name: "Europe Cup Stadium" },
   { model: "ST_NZEuro", name: "World Cup Stadium" },
 ] as const;
+
+export type FieldImage =
+  | "empty"
+  | "dirty"
+  | "horizont"
+  | "vertical"
+  | "cross"
+  | "diagonal"
+  | "circle"
+;
+
+export const STADIUM_FIELD_IMAGES: Record<number, FieldImage> = {
+  0: "dirty",
+  1: "empty",
+  2: "empty",
+  3: "horizont",
+  4: "vertical",
+  5: "vertical",
+  6: "vertical",
+  7: "empty",
+  8: "empty",
+  9: "horizont",
+  10: "horizont",
+  11: "horizont",
+  12: "vertical",
+  13: "horizont",
+  14: "empty",
+  15: "cross",
+  16: "vertical",
+  17: "horizont",
+  18: "vertical",
+  19: "cross",
+  20: "horizont",
+  21: "vertical",
+  22: "vertical",
+  23: "diagonal",
+  24: "circle",
+  25: "empty",
+  26: "empty",
+  27: "horizont",
+  28: "cross",
+  29: "horizont",
+};
+
+export function getFieldImage(stadiumId: number | null): FieldImage {
+  return stadiumId === null ? "empty" : STADIUM_FIELD_IMAGES[stadiumId] ?? "empty";
+}
+

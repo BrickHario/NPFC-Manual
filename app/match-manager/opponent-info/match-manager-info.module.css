@@ -212,7 +212,10 @@
   max-width: 300px;
   height: auto;
   object-fit: contain;
-  filter: drop-shadow(rgba(0, 0, 0, 0.273) 0px 0px 14px);
+  border: black 4px solid;
+  border-radius: 12px;
+  box-shadow: 2px 2px 0 black;
+  filter: saturate(0.75);
 }
 
 .crowdPressure {
