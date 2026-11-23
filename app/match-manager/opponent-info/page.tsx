@@ -81,6 +81,7 @@ const getOpponentInfo = cache(async (teamId: number) => {
 
   return {
     title: abbr ? `${name} (${abbr})` : name,
+    englishTeamName: nameResult.data?.english_name?.trim() || `Team ${teamId}`,
     team: teamResult.data,
   };
 });
@@ -129,7 +130,7 @@ async function getCandidatePlayers(): Promise<AssignedPlayer[]> {
 async function OpponentInfoData({ searchParams }: PageProps) {
   const teamId = getTeamId((await searchParams).team_id);
 
-  const { title, team } = await getOpponentInfo(teamId);
+  const { title, englishTeamName, team } = await getOpponentInfo(teamId);
 
   if (!team) {
     return (
@@ -159,6 +160,7 @@ async function OpponentInfoData({ searchParams }: PageProps) {
   return (
     <MatchManagerInfo
       title={title}
+      englishTeamName={englishTeamName}
       team={team}
       assignedPlayers={assignedPlayers}
       possiblePlayers={possiblePlayers}

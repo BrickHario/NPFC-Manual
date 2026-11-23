@@ -368,3 +368,31 @@ export function getSubSkills(key: string): readonly SubSkill[] {
 export function isPlayerDetailAvailable(playerId: number): boolean {
   return playerId < 792 || playerId > 1015;
 }
+
+export const STADIUMS = [
+  { model: "ST_Fresh", name: "Beginner's Stadium" },
+  { model: "ST_Stepa", name: "Advanced Stadium 1" },
+  { model: "ST_Stepb", name: "Advanced Stadium 2" },
+  { model: "ST_N2a", name: null },
+  { model: "ST_N2b", name: null },
+  { model: "ST_N2c", name: null },
+  { model: "ST_N2d", name: null },
+  { model: "ST_N2e", name: null },
+  { model: "ST_N2f", name: null },
+  { model: "ST_N2g", name: null },
+  { model: "ST_N2h", name: null },
+  { model: "ST_N1a", name: null },
+  { model: "ST_N1b", name: null },
+  { model: "ST_N1c", name: null },
+  { model: "ST_N1d", name: "Black & Yellow Stadium" },
+  { model: "ST_N1e", name: null },
+  { model: "ST_N1f", name: null },
+  { model: "ST_N1g", name: null },
+  { model: "ST_N1h", name: null },
+  { model: "ST_N1i", name: null },
+  { model: "ST_N1j", name: null },
+  { model: "ST_N1k", name: null },
+  { model: "ST_N1l", name: null },
+  { model: "ST_NZAsia", name: "Europe Cup Stadium" },
+  { model: "ST_NZEuro", name: "World Cup Stadium" },
+] as const;

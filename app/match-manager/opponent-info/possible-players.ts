@@ -37,8 +37,8 @@ export function getPossiblePlayers<T extends Player>(
     0,
   );
 
-  const remainingBudget = Math.max(0, budget - assignedValue);
-  const maxPrice = Math.floor(remainingBudget / 5);
+  const tolerance = Math.floor(budget / 40) * 10;
+  const maxPrice = Math.max(0, budget - assignedValue) + tolerance;
 
   return players.filter((player) => {
     const id = player.id_player;

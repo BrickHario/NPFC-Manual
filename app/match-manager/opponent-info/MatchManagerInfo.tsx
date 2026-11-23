@@ -4,6 +4,7 @@ import {
   rankImages,
   formatPrice,
   getAttributeImage,
+  STADIUMS,
 } from "@/lib/utils";
 import PlayersOnTeam, { type AssignedPlayer } from "./PlayersOnTeam";
 import TeamFormation from "./TeamFormation";
@@ -37,6 +38,7 @@ type Team = {
 
 type Props = {
   title: string;
+  englishTeamName: string;
   team: Team;
   assignedPlayers: AssignedPlayer[];
   possiblePlayers: AssignedPlayer[];
@@ -133,6 +135,7 @@ function TacticBar({ title, value, leftLabel, rightLabel }: TacticBarProps) {
 
 export default function MatchManagerInfo({
   title,
+  englishTeamName,
   team,
   assignedPlayers,
   possiblePlayers,
@@ -141,6 +144,9 @@ export default function MatchManagerInfo({
   const teamImageId = String(team.team_id).padStart(4, "0");
 
   const league = LEAGUES[getInitialLeague(team.team_id)];
+  const stadium =
+    team.stadium_id === null ? null : STADIUMS[team.stadium_id] ?? null;
+  const stadiumName = stadium?.name ?? `${englishTeamName} Stadium`;
 
   const squadSize = getSquadSize(team);
   const targetSquadBudget = SQUAD_BUDGETS[team.strength_lvl];
@@ -265,16 +271,21 @@ export default function MatchManagerInfo({
 
         <div className={styles.teamAbilities}>
           <div className={styles.stadium}>
-            <div className={styles.stadiumTitle}>International Stadion</div>
+            <div className={styles.stadiumTitle}>
+              {stadium ? stadiumName : "Stadium not available"}
+            </div>
 
-            <Image
-              src="/stadion1.png"
-              alt="International Stadion"
-              width={300}
-              height={230}
-              unoptimized
-              className={styles.stadiumImage}
-            />
+            {stadium && (
+              <Image
+                src={`/stadion-images/${stadium.model}.png`}
+                alt={stadiumName}
+                title={stadium.model}
+                width={300}
+                height={230}
+                unoptimized
+                className={styles.stadiumImage}
+              />
+            )}
 
             <div
               className={styles.crowdPressure}
