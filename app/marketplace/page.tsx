@@ -85,6 +85,12 @@ function parsePrice(value?: string): number | null {
   return Number.isFinite(number) && number >= 0 ? number : null;
 }
 
+function getPlayerGradeValue(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isInteger(number) && number >= 0 && number <= 5 ? number : null;
+}
+
 type PotentialMode = keyof typeof POTENTIAL_CURVE_ORDER;
 
 const CURVE_NUMBER_FIELDS = [
@@ -182,6 +188,8 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
       price: p.price == null ? null : Number(p.price),
       overall,
       recovery,
+      consistency: getPlayerGradeValue(p.consistency),
+      actionLearning: getPlayerGradeValue(p.action_learning),
       position: String(getPosition(p.id_position) ?? ""),
       foot: String(getFoot(p.id_foot) ?? ""),
       market: String(getMarket(p.id_market) ?? ""),
@@ -305,6 +313,30 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
         sort === "price_asc"
           ? (a.price ?? 0) - (b.price ?? 0)
           : (b.price ?? 0) - (a.price ?? 0);
+
+      return difference || a.name.localeCompare(b.name, "de");
+    }
+
+    if (
+      sort === "consistency_desc" ||
+      sort === "consistency_asc" ||
+      sort === "action_learning_desc" ||
+      sort === "action_learning_asc"
+    ) {
+      const key = sort.startsWith("consistency_")
+        ? "consistency"
+        : "actionLearning";
+      const aValue = a[key];
+      const bValue = b[key];
+
+      if (aValue === null) {
+        return bValue === null ? a.name.localeCompare(b.name, "de") : 1;
+      }
+      if (bValue === null) return -1;
+
+      const difference = sort.endsWith("_asc")
+        ? aValue - bValue
+        : bValue - aValue;
 
       return difference || a.name.localeCompare(b.name, "de");
     }

@@ -14,6 +14,7 @@ import {
   getPosition,
   MARKET_LABELS,
   rankImages,
+  GRADES,
 } from "@/lib/utils";
 import styles from "./PlayerInfo.module.css";
 import AddPlayerTypeButton from "./AddPlayerTypeButton";
@@ -60,6 +61,11 @@ function getMarketColor(market: string): string {
     "20%": "var(--color-highlight)",
   };
   return colors[market.replace(/\s+/g, "")] ?? "var(--button_grey)";
+}
+
+function getGrade(value: number | null | undefined): string | null {
+  if (value == null || !Number.isInteger(value)) return null;
+  return GRADES[value] ?? null;
 }
 
 export default async function PlayerInfo({ id, backHref }: PlayerInfoProps) {
@@ -111,6 +117,10 @@ export default async function PlayerInfo({ id, backHref }: PlayerInfoProps) {
   const foot = String(getFoot(player.id_foot) ?? "—").toUpperCase();
   const marketValue = getMarket(player.id_market);
   const market = marketValue === "NULL" ? "Unavailable" : marketValue;
+  const additionalGrades = [
+    { label: "Consistency", value: player.consistency },
+    { label: "Action Learning", value: player.action_learning },
+  ];
 
   const teamId = player.team_id;
 
@@ -314,6 +324,37 @@ export default async function PlayerInfo({ id, backHref }: PlayerInfoProps) {
                     </span>
                   </div>
                 </div>
+              </div>
+
+              <div className={styles.additionalGrades}>
+                {additionalGrades.map(({ label, value }) => {
+                  const grade = getGrade(value);
+                  const image = grade ? rankImages[grade] : null;
+
+                  return (
+                    <div
+                      className={styles.additionalGrade}
+                      key={label}
+                      title={`${label}: ${grade ?? "Unavailable"}`}
+                    >
+                      <span className={styles.additionalGradeLabel}>
+                        {label}:
+                      </span>
+                      {image ? (
+                        <Image
+                          src={image}
+                          alt={`${label}: ${grade}`}
+                          width={42}
+                          height={42}
+                          unoptimized
+                          className={styles.additionalGradeImage}
+                        />
+                      ) : (
+                        <span className={styles.additionalGradeMissing}>—</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </section>
 
