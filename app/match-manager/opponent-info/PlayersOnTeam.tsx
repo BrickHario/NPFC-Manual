@@ -9,6 +9,7 @@ import {
   rankImages,
   PLAYER_TYPE_NAMES,
   PLAYER_TYPE_COLORS,
+  type Language,
 } from "@/lib/utils";
 import {
   getTeamPlayerSkills,
@@ -62,6 +63,7 @@ export type AssignedPlayer = {
 };
 
 type Props = {
+  language?: Language;
   players: AssignedPlayer[];
   teamBonuses: number[];
   imported?: boolean;
@@ -221,6 +223,7 @@ const ACTION_EXPERIENCE = [
 ] as const;
 
 export default function PlayersOnTeam({
+  language = "en",
   players,
   teamBonuses,
   imported = false,
@@ -331,7 +334,8 @@ export default function PlayersOnTeam({
                 const typeIndex = player.typeIndex;
                 const typeName =
                   typeIndex != null && typeIndex >= 0 && typeIndex < 12
-                    ? PLAYER_TYPE_NAMES.en[typeIndex]
+                    ? PLAYER_TYPE_NAMES[language]?.[typeIndex] ??
+                      PLAYER_TYPE_NAMES.en[typeIndex]
                     : undefined;
 
                 const hasExperience = imported && !!player.experience;
@@ -589,6 +593,11 @@ export default function PlayersOnTeam({
                 return canOpen ? (
                   <Link
                     key={player.id_player}
+                    id={
+                      savedLevels
+                        ? `saved-opponent-player-${player.id_player}`
+                        : undefined
+                    }
                     href={`/marketplace?sort=overall_desc&page=1&id=${player.id_player}`}
                     className={`${styles.assignedPlayer} ${styles.assignedPlayerLink} ${labels.playerLink}`}
                     title={player.name}
@@ -599,6 +608,11 @@ export default function PlayersOnTeam({
                 ) : (
                   <div
                     key={player.id_player}
+                    id={
+                      savedLevels
+                        ? `saved-opponent-player-${player.id_player}`
+                        : undefined
+                    }
                     className={`${styles.assignedPlayer} ${styles.assignedPlayerDisabled}`}
                     title={player.name}
                   >

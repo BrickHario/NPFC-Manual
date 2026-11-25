@@ -14,6 +14,7 @@ import PlayersOnTeam, { type AssignedPlayer } from "./PlayersOnTeam";
 import { LoadingSmall } from "@/app/Loading";
 import { playerFootBits } from "./saved-player-metadata";
 import TeamFormation from "./TeamFormation";
+import type { Language } from "@/lib/utils";
 import { predictOpponentLineup } from "./predict-opponent-lineup";
 import type { TeamFormationSlot } from "./team-formation";
 
@@ -332,11 +333,13 @@ function useOpponentMetadata(team: ImportedTeam | null, teamId: number) {
 }
 
 export function ImportedTeamFormation({
+  language = "en",
   slots,
   stadiumId,
   teamId,
   playerPreference,
 }: {
+  language?: Language;
   slots: TeamFormationSlot[];
   stadiumId: number | null;
   teamId: number;
@@ -389,21 +392,58 @@ export function ImportedTeamFormation({
     };
   });
 
+  const starterIds = new Set(
+    starters?.map((starter) => starter.playerId) ?? [],
+  );
+  const benchOrder = new Map(
+    (prediction?.starters.length === 11 ? prediction.bench : []).map(
+      (player, index) => [player.playerId, index],
+    ),
+  );
+  const primaryOrder = new Map<number, number>();
+  lineup?.primaryOrder.forEach((slot, index) => {
+    if (!primaryOrder.has(slot)) primaryOrder.set(slot, index);
+  });
+  const benchPlayers = starters
+    ? opponentRoster
+        .filter((player) => !starterIds.has(player.id))
+        .sort(
+          (a, b) =>
+            (benchOrder.get(a.id) ?? Infinity) -
+              (benchOrder.get(b.id) ?? Infinity) ||
+            (primaryOrder.get(a.rosterSlot) ?? Infinity) -
+              (primaryOrder.get(b.rosterSlot) ?? Infinity) ||
+            a.rosterSlot - b.rosterSlot,
+        )
+        .map((player, index) => ({
+          slotId: index,
+          playerId: player.id,
+          name: names.get(player.id) ?? `Player #${player.id}`,
+          shirtNumber: player.shirtNumber,
+          typeIndex: player.typeIndex,
+          positionId: positionsById.get(player.id) ?? null,
+        }))
+    : undefined;
+
   return (
     <TeamFormation
+      language={language}
       slots={slots}
       stadiumId={stadiumId}
       players={players}
+      benchPlayers={benchPlayers}
       loadingNames={!!lineup && !opponentMetadata}
     />
   );
 }
 
 export function ImportedTeamPlayers({
+  language = "en",
   title,
   abbr,
   teamId,
 }: {
+  language?: Language;
   title: string;
   abbr: string;
   teamId: number;
@@ -463,6 +503,7 @@ export function ImportedTeamPlayers({
       <ImportedTeamMatchup abbr={abbr} />
 
       <PlayersOnTeam
+        language={language}
         title={team.name}
         players={ownPlayers}
         teamBonuses={[]}
@@ -478,6 +519,7 @@ export function ImportedTeamPlayers({
           {current.error && <p role="alert">{current.error}</p>}
 
           <PlayersOnTeam
+            language={language}
             title={title}
             players={opponents}
             teamBonuses={[]}

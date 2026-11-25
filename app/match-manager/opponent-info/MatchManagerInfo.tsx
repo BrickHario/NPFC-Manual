@@ -6,6 +6,7 @@ import {
   formatPrice,
   getAttributeImage,
   STADIUMS,
+  type Language,
 } from "@/lib/utils";
 import PlayersOnTeam, { type AssignedPlayer } from "./PlayersOnTeam";
 import type { TeamFormationSlot } from "./team-formation";
@@ -45,6 +46,7 @@ type Team = {
 };
 
 type Props = {
+  language?: Language;
   title: string;
   abbr: string;
   englishTeamName: string;
@@ -164,6 +166,7 @@ function TacticBar({ title, value, leftLabel, rightLabel }: TacticBarProps) {
 }
 
 export default function MatchManagerInfo({
+  language = "en",
   title,
   abbr,
   englishTeamName,
@@ -312,6 +315,7 @@ export default function MatchManagerInfo({
           }
         >
           <ImportedTeamFormation
+            language={language}
             slots={formationSlots}
             stadiumId={team.stadium_id}
             teamId={team.team_id}
@@ -421,6 +425,7 @@ export default function MatchManagerInfo({
             </div>
 
             <PlayersOnTeam
+              language={language}
               title="Assigned Players"
               emptyMessage="No assigned players"
               players={assignedPlayers}
@@ -428,6 +433,7 @@ export default function MatchManagerInfo({
             />
 
             <PlayersOnTeam
+              language={language}
               title="Possible Players"
               emptyMessage="No possible players"
               players={possiblePlayers}
@@ -435,6 +441,7 @@ export default function MatchManagerInfo({
             />
           </ImportedTeamSkillBoost>
           <ImportedTeamPlayers
+            language={language}
             title={title}
             abbr={abbr}
             teamId={team.team_id}

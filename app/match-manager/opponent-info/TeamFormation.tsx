@@ -1,8 +1,11 @@
+"use client";
+
 import { getFormationName, type TeamFormationSlot } from "./team-formation";
 import {
   getFieldImage,
-  PLAYER_TYPE_COLORS,
   PLAYER_TYPE_NAMES,
+  PLAYER_TYPE_COLORS,
+  type Language,
 } from "@/lib/utils";
 import styles from "./match-manager-info.module.css";
 import labels from "./FormationPlayers.module.css";
@@ -13,12 +16,15 @@ export type FormationPlayer = {
   name: string;
   shirtNumber: number | null;
   typeIndex: number | null;
+  positionId?: number | null;
 };
 
 type Props = {
+  language?: Language;
   slots: TeamFormationSlot[];
   stadiumId: number | null;
   players?: FormationPlayer[];
+  benchPlayers?: FormationPlayer[];
   loadingNames?: boolean;
 };
 
@@ -66,10 +72,76 @@ function getSlotStyle(slot: TeamFormationSlot) {
   };
 }
 
+const BENCH_POSITIONS = [
+  "goalkeeper",
+  "defender",
+  "midfielder",
+  "forward",
+] as const;
+
+function PlayerMarker({
+  language,
+  player,
+  position,
+  loadingNames,
+}: {
+  language: Language;
+  player: FormationPlayer;
+  position?: Position;
+  loadingNames: boolean;
+}) {
+  const typeIndex = player.typeIndex;
+  const typeName =
+    typeIndex != null && typeIndex >= 0 && typeIndex < 12
+      ? PLAYER_TYPE_NAMES[language]?.[typeIndex] ??
+        PLAYER_TYPE_NAMES.en[typeIndex]
+      : undefined;
+  const typeColor =
+    typeIndex != null ? PLAYER_TYPE_COLORS[typeIndex] ?? "#ffffff" : "#ffffff";
+
+  return (
+    <button
+      type="button"
+      className={labels.marker}
+      disabled={loadingNames}
+      aria-label={`Show ${player.name} in player list`}
+      title={`${player.name} · #${player.shirtNumber ?? "—"} · ${
+        typeName ?? "Unknown type"
+      }`}
+      onClick={() => {
+        document
+          .getElementById(`saved-opponent-player-${player.playerId}`)
+          ?.scrollIntoView({
+            behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+              .matches
+              ? "auto"
+              : "smooth",
+            block: "nearest",
+            inline: "center",
+          });
+      }}
+    >
+      <span className={labels.name}>{loadingNames ? "…" : player.name}</span>
+      <span
+        className={`${styles.formationCircle} ${
+          position ? POSITION_CLASSES[position] : labels.unknownPosition
+        } ${labels.number}`}
+      >
+        {player.shirtNumber ?? "—"}
+      </span>
+      <span className={labels.type} style={{ color: typeColor }}>
+        {typeName ?? "—"}
+      </span>
+    </button>
+  );
+}
+
 export default function TeamFormation({
+  language = "en",
   slots,
   stadiumId,
   players,
+  benchPlayers,
   loadingNames = false,
 }: Props) {
   const fieldImage = getFieldImage(stadiumId);
@@ -80,8 +152,8 @@ export default function TeamFormation({
   return (
     <section className={styles.formationSection} aria-label="Team Formation">
       <h2 className={styles.formationHeading}>
-        {players !== undefined && "Probable "}
-        Formation
+        Team Formation
+        {players !== undefined && " – Probable"}
         {slots.length > 0 && ` (${getFormationName(slots)})`}
       </h2>
 
@@ -96,17 +168,10 @@ export default function TeamFormation({
             }}
           >
             <div className={styles.formationGrid} />
-
             <div className={styles.formationField}>
               {slots.map((slot) => {
                 const position = getPosition(slot);
                 const player = bySlot.get(slot.slot_id);
-                const typeIndex = player?.typeIndex;
-                const typeName =
-                  typeIndex != null && typeIndex >= 0 && typeIndex < 12
-                    ? PLAYER_TYPE_NAMES.en[typeIndex]
-                    : undefined;
-                const name = loadingNames ? "…" : player?.name;
 
                 return (
                   <div
@@ -115,30 +180,12 @@ export default function TeamFormation({
                     style={getSlotStyle(slot)}
                   >
                     {player ? (
-                      <div
-                        className={labels.marker}
-                        title={`${player.name} · #${
-                          player.shirtNumber ?? "—"
-                        } · ${typeName ?? "Unknown type"}`}
-                      >
-                        <span className={labels.name}>{name}</span>
-                        <span
-                          className={`${styles.formationCircle} ${POSITION_CLASSES[position]} ${labels.number}`}
-                        >
-                          {player.shirtNumber ?? "—"}
-                        </span>
-                        <span
-                          className={labels.type}
-                          style={{
-                            color:
-                              typeIndex != null
-                                ? PLAYER_TYPE_COLORS[typeIndex] ?? "#ffffff"
-                                : "#ffffff",
-                          }}
-                        >
-                          {typeName ?? "—"}
-                        </span>
-                      </div>
+                      <PlayerMarker
+                        language={language}
+                        player={player}
+                        position={position}
+                        loadingNames={loadingNames}
+                      />
                     ) : (
                       <span
                         className={`${styles.formationCircle} ${POSITION_CLASSES[position]}`}
@@ -149,6 +196,39 @@ export default function TeamFormation({
               })}
             </div>
           </div>
+
+          {benchPlayers && benchPlayers.length > 0 && (
+            <div
+              className={labels.benchSection}
+              aria-label="Substitutes and reserves"
+            >
+              <div className={labels.benchPitch}>
+                <div className={labels.benchGrid}>
+                  {benchPlayers.map((player, index) => (
+                    <div
+                      key={player.playerId}
+                      className={labels.benchSlot}
+                      style={{
+                        gridColumn: (index % 7) * 2 + 2,
+                        gridRow: index < 7 ? 1 : 3,
+                      }}
+                    >
+                      <PlayerMarker
+                        language={language}
+                        player={player}
+                        position={
+                          player.positionId != null
+                            ? BENCH_POSITIONS[player.positionId]
+                            : undefined
+                        }
+                        loadingNames={loadingNames}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </section>

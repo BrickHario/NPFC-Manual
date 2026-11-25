@@ -40,8 +40,15 @@ function getTeamId(value: string | string[] | undefined): number {
 
 const getOpponentInfo = cache(async (teamId: number) => {
   const cookieStore = await cookies();
-  const language = cookieStore.get("npfc-language")?.value ?? "en";
-  const columns = LANGUAGE_COLUMNS[language as Language] ?? LANGUAGE_COLUMNS.en;
+  const savedLanguage = cookieStore.get("npfc-language")?.value;
+  const language: Language =
+    savedLanguage === "de" ||
+    savedLanguage === "es" ||
+    savedLanguage === "it" ||
+    savedLanguage === "fr"
+      ? savedLanguage
+      : "en";
+  const columns = LANGUAGE_COLUMNS[language];
 
   const supabase = await createClient();
 
@@ -81,6 +88,7 @@ const getOpponentInfo = cache(async (teamId: number) => {
 
   return {
     title: name,
+    language,
     abbr,
     englishTeamName: nameResult.data?.english_name?.trim() || `Team ${teamId}`,
     team: teamResult.data,
@@ -131,7 +139,8 @@ async function getCandidatePlayers(): Promise<AssignedPlayer[]> {
 async function OpponentInfoData({ searchParams }: PageProps) {
   const teamId = getTeamId((await searchParams).team_id);
 
-  const { title, abbr, englishTeamName, team } = await getOpponentInfo(teamId);
+  const { title, abbr, englishTeamName, team, language } =
+    await getOpponentInfo(teamId);
 
   if (!team) {
     return (
@@ -163,6 +172,7 @@ async function OpponentInfoData({ searchParams }: PageProps) {
   return (
     <MatchManagerInfo
       title={title}
+      language={language}
       abbr={abbr}
       englishTeamName={englishTeamName}
       team={team}
