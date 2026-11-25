@@ -80,7 +80,8 @@ const getOpponentInfo = cache(async (teamId: number) => {
     "";
 
   return {
-    title: abbr ? `${name} (${abbr})` : name,
+    title: name,
+    abbr,
     englishTeamName: nameResult.data?.english_name?.trim() || `Team ${teamId}`,
     team: teamResult.data,
   };
@@ -130,7 +131,7 @@ async function getCandidatePlayers(): Promise<AssignedPlayer[]> {
 async function OpponentInfoData({ searchParams }: PageProps) {
   const teamId = getTeamId((await searchParams).team_id);
 
-  const { title, englishTeamName, team } = await getOpponentInfo(teamId);
+  const { title, abbr, englishTeamName, team } = await getOpponentInfo(teamId);
 
   if (!team) {
     return (
@@ -142,6 +143,7 @@ async function OpponentInfoData({ searchParams }: PageProps) {
           height={220}
           className="notFoundImage"
         />
+
         <h2 className="notFoundText">Team not found.</h2>
       </div>
     );
@@ -153,6 +155,7 @@ async function OpponentInfoData({ searchParams }: PageProps) {
   ]);
 
   const possiblePlayers = getPossiblePlayers(team, candidates, assignedPlayers);
+
   const formationSlots = /^[0-9a-f]{32}$/i.test(team.formation)
     ? decodeFormation(team.formation)
     : [];
@@ -160,6 +163,7 @@ async function OpponentInfoData({ searchParams }: PageProps) {
   return (
     <MatchManagerInfo
       title={title}
+      abbr={abbr}
       englishTeamName={englishTeamName}
       team={team}
       assignedPlayers={assignedPlayers}

@@ -37,6 +37,24 @@ const chipStyle: CSSProperties = {
   pointerEvents: "none",
 };
 
+const rosterBadgeStyle: CSSProperties = {
+  position: "absolute",
+  top: 29,
+  zIndex: 8,
+  display: "grid",
+  placeItems: "center",
+  height: 25,
+  minWidth: 25,
+  padding: "0 5px",
+  boxSizing: "border-box",
+  borderRadius: 5,
+  fontFamily: "var(--font-body)",
+  fontSize: 17,
+  fontWeight: 800,
+  lineHeight: 1,
+  pointerEvents: "none",
+};
+
 export default function PlayerImages({
   playerId,
   teamId,
@@ -51,6 +69,9 @@ export default function PlayerImages({
   showPriceChip = false,
   showMarketChip = false,
   enableHover = false,
+  shirtNumber,
+  foot,
+  showRosterLabels = false,
 }: {
   playerId: number;
   teamId: number | null;
@@ -65,6 +86,9 @@ export default function PlayerImages({
   showPriceChip?: boolean;
   showMarketChip?: boolean;
   enableHover?: boolean;
+  shirtNumber?: number | null;
+  foot?: "L" | "R" | null;
+  showRosterLabels?: boolean;
 }) {
   const [playerLoaded, setPlayerLoaded] = useState(false);
   const [bodyLoaded, setBodyLoaded] = useState(false);
@@ -216,6 +240,40 @@ export default function PlayerImages({
         >
           {topText}
         </div>
+
+        {showRosterLabels && (
+          <>
+            <span
+              style={{
+                ...rosterBadgeStyle,
+                left: 0,
+                background: "#ccc",
+                color: "#000",
+                border: "black solid 2px",
+              }}
+              title="Shirt number"
+            >
+              {shirtNumber ?? "—"}
+            </span>
+            <span
+              style={{
+                ...rosterBadgeStyle,
+                right: 0,
+                background:
+                  foot === "L"
+                    ? "var(--color-technical, #c52229)"
+                    : foot === "R"
+                    ? "#2041b0"
+                    : "#777",
+                color: "#fff",
+                border: "black solid 2px",
+              }}
+              title="Preferred foot"
+            >
+              {foot ?? "—"}
+            </span>
+          </>
+        )}
 
         {showPriceChip &&
           !isAlien &&

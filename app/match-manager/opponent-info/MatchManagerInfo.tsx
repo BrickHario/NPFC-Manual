@@ -15,7 +15,6 @@ import styles from "./match-manager-info.module.css";
 import {
   TeamImportProvider,
   ImportTeamHeader,
-  ImportedTeamMatchup,
   ImportedTeamSkillBoost,
   ImportedTeamPlayers,
 } from "./ImportTeamData";
@@ -47,6 +46,7 @@ type Team = {
 
 type Props = {
   title: string;
+  abbr: string;
   englishTeamName: string;
   team: Team;
   assignedPlayers: AssignedPlayer[];
@@ -165,6 +165,7 @@ function TacticBar({ title, value, leftLabel, rightLabel }: TacticBarProps) {
 
 export default function MatchManagerInfo({
   title,
+  abbr,
   englishTeamName,
   team,
   assignedPlayers,
@@ -212,11 +213,9 @@ export default function MatchManagerInfo({
 
   return (
     <TeamImportProvider>
-      <ImportTeamHeader title={title} />
+      <ImportTeamHeader title={title} abbr={abbr} />
 
       <div className={styles["panel-opp-info"]}>
-        <ImportedTeamMatchup title={title} />
-
         <div className={styles.teamOverview}>
           <Image
             src={`/team-images/${teamImageId}.png`}
@@ -243,7 +242,7 @@ export default function MatchManagerInfo({
             </div>
 
             <div>
-              Squad Size: <strong>{squadSize}</strong>
+              Target Squad Size: <strong>{squadSize}</strong>
             </div>
 
             <div>
@@ -430,7 +429,11 @@ export default function MatchManagerInfo({
               teamBonuses={teamBonuses}
             />
           </ImportedTeamSkillBoost>
-          <ImportedTeamPlayers title={title} teamId={team.team_id} />
+          <ImportedTeamPlayers
+            title={title}
+            abbr={abbr}
+            teamId={team.team_id}
+          />
         </div>
       </div>
     </TeamImportProvider>

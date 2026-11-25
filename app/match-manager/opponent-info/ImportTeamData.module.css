@@ -101,7 +101,10 @@
 
   .importButton {
     padding: 7px 11px;
-    font-size: 12px;
+    font-size: 10px;
+    margin-right: 0;
+    min-width: 100;
+    margin-top: 50px;
   }
 
   .message {

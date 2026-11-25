@@ -337,6 +337,7 @@
   margin-left: 0px;
   grid-area: players;
   width: 100%;
+  align-self: self-end;
 }
 
 .skillBoostTitle {
@@ -596,6 +597,10 @@
     column-gap: 24px;
   }
 
+  .page h1 {
+    font-size: 1.5em;
+  }
+
   .teamAbilities {
     flex-direction: column;
     gap: 40px;
@@ -689,4 +694,74 @@
 
 .panel-opp-info {
   flex-wrap: wrap;
+}
+
+.playerPortraitSkills {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: max-content;
+  margin-inline: auto;
+}
+
+.individualSkills {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  flex: 0 0 51px;
+  width: 51px;
+  margin-left: 4px;
+}
+
+.individualSkillRow {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.individualSkill {
+  display: flex;
+  align-items: center;
+  width: 20px;
+  gap: 2px;
+}
+
+.individualSkillIcon,
+.individualGrade {
+  display: block;
+  object-fit: contain;
+  image-rendering: pixelated;
+  width: 18px;
+}
+
+.individualGradeSlot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  height: 18px;
+}
+
+.individualTrack {
+  position: relative;
+  width: 2px;
+  height: 18px;
+  flex: 0 0 2px;
+  background: var(--font_black, #222);
+  border-radius: 1px;
+}
+
+.individualDot {
+  position: absolute;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  box-sizing: border-box;
+  border: 1px solid var(--font_black, #222);
+  background: var(--color-physical, #ffb23e);
+  border-radius: 50%;
+  transform: translate(-50%, 50%);
 }

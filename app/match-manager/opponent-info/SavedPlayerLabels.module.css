@@ -1,0 +1,190 @@
+.card {
+  position: relative;
+  width: max-content;
+  max-width: 100%;
+  margin-bottom: 5px;
+  isolation: isolate;
+  align-self: flex-start;
+}
+
+.playerType {
+  width: 100%;
+  min-height: 26px;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-decoration: none;
+  filter: brightness(0.5) saturate(2);
+}
+
+.playerLink,
+.playerLink:hover,
+.playerLink:focus-visible {
+  text-decoration: none !important;
+}
+
+.gradeSlot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 24px;
+}
+
+.levelTrack {
+  position: relative;
+  flex: 0 0 2px;
+  width: 2px;
+  height: 20px;
+  border-radius: 2px;
+  background: var(--button_grey, #aaa);
+  transform: translateX(-2px);
+}
+
+.levelDot {
+  position: absolute;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  box-sizing: border-box;
+  border: 1px solid var(--dark, #222);
+  border-radius: 50%;
+  background: var(--color-physical, #ffb23e);
+  transform: translate(-50%, 50%);
+}
+
+.playerExperienceLayout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.playerMainColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+.experiencePanel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 160px;
+  max-width: 220px;
+  padding-top: 4px;
+  text-decoration: none !important;
+}
+
+.experienceTitle {
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--font_black);
+}
+
+.positionExperienceGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 4px;
+}
+
+.positionExperienceItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.positionExperienceIcon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.gradeSlotLarge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 24px;
+}
+
+.experienceGrade {
+  image-rendering: pixelated;
+}
+
+.levelTrackLarge {
+  position: relative;
+  flex: 0 0 2px;
+  width: 2px;
+  height: 17px;
+  border-radius: 2px;
+  background: var(--button_grey, #aaa);
+}
+
+.levelDotLarge {
+  position: absolute;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  box-sizing: border-box;
+  border: 1px solid var(--dark, #222);
+  border-radius: 50%;
+  background: var(--color-physical, #ffb23e);
+  transform: translate(-50%, 50%);
+}
+
+.actionExperienceTitle {
+  margin: 2px 0 0;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--font_black);
+}
+
+.actionExperienceList {
+  display: flex;
+  flex-direction: column;
+}
+
+.actionExperienceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.actionExperienceLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 1.1;
+  color: var(--font_black);
+}
+
+@media (max-width: 900px) {
+  .playerExperienceLayout {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .experiencePanel {
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .positionExperienceGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

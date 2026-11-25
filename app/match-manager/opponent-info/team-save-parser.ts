@@ -3,24 +3,160 @@ import {
   type ImportedSavePlayer,
 } from "@/app/training-planner/save-parser";
 
-export type SavedOpponentPlayer = { id: number; skills: number[] };
+import { opponentTypeRows, playerFootBits } from "./saved-player-metadata";
+
+export type SavedOpponentPlayer = {
+  id: number;
+  skills: number[];
+  shirtNumber: number | null;
+  typeIndex: number | null;
+  foot: "L" | "R" | null;
+};
+
+export type SavedPlayerExperience = {
+  playerId: number;
+  matchesPlayed: number;
+  actionXP: {
+    shooting: number;
+    longPassing: number;
+    throughPassing: number;
+    dribbling: number;
+    directPassing: number;
+  };
+  positionXP: {
+    gk: number;
+    df: number;
+    mf: number;
+    fw: number;
+  };
+  actionGrades: {
+    shooting: string;
+    longPassing: string;
+    throughPassing: string;
+    dribbling: string;
+    directPassing: string;
+  };
+  positionGrades: {
+    gk: string;
+    df: string;
+    mf: string;
+    fw: string;
+  };
+};
+
+type SavedOwnPlayer = ImportedSavePlayer & {
+  shirtNumber: number | null;
+  experience: SavedPlayerExperience | null;
+};
 
 export type ImportedTeam = {
   name: string;
   abbreviation: string;
   fileName: string;
   counter: number;
-  players: ImportedSavePlayer[];
+  players: SavedOwnPlayer[];
   opponents: Record<number, SavedOpponentPlayer[]>;
 };
 
 const SAVE_SIZE = 76120;
 const MAGIC = "CALCIO3DS";
+
 const TEAM_ABBREVIATION_OFFSET = 0x860;
 const TEAM_ABBREVIATION_LENGTH = 0x0a;
 const TEAM_NAME_OFFSET = 0x86a;
 const TEAM_NAME_LENGTH = 0x30;
-const STORAGE_KEY = "npfc-imported-team-v3";
+
+const SAVE_ROSTER_OFFSET = 0x0c6e;
+const PLAYER_SIZE = 0x98;
+const EMPTY_PLAYER_ID = 1016;
+
+const STORAGE_KEY = "npfc-imported-team-v5";
+
+function experienceGrade(points: number): string {
+  if (points >= 1000) return "S";
+  if (points >= 600) return "A";
+  if (points >= 350) return "B";
+  if (points >= 150) return "C";
+  if (points >= 50) return "D";
+  return "E";
+}
+
+function readPlayerExperience(
+  view: DataView,
+  slotIndex: number,
+): SavedPlayerExperience | null {
+  const base = SAVE_ROSTER_OFFSET + slotIndex * PLAYER_SIZE;
+
+  const read = (offset: number) => view.getUint16(base + offset, true);
+
+  const playerId = read(0x00);
+
+  if (playerId >= EMPTY_PLAYER_ID) return null;
+
+  const actionXP = {
+    shooting: read(0x56),
+    longPassing: read(0x58),
+    throughPassing: read(0x5a),
+    dribbling: read(0x5c),
+    directPassing: read(0x5e),
+  };
+
+  const positionXP = {
+    gk: read(0x60),
+    df: read(0x62),
+    mf: read(0x64),
+    fw: read(0x66),
+  };
+
+  return {
+    playerId,
+    matchesPlayed: read(0x90),
+    actionXP,
+    positionXP,
+    actionGrades: {
+      shooting: experienceGrade(actionXP.shooting),
+      longPassing: experienceGrade(actionXP.longPassing),
+      throughPassing: experienceGrade(actionXP.throughPassing),
+      dribbling: experienceGrade(actionXP.dribbling),
+      directPassing: experienceGrade(actionXP.directPassing),
+    },
+    positionGrades: {
+      gk: experienceGrade(positionXP.gk),
+      df: experienceGrade(positionXP.df),
+      mf: experienceGrade(positionXP.mf),
+      fw: experienceGrade(positionXP.fw),
+    },
+  };
+}
+
+function readShirtNumber(bytes: Uint8Array, id: number): number | null {
+  const offset = 0x9710 + id * 0x24;
+
+  if (offset >= bytes.length) return null;
+
+  const number = (bytes[offset] & 0xfe) >>> 1;
+
+  return number > 0 && number <= 99 ? number : null;
+}
+
+function readOpponentType(
+  bytes: Uint8Array,
+  teamId: number,
+  slot: number,
+): number | null {
+  const start = 0x2573 + teamId * 0x260;
+  const found = bytes.subarray(start, start + 24).indexOf(slot);
+  const index = found === -1 ? 24 : found;
+
+  const override = teamId >= 11 && teamId < 31 ? bytes[0x12768 + teamId] : 0;
+
+  const value =
+    override && index < 11
+      ? bytes[0x92b8 + (override & 0x7f) * 0x58 + index * 8]
+      : opponentTypeRows[teamId]?.[index];
+
+  return Number.isInteger(value) && value >= 0 && value < 12 ? value : null;
+}
 
 function readText(bytes: Uint8Array, offset: number, length: number) {
   const region = bytes.subarray(offset, offset + length);
@@ -47,6 +183,7 @@ export function parseTeamSave(
 
   const view = new DataView(buffer);
   const bytes = new Uint8Array(buffer);
+
   const signature = new TextDecoder("ascii").decode(
     bytes.subarray(0x08, 0x08 + MAGIC.length),
   );
@@ -79,31 +216,77 @@ export function parseTeamSave(
     throw new Error(`${fileName}: Team name or abbreviation is missing`);
   }
 
+  const baseSave = parseSave(buffer, fileName);
+
+  const slotById = new Map<number, number>();
+  for (let slot = 0; slot < 25; slot++) {
+    const base = SAVE_ROSTER_OFFSET + slot * PLAYER_SIZE;
+    const playerId = view.getUint16(base + 0x00, true);
+    if (playerId > 0 && playerId < EMPTY_PLAYER_ID) {
+      slotById.set(playerId, slot);
+    }
+  }
+
   const opponents: Record<number, SavedOpponentPlayer[]> = {};
+
   for (let teamId = 0; teamId < 44; teamId++) {
     const roster: SavedOpponentPlayer[] = [];
     const seen = new Set<number>();
+
     for (let slot = 0; slot < 25; slot++) {
       const id = view.getUint16(0x2632 + teamId * 0x260 + slot * 2, true);
-      if (id >= 1016 || seen.has(id)) continue;
+
+      if (id >= EMPTY_PLAYER_ID || seen.has(id)) continue;
+
       const offset = 0x25b0 + teamId * 0x260 + slot * 5;
+
       const skills = Array.from(
         { length: 10 },
         (_, i) => (bytes[offset + (i >> 1)] >> ((i & 1) * 4)) & 15,
       );
+
       seen.add(id);
-      roster.push({ id, skills });
+
+      roster.push({
+        id,
+        skills,
+        shirtNumber: readShirtNumber(bytes, id),
+        typeIndex: readOpponentType(bytes, teamId, slot),
+        foot:
+          playerFootBits[id] === "1"
+            ? "L"
+            : playerFootBits[id] === "0"
+            ? "R"
+            : null,
+      });
     }
+
     opponents[teamId] = roster;
   }
 
   return {
-    opponents,
     name,
     abbreviation,
     fileName,
     counter: view.getUint32(0x04, true),
-    players: parseSave(buffer, fileName).players,
+    opponents,
+    players: baseSave.players.map((player) => {
+      const slotIndex = slotById.get(player.id);
+      return {
+        ...player,
+        foot:
+          playerFootBits[player.id] === "1"
+            ? "L"
+            : playerFootBits[player.id] === "0"
+            ? "R"
+            : player.foot,
+        shirtNumber: readShirtNumber(bytes, player.id),
+        experience:
+          slotIndex === undefined
+            ? null
+            : readPlayerExperience(view, slotIndex),
+      };
+    }),
   };
 }
 
@@ -149,14 +332,18 @@ export async function parseTeamSaveFiles(files: File[]): Promise<ImportedTeam> {
   }
 
   saves.sort((a, b) => b.counter - a.counter);
+
   return saves[0];
 }
 
 export function readImportedTeam(): ImportedTeam | null {
+  if (typeof window === "undefined") return null;
+
   try {
-    const value: unknown = JSON.parse(
-      localStorage.getItem(STORAGE_KEY) ?? "null",
-    );
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+
+    const value: unknown = JSON.parse(raw);
 
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       return null;
@@ -166,31 +353,12 @@ export function readImportedTeam(): ImportedTeam | null {
 
     if (
       typeof team.name !== "string" ||
-      !team.name.trim() ||
-      team.name.length > TEAM_NAME_LENGTH ||
       typeof team.abbreviation !== "string" ||
-      !team.abbreviation.trim() ||
-      team.abbreviation.length > TEAM_ABBREVIATION_LENGTH ||
       typeof team.fileName !== "string" ||
       typeof team.counter !== "number" ||
-      !Number.isSafeInteger(team.counter) ||
-      team.counter < 0 ||
-      !team.opponents ||
-      typeof team.opponents !== "object" ||
       !Array.isArray(team.players) ||
-      team.players.length === 0 ||
-      !team.players.every(
-        (player) =>
-          player &&
-          Number.isInteger(player.id) &&
-          typeof player.name === "string" &&
-          Number.isInteger(player.position) &&
-          Array.isArray(player.skillPoints) &&
-          player.skillPoints.length === 10 &&
-          player.skillPoints.every(
-            (value) => Number.isInteger(value) && value >= 0 && value <= 65535,
-          ),
-      )
+      typeof team.opponents !== "object" ||
+      team.opponents === null
     ) {
       return null;
     }
@@ -209,4 +377,6 @@ export function removeImportedTeam() {
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem("npfc-imported-team-v1");
   localStorage.removeItem("npfc-imported-team-v2");
+  localStorage.removeItem("npfc-imported-team-v3");
+  localStorage.removeItem("npfc-imported-team-v4");
 }
