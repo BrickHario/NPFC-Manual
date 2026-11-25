@@ -255,6 +255,7 @@
   margin: 0 5px 0 0;
   border-radius: 2px;
   background: var(--button_grey);
+  transform: translateX(-1px);
 }
 
 .levelDot {
@@ -805,5 +806,305 @@
   .marketBadge {
     font-size: 12px;
     padding-inline: 5px;
+  }
+}
+
+.skillGroups {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+.skillGroups .attributeGrid {
+  flex: 1 1 400px;
+  min-width: 0;
+}
+
+.individualSkills {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 7px;
+  --individual-icon-size: 30px;
+  --individual-grade-size: 25px;
+}
+
+.individualSkillRow {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+}
+
+.individualSkill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.individualSkillIcon,
+.individualSkillGrade {
+  display: block;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.individualSkillIcon {
+  width: var(--individual-icon-size);
+  height: var(--individual-icon-size);
+}
+
+.individualSkillGrade,
+.individualSkillMissing {
+  width: var(--individual-grade-size);
+  height: var(--individual-grade-size);
+}
+
+.individualSkillMissing {
+  display: grid;
+  place-items: center;
+}
+
+@media (max-width: 1050px) {
+  .individualSkills {
+    --individual-icon-size: 25px;
+    --individual-grade-size: 21px;
+  }
+}
+
+@media (max-width: 830px) {
+  .skillGroups {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .skillGroups .attributeGrid {
+    flex: 0 1 400px;
+  }
+
+  .individualSkills {
+    flex-direction: row;
+    gap: 8px;
+    --individual-icon-size: 23px;
+    --individual-grade-size: 20px;
+  }
+}
+
+.attributeLayout {
+  justify-content: space-around;
+}
+
+.attributeBadges {
+  flex-shrink: 1;
+}
+
+.skillGroups {
+  flex: 0 1 421px;
+  max-width: 421px;
+}
+
+.skillGroups .attributeGrid {
+  flex: 0 1 315px;
+  width: 100%;
+  max-width: 315px;
+}
+
+.attributeIcon {
+  max-width: 45px;
+  object-fit: contain;
+}
+
+.gradeSlot {
+  min-height: 38px;
+  gap: 3px;
+  padding-top: 3px;
+}
+
+.gradeImage {
+  width: 100%;
+  max-width: 38px;
+}
+
+.levelTrack {
+  flex: 0 0 2px;
+  width: 2px;
+  height: 32px;
+  margin: 0 3px 0 0;
+}
+
+.levelDot {
+  width: 8px;
+  height: 8px;
+}
+
+.additionalGrades {
+  margin-left: 0;
+  flex-wrap: wrap;
+}
+
+.additionalGrade {
+  flex: 1 1 180px;
+  width: auto;
+  min-width: 0;
+}
+
+@media (max-width: 1050px) {
+  .skillGroups {
+    flex: none;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .attributeBadges {
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 830px) {
+  .skillGroups {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .skillGroups .attributeGrid {
+    flex: none;
+    width: 100%;
+    max-width: 315px;
+  }
+
+  .individualSkills {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 600px) {
+  .content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .portraitPanel {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .attributes {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .potentialPanel {
+    grid-column: 1;
+    grid-row: 3;
+    box-sizing: border-box;
+  }
+
+  .skillGroups .attributeGrid {
+    max-width: 315px;
+  }
+
+  .gradeSlot {
+    min-height: 30px;
+    gap: 2px;
+  }
+
+  .gradeImage {
+    max-width: 32px;
+  }
+
+  .levelTrack {
+    height: 26px;
+    margin-right: 2px;
+  }
+
+  .levelDot {
+    width: 6px;
+    height: 6px;
+    border-width: 1px;
+  }
+
+  .additionalGrades {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .additionalGrade {
+    flex: 0 1 auto;
+  }
+}
+
+@media (max-width: 380px) {
+  .page {
+    width: 100%;
+    margin-inline: 0;
+  }
+
+  .individualSkills {
+    --individual-icon-size: 20px;
+    --individual-grade-size: 18px;
+  }
+}
+
+.individualGradeSlot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.individualLevelTrack {
+  position: relative;
+  flex: 0 0 2px;
+  width: 2px;
+  height: calc(var(--individual-grade-size) - 4px);
+  margin-right: 2px;
+  border-radius: 2px;
+  background: var(--button_grey);
+}
+
+.individualLevelDot {
+  position: absolute;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  box-sizing: border-box;
+  border: 1px solid var(--dark);
+  border-radius: 50%;
+  background: var(--color-physical);
+  transform: translate(-50%, 50%);
+}
+
+@media (max-width: 830px) {
+  .individualGradeSlot {
+    gap: 2px;
+  }
+
+  .individualLevelDot {
+    width: 5px;
+    height: 5px;
+  }
+}
+
+@media (max-width: 380px) {
+  .individualGradeSlot {
+    gap: 1px;
+  }
+
+  .individualLevelTrack {
+    margin-right: 1px;
+  }
+
+  .individualLevelDot {
+    width: 4px;
+    height: 4px;
   }
 }

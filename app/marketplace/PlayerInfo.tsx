@@ -24,6 +24,22 @@ type PlayerInfoProps = {
   backHref: string;
 };
 
+const INDIVIDUAL_SKILL_ROWS = [
+  [
+    { key: "skill_01", name: "Shooting Power", icon: "/shooting-power.png" },
+    {
+      key: "skill_02",
+      name: "Shooting Accuracy",
+      icon: "/shooting-accuracy.png",
+    },
+  ],
+  [
+    { key: "skill_05", name: "Tackling", icon: "/tackling.png" },
+    { key: "skill_06", name: "Ball Control", icon: "/ballcontrole.png" },
+    { key: "skill_07", name: "Dribbling", icon: "/dribbling.png" },
+  ],
+] as const;
+
 const LEVEL_THRESHOLDS = [0, 50, 150, 350, 600, 1000] as const;
 
 function getLevelProgress(value: number, level: number): number {
@@ -225,79 +241,159 @@ export default async function PlayerInfo({ id, backHref }: PlayerInfoProps) {
             >
               <div className={styles.attributeLayout}>
                 {attributes.length > 0 ? (
-                  <div className={styles.attributeGrid}>
-                    {attributes.map((attribute, index) => {
-                      const grade = String(attribute.grade ?? "—")
-                        .trim()
-                        .toUpperCase();
-                      const rankImage = rankImages[grade];
-                      const icon = getAttributeImage(
-                        String(attribute.name),
-                        index,
-                      );
-                      const progress = getLevelProgress(
-                        attribute.value,
-                        attribute.level,
-                      );
-                      const maxLevel =
-                        attribute.level === LEVEL_THRESHOLDS.length - 1;
-                      const progressLabel = maxLevel
-                        ? `${attribute.name}: Max grade (S)`
-                        : `${attribute.name}: ${Math.round(
-                            progress,
-                          )}% to next grade`;
+                  <div className={styles.skillGroups}>
+                    <div className={styles.attributeGrid}>
+                      {attributes.map((attribute, index) => {
+                        const grade = String(attribute.grade ?? "—")
+                          .trim()
+                          .toUpperCase();
+                        const rankImage = rankImages[grade];
+                        const icon = getAttributeImage(
+                          String(attribute.name),
+                          index,
+                        );
+                        const progress = getLevelProgress(
+                          attribute.value,
+                          attribute.level,
+                        );
+                        const maxLevel =
+                          attribute.level === LEVEL_THRESHOLDS.length - 1;
+                        const progressLabel = maxLevel
+                          ? `${attribute.name}: Max grade (S)`
+                          : `${attribute.name}: ${Math.round(
+                              progress,
+                            )}% to next grade`;
 
-                      return (
-                        <div
-                          className={styles.attributeItem}
-                          key={`${attribute.name}-${index}`}
-                          title={`${attribute.name}: ${grade}`}
-                        >
-                          <Image
-                            src={icon}
-                            alt={String(attribute.name)}
-                            width={74}
-                            height={75}
-                            unoptimized
-                            className={styles.attributeIcon}
-                          />
+                        return (
+                          <div
+                            className={styles.attributeItem}
+                            key={`${attribute.name}-${index}`}
+                            title={`${attribute.name}: ${grade}`}
+                          >
+                            <Image
+                              src={icon}
+                              alt={String(attribute.name)}
+                              width={74}
+                              height={75}
+                              unoptimized
+                              className={styles.attributeIcon}
+                            />
 
-                          <div className={styles.gradeSlot}>
-                            <div className={styles.gradeValue}>
-                              {rankImage ? (
-                                <Image
-                                  src={rankImage}
-                                  alt={`Rating ${grade}`}
-                                  width={74}
-                                  height={72}
-                                  unoptimized
-                                  className={styles.gradeImage}
+                            <div className={styles.gradeSlot}>
+                              <div className={styles.gradeValue}>
+                                {rankImage ? (
+                                  <Image
+                                    src={rankImage}
+                                    alt={`Rating ${grade}`}
+                                    width={74}
+                                    height={72}
+                                    unoptimized
+                                    className={styles.gradeImage}
+                                  />
+                                ) : (
+                                  <span className={styles.gradeText}>
+                                    {grade}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div
+                                className={styles.levelTrack}
+                                role="progressbar"
+                                aria-label={progressLabel}
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                                aria-valuenow={Math.round(progress)}
+                                title={progressLabel}
+                              >
+                                <span
+                                  className={styles.levelDot}
+                                  style={{ bottom: `${progress}%` }}
                                 />
-                              ) : (
-                                <span className={styles.gradeText}>
-                                  {grade}
-                                </span>
-                              )}
-                            </div>
-
-                            <div
-                              className={styles.levelTrack}
-                              role="progressbar"
-                              aria-label={progressLabel}
-                              aria-valuemin={0}
-                              aria-valuemax={100}
-                              aria-valuenow={Math.round(progress)}
-                              title={progressLabel}
-                            >
-                              <span
-                                className={styles.levelDot}
-                                style={{ bottom: `${progress}%` }}
-                              />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
+
+                    {skills && (
+                      <div
+                        className={styles.individualSkills}
+                        aria-label="Individual skills"
+                      >
+                        {INDIVIDUAL_SKILL_ROWS.map((row, index) => (
+                          <div
+                            className={styles.individualSkillRow}
+                            key={index}
+                          >
+                            {row.map(({ key, name, icon }) => {
+                              const level = skills[key];
+                              const grade = getGrade(level);
+                              const image = grade ? rankImages[grade] : null;
+
+                              const progress = level === 5 ? 100 : 0;
+
+                              const progressLabel =
+                                level === 5
+                                  ? `${name}: Max grade (S)`
+                                  : `${name}: Exact XP progress unavailable`;
+
+                              return (
+                                <div
+                                  className={styles.individualSkill}
+                                  key={key}
+                                  title={`${name}: ${grade ?? "Unavailable"}`}
+                                >
+                                  <Image
+                                    src={icon}
+                                    alt={name}
+                                    width={32}
+                                    height={32}
+                                    unoptimized
+                                    className={styles.individualSkillIcon}
+                                  />
+
+                                  <div className={styles.individualGradeSlot}>
+                                    {image ? (
+                                      <Image
+                                        src={image}
+                                        alt={`${name}: ${grade}`}
+                                        width={28}
+                                        height={28}
+                                        unoptimized
+                                        className={styles.individualSkillGrade}
+                                      />
+                                    ) : (
+                                      <span
+                                        className={
+                                          styles.individualSkillMissing
+                                        }
+                                      >
+                                        —
+                                      </span>
+                                    )}
+
+                                    {grade && (
+                                      <div
+                                        className={styles.individualLevelTrack}
+                                        title={progressLabel}
+                                        aria-label={progressLabel}
+                                      >
+                                        <span
+                                          className={styles.individualLevelDot}
+                                          style={{ bottom: `${progress}%` }}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className={styles.empty}>No attributes available</p>
