@@ -27,6 +27,8 @@ export type PlayerDisplay = {
   finalY: number;
   finalType: string;
   finalTypeColor: string;
+  initialSkillPoints: number[];
+  finalSkillPoints: number[];
   startAttributes: ReturnType<typeof calculateAttributes>;
   finalAttributes: ReturnType<typeof calculateAttributes>;
   startPots: number[];
@@ -64,6 +66,61 @@ function getLevelProgress(value: number, level: number): number {
   if (min === undefined || max === undefined) return 0;
 
   return Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+}
+
+const INDIVIDUAL_SKILLS = [
+  { index: 0, name: "Shooting Power", icon: "/shooting-power.png" },
+  { index: 1, name: "Shooting Accuracy", icon: "/shooting-accuracy.png" },
+  { index: 4, name: "Tackling", icon: "/tackling.png" },
+  { index: 5, name: "Ball Control", icon: "/ballcontrole.png" },
+  { index: 6, name: "Dribbling", icon: "/dribbling.png" },
+] as const;
+
+function IndividualGrade({
+  name,
+  points,
+  phase,
+}: {
+  name: string;
+  points: number;
+  phase: string;
+}) {
+  const level = LEVEL_THRESHOLDS.reduce<number>(
+    (result, threshold, index) => (points >= threshold ? index : result),
+    0,
+  );
+  const grade = ["E", "D", "C", "B", "A", "S"][level];
+  const progress = getLevelProgress(points, level);
+  const label = `${phase}: ${name}: ${grade} (${points} XP) — ${
+    level === 5
+      ? "Max grade"
+      : `${LEVEL_THRESHOLDS[level + 1] - points} XP to next grade`
+  }`;
+
+  return (
+    <div className={styles.gradeSlot} title={label}>
+      <div className={styles.skillGrade}>
+        <Image
+          src={rankImages[grade]}
+          alt={grade}
+          width={15}
+          height={15}
+          unoptimized
+          className={styles.rankImage}
+        />
+      </div>
+      <div
+        className={styles.levelTrack}
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(progress)}
+      >
+        <span className={styles.levelDot} style={{ bottom: `${progress}%` }} />
+      </div>
+    </div>
+  );
 }
 
 function getAttributeImage(name: string, index: number): string {
@@ -236,133 +293,149 @@ export function TypePlayers({
                     }}
                   />
                 </div>
-                <div className={styles.typeColumn}>
-                  <p
-                    className={styles.playerType}
-                    style={{ color: player.typeColor }}
-                  >
-                    {getPlayerType(player.x, player.y)}
-                  </p>
-                  <div className={styles.resultType}>
-                    <span className={styles.downArrow}>⌄</span>
-                    <span style={{ color: player.finalTypeColor }}>
-                      {player.finalType}
+                <div className={styles.typeComparison}>
+                  <div className={styles.typeComparisonRow}>
+                    <span
+                      className={styles.comparisonType}
+                      style={{
+                        color: player.typeColor,
+                        fontSize: 16,
+                        fontWeight: 300,
+                        textAlign: "center",
+                      }}
+                    >
+                      {getPlayerType(player.x, player.y)}
                     </span>
-                  </div>
-                </div>
-
-                <div className={styles.coordinatesColumn}>
-                  {chartMode === "types" &&
-                    (player.xOverflow !== 0 || player.yOverflow !== 0) && (
-                      <div className={styles.overhang}>
-                        {player.xOverflow !== 0 && (
+                    <div className={styles.vectorColumn}>
+                      <div className={styles.coordinatesRow}>
+                        {chartMode === "movement" ? (
                           <span
-                            className={
-                              player.xOverflow > 0
-                                ? styles.positiveOverhang
-                                : styles.negativeOverhang
-                            }
+                            className={styles.resultCoordinates}
+                            title="Before training: X = Defensive Movement, Y = Offensive Movement"
                           >
-                            X {player.xOverflow > 0 ? "+" : ""}
-                            {player.xOverflow}
+                            {player.movementDataAvailable &&
+                            player.initialExtraValues
+                              ? `X ${player.initialExtraValues[0]} / Y ${player.initialExtraValues[1]}`
+                              : "X — / Y —"}
                           </span>
-                        )}
+                        ) : player.isImported ? (
+                          <span className={styles.resultCoordinates}>
+                            X {player.x} / Y {player.y}
+                          </span>
+                        ) : (
+                          <>
+                            <label className={styles.coordinate}>
+                              X
+                              <input
+                                onClick={(event) => event.stopPropagation()}
+                                type="number"
+                                min={0}
+                                max={100}
+                                step={1}
+                                value={player.x}
+                                onChange={(event) => {
+                                  const value =
+                                    event.currentTarget.valueAsNumber;
+                                  if (Number.isFinite(value)) {
+                                    onPositionChange(
+                                      player.id,
+                                      "x",
+                                      clampCoordinate(value),
+                                    );
+                                  }
+                                }}
+                                aria-label={`${player.name} X-Koordinate`}
+                              />
+                            </label>
 
-                        {player.yOverflow !== 0 && (
-                          <span
-                            className={
-                              player.yOverflow > 0
-                                ? styles.positiveOverhang
-                                : styles.negativeOverhang
-                            }
-                          >
-                            Y {player.yOverflow > 0 ? "+" : ""}
-                            {player.yOverflow}
-                          </span>
+                            <label className={styles.coordinate}>
+                              Y
+                              <input
+                                onClick={(event) => event.stopPropagation()}
+                                type="number"
+                                min={0}
+                                max={100}
+                                step={1}
+                                value={player.y}
+                                onChange={(event) => {
+                                  const value =
+                                    event.currentTarget.valueAsNumber;
+                                  if (Number.isFinite(value)) {
+                                    onPositionChange(
+                                      player.id,
+                                      "y",
+                                      clampCoordinate(value),
+                                    );
+                                  }
+                                }}
+                                aria-label={`${player.name} Y-Koordinate`}
+                              />
+                            </label>
+                          </>
                         )}
                       </div>
-                    )}
-                  <div className={styles.coordinatesRow}>
-                    {chartMode === "movement" ? (
-                      <span
-                        className={styles.resultCoordinates}
-                        title="Before training: X = Defensive Movement, Y = Offensive Movement"
-                      >
-                        {player.movementDataAvailable &&
-                        player.initialExtraValues
-                          ? `X ${player.initialExtraValues[0]} / Y ${player.initialExtraValues[1]}`
-                          : "X — / Y —"}
-                      </span>
-                    ) : player.isImported ? (
-                      <span className={styles.resultCoordinates}>
-                        X {player.x} / Y {player.y}
-                      </span>
-                    ) : (
-                      <>
-                        <label className={styles.coordinate}>
-                          X
-                          <input
-                            onClick={(event) => event.stopPropagation()}
-                            type="number"
-                            min={0}
-                            max={100}
-                            step={1}
-                            value={player.x}
-                            onChange={(event) => {
-                              const value = event.currentTarget.valueAsNumber;
-                              if (Number.isFinite(value)) {
-                                onPositionChange(
-                                  player.id,
-                                  "x",
-                                  clampCoordinate(value),
-                                );
-                              }
-                            }}
-                            aria-label={`${player.name} X-Koordinate`}
-                          />
-                        </label>
-
-                        <label className={styles.coordinate}>
-                          Y
-                          <input
-                            onClick={(event) => event.stopPropagation()}
-                            type="number"
-                            min={0}
-                            max={100}
-                            step={1}
-                            value={player.y}
-                            onChange={(event) => {
-                              const value = event.currentTarget.valueAsNumber;
-                              if (Number.isFinite(value)) {
-                                onPositionChange(
-                                  player.id,
-                                  "y",
-                                  clampCoordinate(value),
-                                );
-                              }
-                            }}
-                            aria-label={`${player.name} Y-Koordinate`}
-                          />
-                        </label>
-                      </>
-                    )}
+                    </div>
                   </div>
-                  <div className={styles.resultCoordinates}>
-                    <span className={styles.downArrow}>⌄</span>
+
+                  <span className={styles.comparisonArrow} aria-hidden="true">
+                    ⌄
+                  </span>
+
+                  <div className={styles.typeComparisonRow}>
                     <span
-                      title={
-                        chartMode === "movement"
-                          ? "After training: X = Defensive Movement, Y = Offensive Movement"
-                          : undefined
-                      }
+                      className={styles.comparisonType}
+                      style={{ color: player.finalTypeColor }}
                     >
-                      {chartMode === "movement"
-                        ? player.movementDataAvailable &&
-                          player.finalExtraValues
-                          ? `X ${player.finalExtraValues[0]} / Y ${player.finalExtraValues[1]}`
-                          : "X — / Y —"
-                        : `X ${player.finalX} / Y ${player.finalY}`}
+                      {player.finalType}
                     </span>
+                    <div className={styles.vectorColumn}>
+                      {chartMode === "types" &&
+                        (player.xOverflow !== 0 || player.yOverflow !== 0) && (
+                          <div className={styles.overhang}>
+                            {player.xOverflow !== 0 && (
+                              <span
+                                className={
+                                  player.xOverflow > 0
+                                    ? styles.positiveOverhang
+                                    : styles.negativeOverhang
+                                }
+                              >
+                                X {player.xOverflow > 0 ? "+" : ""}
+                                {player.xOverflow}
+                              </span>
+                            )}
+
+                            {player.yOverflow !== 0 && (
+                              <span
+                                className={
+                                  player.yOverflow > 0
+                                    ? styles.positiveOverhang
+                                    : styles.negativeOverhang
+                                }
+                              >
+                                Y {player.yOverflow > 0 ? "+" : ""}
+                                {player.yOverflow}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      <div className={styles.resultCoordinates}>
+                        <span
+                          title={
+                            chartMode === "movement"
+                              ? "After training: X = Defensive Movement, Y = Offensive Movement"
+                              : undefined
+                          }
+                        >
+                          {chartMode === "movement"
+                            ? player.movementDataAvailable &&
+                              player.finalExtraValues
+                              ? `X ${player.finalExtraValues[0]} / Y ${player.finalExtraValues[1]}`
+                              : "X — / Y —"
+                            : `X ${player.finalX} / Y ${player.finalY}`}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -484,6 +557,34 @@ export function TypePlayers({
                         </div>
                       );
                     })}
+                </div>
+                <div
+                  className={`${styles.skillsGrid} ${styles.individualSkillsGrid}`}
+                  aria-label="Individual skills before and after training"
+                >
+                  {INDIVIDUAL_SKILLS.map(({ index, name, icon }) => (
+                    <div className={styles.skillItem} key={index} title={name}>
+                      <Image
+                        src={icon}
+                        alt={name}
+                        width={15}
+                        height={15}
+                        unoptimized
+                        className={styles.skillIcon}
+                      />
+                      <IndividualGrade
+                        name={name}
+                        points={player.initialSkillPoints[index]}
+                        phase="Before training"
+                      />
+                      <span className={styles.downArrow}>⌄</span>
+                      <IndividualGrade
+                        name={name}
+                        points={player.finalSkillPoints[index]}
+                        phase="After training"
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
             </li>

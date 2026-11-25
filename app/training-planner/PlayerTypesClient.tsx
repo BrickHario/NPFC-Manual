@@ -802,6 +802,8 @@ export default function PlayerTypesClient({
         yOverflow: finalPosition.yOverflow,
         finalType: PLAYER_TYPE_NAMES[language][finalTypeId],
         finalTypeColor: PLAYER_TYPE_COLORS[finalTypeId],
+        initialSkillPoints,
+        finalSkillPoints,
         startAttributes,
         finalAttributes,
         initialExtraValues,
