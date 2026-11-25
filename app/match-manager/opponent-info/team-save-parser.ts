@@ -57,6 +57,7 @@ export type SavedPlayerExperience = {
 };
 
 export type SavedOwnPlayer = ImportedSavePlayer & {
+  lineupRank: number | null;
   availability: PlayerAvailability | null;
   shirtNumber: number | null;
   experience: SavedPlayerExperience | null;
@@ -72,6 +73,9 @@ export type SavedLineupSlot = {
 export type SavedOpponentLineup = {
   predictionSource: "saved-revised-order" | "revised-with-primary-fallback";
   starters: SavedLineupSlot[];
+  bench: SavedLineupSlot[];
+  positionExperienceDisabled: boolean;
+  experienceOverride: { position: number; actions: number[] } | null;
   primaryOrder: number[];
   formationRoleCodes: number[];
 };
@@ -98,7 +102,7 @@ const SAVE_ROSTER_OFFSET = 0x0c6e;
 const PLAYER_SIZE = 0x98;
 const EMPTY_PLAYER_ID = 1016;
 
-const STORAGE_KEY = "npfc-imported-team-v9";
+const STORAGE_KEY = "npfc-imported-team-v10";
 
 function experienceGrade(points: number): string {
   if (points >= 1000) return "S";
@@ -217,7 +221,34 @@ export function readOpponentLineup(
   const revisedSlots = uniqueValid(revised);
   const orderedSlots = uniqueValid([...revisedSlots, ...uniqueValid(primary)]);
 
+  const toLineupSlot = (
+    rosterSlot: number,
+    lineupSlot: number,
+  ): SavedLineupSlot => ({
+    playerId: playerIdAt(rosterSlot),
+    rosterSlot,
+    lineupSlot,
+    primaryRank: primary.indexOf(rosterSlot),
+  });
+  const override =
+    teamId >= 11 && teamId < 31 ? view.getUint8(0x12768 + teamId) : 0;
+  const overrideBase = 0x8c88 + (override & 0x7f) * 0x84;
+  const experienceOverride =
+    override && overrideBase + 0x7a <= view.byteLength
+      ? {
+          position: view.getUint8(overrideBase + 0x74),
+          actions: Array.from({ length: 5 }, (_, i) =>
+            view.getUint8(overrideBase + 0x75 + i),
+          ),
+        }
+      : null;
+
   return {
+    bench: orderedSlots
+      .slice(11, 18)
+      .map((slot, index) => toLineupSlot(slot, index + 11)),
+    positionExperienceDisabled: view.getUint8(base + 0x2570) === 0,
+    experienceOverride,
     predictionSource:
       revisedSlots.length >= 11
         ? "saved-revised-order"
@@ -226,12 +257,7 @@ export function readOpponentLineup(
     formationRoleCodes: Array.from({ length: 18 }, (_, i) =>
       view.getUint8(base + 0x259e + i),
     ),
-    starters: orderedSlots.slice(0, 11).map((rosterSlot, lineupSlot) => ({
-      playerId: playerIdAt(rosterSlot),
-      rosterSlot,
-      lineupSlot,
-      primaryRank: primary.indexOf(rosterSlot),
-    })),
+    starters: orderedSlots.slice(0, 11).map(toLineupSlot),
   };
 }
 
@@ -304,6 +330,12 @@ export function parseTeamSave(
     }
   }
 
+  const ownOrder = Array.from(bytes.subarray(0x89c, 0x89c + 25));
+  const validOwnOrder =
+    ownOrder.length === 25 &&
+    new Set(ownOrder).size === 25 &&
+    ownOrder.every((slot) => slot < 25);
+
   const opponents: Record<number, SavedOpponentPlayer[]> = {};
   const opponentLineups: Record<number, SavedOpponentLineup> = {};
 
@@ -357,6 +389,10 @@ export function parseTeamSave(
       const slotIndex = slotById.get(player.id);
       return {
         ...player,
+        lineupRank:
+          slotIndex === undefined || !validOwnOrder
+            ? null
+            : ownOrder.indexOf(slotIndex),
         availability: readPlayerAvailability(view, player.id),
         foot:
           playerFootBits[player.id] === "1"
@@ -469,4 +505,5 @@ export function removeImportedTeam() {
   localStorage.removeItem("npfc-imported-team-v6");
   localStorage.removeItem("npfc-imported-team-v7");
   localStorage.removeItem("npfc-imported-team-v8");
+  localStorage.removeItem("npfc-imported-team-v9");
 }

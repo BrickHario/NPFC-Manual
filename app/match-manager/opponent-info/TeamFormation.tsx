@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
+import TeamStats from "./TeamStats";
+import type { TeamStatsPlayer } from "./team-stats";
 import {
   getAvailabilityLabel,
   isUnavailable,
@@ -45,6 +47,8 @@ type Props = {
   ownAbbr?: string;
   loadingNames?: boolean;
   typeProfileError?: string;
+  opponentStats?: TeamStatsPlayer[];
+  ownStats?: TeamStatsPlayer[];
 };
 
 type Position = "goalkeeper" | "defender" | "midfielder" | "forward";
@@ -153,11 +157,11 @@ function PlayerMarker({
       {unavailable && (
         <Image
           src="/blocked.png"
-          alt={availabilityLabel}
-          title={availabilityLabel}
           width={20}
           height={20}
           unoptimized
+          alt={availabilityLabel}
+          title={availabilityLabel}
           style={{
             position: "absolute",
             left: "calc(100% + 1px)",
@@ -260,9 +264,11 @@ export default function TeamFormation({
   ownAbbr,
   loadingNames = false,
   typeProfileError = "",
+  opponentStats = [],
+  ownStats = [],
 }: Props) {
-  const [chartMode, setChartMode] = useState<
-    "formation" | "types" | "movement"
+  const [requestedChartMode, setChartMode] = useState<
+    "formation" | "stats" | "types" | "movement"
   >("formation");
   const [selectedPlayerKey, setSelectedPlayerKey] = useState<string | null>(
     null,
@@ -271,6 +277,7 @@ export default function TeamFormation({
     "opponent",
   );
   const hasImportedTeam = ownPlayers !== undefined;
+  const chartMode = hasImportedTeam ? requestedChartMode : "formation";
   const showOwnTeam =
     hasImportedTeam && selectedTeam === "own" && chartMode !== "formation";
   const chartLoading = !showOwnTeam && loadingNames;
@@ -328,7 +335,7 @@ export default function TeamFormation({
 
   const switchButtonStyle = hasImportedTeam
     ? {
-        fontSize: "clamp(10px, 3.5cqw, 16px)",
+        fontSize: "clamp(9px, 2.9cqw, 15px)",
         padding: "8px 2px",
         overflowWrap: "anywhere" as const,
       }
@@ -353,121 +360,140 @@ export default function TeamFormation({
     <section
       className={styles.formationSection}
       style={{ alignSelf: hasImportedTeam ? "start" : "center" }}
-      aria-label="Team Formation, Player Types and Movement"
+      aria-label="Team Formation, Stats, Player Types and Movement"
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "stretch",
-          justifyContent: "center",
-          gap: 6,
-          width: "100%",
-          marginBottom: 14,
-          containerType: "inline-size",
-        }}
-      >
+      {hasImportedTeam ? (
         <div
-          className={chartStyles.chartSwitch}
           style={{
-            flex: "1 1 370px",
-            minWidth: 0,
-            maxWidth: 370,
-            width: "auto",
-            margin: 0,
-            boxSizing: "border-box",
+            display: "flex",
+            alignItems: "stretch",
+            justifyContent: "center",
+            gap: 6,
+            width: "100%",
+            marginBottom: 14,
+            containerType: "inline-size",
           }}
-          role="group"
-          aria-label="Team view"
         >
-          <button
-            type="button"
-            className={`${chartStyles.chartSwitchButton} ${
-              chartMode === "formation" ? chartStyles.chartSwitchActive : ""
-            }`}
-            style={switchButtonStyle}
-            aria-pressed={chartMode === "formation"}
-            onClick={() => {
-              setSelectedTeam("opponent");
-              setSelectedPlayerKey(null);
-              setChartMode("formation");
-            }}
-          >
-            Formation
-          </button>
-          <button
-            type="button"
-            className={`${chartStyles.chartSwitchButton} ${
-              chartMode === "types" ? chartStyles.chartSwitchActive : ""
-            }`}
-            style={switchButtonStyle}
-            aria-pressed={chartMode === "types"}
-            onClick={() => setChartMode("types")}
-          >
-            Player Types
-          </button>
-          <button
-            type="button"
-            className={`${chartStyles.chartSwitchButton} ${
-              chartMode === "movement" ? chartStyles.chartSwitchActive : ""
-            }`}
-            style={switchButtonStyle}
-            aria-pressed={chartMode === "movement"}
-            onClick={() => setChartMode("movement")}
-          >
-            Movement
-          </button>
-        </div>
-        {hasImportedTeam && (
-          <button
-            type="button"
-            className={`${chartStyles.chartSwitchButton} ${chartStyles.chartSwitchActive}`}
+          <div
+            className={chartStyles.chartSwitch}
             style={{
-              flex: "0 0 52px",
+              flex: "1 1 450px",
               minWidth: 0,
-              fontSize: "clamp(10px, 3.5cqw, 16px)",
-              overflowWrap: "anywhere",
-              padding: "8px 2px",
-              border: "2px solid var(--font_black)",
-              borderRadius: 12,
-              background:
-                chartMode === "formation"
-                  ? "var(--button_grey)"
-                  : "var(--color-highlight)",
-              color:
-                chartMode === "formation"
-                  ? "var(--font_black)"
-                  : "var(--font_white)",
-              cursor: chartMode === "formation" ? "not-allowed" : "pointer",
+              maxWidth: 450,
+              width: "auto",
+              margin: 0,
+              boxSizing: "border-box",
             }}
-            disabled={chartMode === "formation"}
-            title={
-              chartMode === "formation"
-                ? "Opponent formation only"
-                : `Switch to ${
-                    showOwnTeam ? opponentAbbr : ownAbbr ?? "own team"
-                  }`
-            }
-            aria-label={
-              chartMode === "formation"
-                ? `Opponent: ${opponentAbbr}`
-                : `Switch to ${
-                    showOwnTeam ? opponentAbbr : ownAbbr ?? "own team"
-                  }`
-            }
-            onClick={() => {
-              setSelectedTeam(showOwnTeam ? "opponent" : "own");
-              setSelectedPlayerKey(null);
-            }}
+            role="group"
+            aria-label="Team view"
           >
-            {showOwnTeam ? ownAbbr ?? "—" : opponentAbbr}
-          </button>
-        )}
-      </div>
+            <button
+              type="button"
+              className={`${chartStyles.chartSwitchButton} ${
+                chartMode === "formation" ? chartStyles.chartSwitchActive : ""
+              }`}
+              style={switchButtonStyle}
+              aria-pressed={chartMode === "formation"}
+              onClick={() => {
+                setSelectedTeam("opponent");
+                setSelectedPlayerKey(null);
+                setChartMode("formation");
+              }}
+            >
+              Formation
+            </button>
+            <button
+              type="button"
+              className={`${chartStyles.chartSwitchButton} ${
+                chartMode === "stats" ? chartStyles.chartSwitchActive : ""
+              }`}
+              style={switchButtonStyle}
+              aria-pressed={chartMode === "stats"}
+              onClick={() => setChartMode("stats")}
+            >
+              Stats
+            </button>
+            <button
+              type="button"
+              className={`${chartStyles.chartSwitchButton} ${
+                chartMode === "types" ? chartStyles.chartSwitchActive : ""
+              }`}
+              style={switchButtonStyle}
+              aria-pressed={chartMode === "types"}
+              onClick={() => setChartMode("types")}
+            >
+              Player Types
+            </button>
+            <button
+              type="button"
+              className={`${chartStyles.chartSwitchButton} ${
+                chartMode === "movement" ? chartStyles.chartSwitchActive : ""
+              }`}
+              style={switchButtonStyle}
+              aria-pressed={chartMode === "movement"}
+              onClick={() => setChartMode("movement")}
+            >
+              Movement
+            </button>
+          </div>
+          {hasImportedTeam && (
+            <button
+              type="button"
+              className={`${chartStyles.chartSwitchButton} ${chartStyles.chartSwitchActive}`}
+              style={{
+                flex: "0 0 52px",
+                minWidth: 0,
+                fontSize: "clamp(10px, 3.5cqw, 16px)",
+                overflowWrap: "anywhere",
+                padding: "8px 2px",
+                border: "2px solid var(--font_black)",
+                borderRadius: 12,
+                background:
+                  chartMode === "formation"
+                    ? "var(--button_grey)"
+                    : "var(--color-highlight)",
+                color: "var(--font_white)",
+                cursor: chartMode === "formation" ? "not-allowed" : "pointer",
+              }}
+              disabled={chartMode === "formation"}
+              title={
+                chartMode === "formation"
+                  ? "Opponent formation only"
+                  : `Switch to ${
+                      showOwnTeam ? opponentAbbr : ownAbbr ?? "own team"
+                    }`
+              }
+              aria-label={
+                chartMode === "formation"
+                  ? `Opponent: ${opponentAbbr}`
+                  : `Switch to ${
+                      showOwnTeam ? opponentAbbr : ownAbbr ?? "own team"
+                    }`
+              }
+              onClick={() => {
+                setSelectedTeam(showOwnTeam ? "opponent" : "own");
+                setSelectedPlayerKey(null);
+              }}
+            >
+              {showOwnTeam ? ownAbbr ?? "—" : opponentAbbr}
+            </button>
+          )}
+        </div>
+      ) : (
+        <h2 className={styles.formationHeading}>Formation</h2>
+      )}
 
-      {chartMode !== "formation" ? (
+      {chartMode === "stats" ? (
+        <TeamStats
+          players={showOwnTeam ? ownStats : opponentStats}
+          isOwnTeam={showOwnTeam}
+          loading={chartLoading}
+          imported={hasImportedTeam}
+        />
+      ) : chartMode !== "formation" ? (
         <>
-          {chartMode === "types" ? (
-            <div className={labels.chartContainer}>
+          <div className={labels.chartContainer}>
+            {chartMode === "types" ? (
               <TypesChart
                 players={chartPlayers}
                 selectedPlayerKey={activePlayerKey}
@@ -475,17 +501,14 @@ export default function TeamFormation({
                 showDescription={false}
                 onSelectPlayer={handleChartSelect}
               />
-            </div>
-          ) : (
-            <div className={labels.chartContainer}>
+            ) : (
               <MovementChart
                 players={movementPlayers}
                 selectedPlayerKey={activePlayerKey}
                 onSelectPlayer={handleChartSelect}
-                showDescription={false}
               />
-            </div>
-          )}
+            )}
+          </div>
           {chartLoading ? (
             <div className={labels.caption}>Loading opponent players…</div>
           ) : !showOwnTeam &&
@@ -616,9 +639,6 @@ export default function TeamFormation({
             </div>
           )}
           <div className={styles.formationName}>{getFormationName(slots)}</div>
-          {players !== undefined && (
-            <div className={labels.caption}>Probable starting XI</div>
-          )}
         </>
       )}
     </section>

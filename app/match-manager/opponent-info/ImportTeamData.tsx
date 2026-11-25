@@ -14,7 +14,13 @@ import PlayersOnTeam, { type AssignedPlayer } from "./PlayersOnTeam";
 import { LoadingSmall } from "@/app/Loading";
 import { playerFootBits } from "./saved-player-metadata";
 import TeamFormation from "./TeamFormation";
-import type { Language } from "@/lib/utils";
+import { calculateAttributes, type Language } from "@/lib/utils";
+import {
+  gradeScore,
+  xpScore,
+  type TeamExperienceGrades,
+  type TeamStatsPlayer,
+} from "./team-stats";
 import { predictOpponentLineup } from "./predict-opponent-lineup";
 import { isUnavailable } from "./player-availability";
 import type { TeamFormationSlot } from "./team-formation";
@@ -355,6 +361,16 @@ function useOpponentMetadata(team: ImportedTeam | null, teamId: number) {
   return metadata?.key === key ? metadata : null;
 }
 
+const OWN_POSITION_GROUPS = [0, 1, 1, 2, 2, 2, 3] as const;
+
+function getOwnPositionId(position: number): number | null {
+  return Number.isInteger(position) &&
+    position >= 0 &&
+    position < OWN_POSITION_GROUPS.length
+    ? OWN_POSITION_GROUPS[position]
+    : null;
+}
+
 export function ImportedTeamFormation({
   language = "en",
   abbr,
@@ -364,6 +380,7 @@ export function ImportedTeamFormation({
   playerPreference,
   typeProfiles = [],
   typeProfileError = "",
+  experienceGrades,
 }: {
   language?: Language;
   abbr: string;
@@ -373,6 +390,7 @@ export function ImportedTeamFormation({
   playerPreference: number;
   typeProfiles?: TeamPlayerTypeProfile[];
   typeProfileError?: string;
+  experienceGrades?: TeamExperienceGrades;
 }) {
   const { team, opponentMetadata } = useTeamImport();
   const lineup = team?.opponentLineups[teamId];
@@ -514,13 +532,112 @@ export function ImportedTeamFormation({
     shirtNumber: player.shirtNumber,
     typeIndex: player.savedTypeIndex,
     availability: player.availability,
-    positionId: player.position,
+    positionId: getOwnPositionId(player.position),
     typeWeights: player.typeWeights,
     extraValues: player.extraValues ?? null,
   }));
 
+  const subIds = new Set(
+    (prediction?.bench ?? lineup?.bench ?? [])
+      .filter(
+        (starter) => !isUnavailable(roster.get(starter.playerId)?.availability),
+      )
+      .map((starter) => starter.playerId),
+  );
+  const effectiveExperience = lineup?.experienceOverride ?? experienceGrades;
+  const skillScores = (
+    values: number[],
+    points: boolean,
+  ): (number | null)[] => {
+    if (
+      values.length !== 10 ||
+      !values.every(
+        (value) =>
+          Number.isInteger(value) && value >= 0 && (points || value <= 5),
+      )
+    ) {
+      return Array<number | null>(7).fill(null);
+    }
+    const row = Object.fromEntries(
+      values.map((value, index) => [
+        `skill_${String(index + 1).padStart(2, "0")}`,
+        value,
+      ]),
+    );
+    const attributes = points
+      ? calculateAttributes(row, "points")
+      : calculateAttributes(row);
+    return attributes
+      .slice(0, 7)
+      .map((attribute) =>
+        points ? xpScore(attribute.value) : gradeScore(attribute.level),
+      );
+  };
+  const opponentStats: TeamStatsPlayer[] = opponentRoster.map((player) => {
+    const positionId = positionsById.get(player.id) ?? null;
+    return {
+      id: player.id,
+      positionId,
+      selection: !lineup
+        ? null
+        : starterIds.has(player.id)
+        ? "lineup"
+        : subIds.has(player.id)
+        ? "sub"
+        : "reserve",
+      skillScores: skillScores(player.skills, false),
+      positionScores: Array.from({ length: 4 }, (_, index) =>
+        lineup?.positionExperienceDisabled
+          ? 0
+          : positionId === null
+          ? null
+          : index === positionId
+          ? gradeScore(effectiveExperience?.position)
+          : 0,
+      ),
+      actionScores: Array.from({ length: 5 }, (_, index) =>
+        gradeScore(effectiveExperience?.actions[index]),
+      ),
+      movement: getExtraValues(player.rosterSlot),
+    };
+  });
+  const ownStats: TeamStatsPlayer[] = (team?.players ?? []).map((player) => {
+    const rank = player.lineupRank;
+    const xp = player.experience;
+    return {
+      id: player.id,
+      positionId: getOwnPositionId(player.position),
+      selection:
+        rank == null || rank < 0
+          ? null
+          : rank < 11
+          ? "lineup"
+          : rank < 18
+          ? "sub"
+          : "reserve",
+      skillScores: skillScores(player.skillPoints, true),
+      positionScores: [
+        xp?.positionXP.gk,
+        xp?.positionXP.df,
+        xp?.positionXP.mf,
+        xp?.positionXP.fw,
+      ].map(xpScore),
+      actionScores: [
+        xp?.actionXP.shooting,
+        xp?.actionXP.longPassing,
+        xp?.actionXP.throughPassing,
+        xp?.actionXP.dribbling,
+        xp?.actionXP.directPassing,
+      ].map(xpScore),
+      movement: player.extraValues ?? null,
+    };
+  });
+
   return (
     <TeamFormation
+      key={team ? "imported" : "default"}
+      opponentStats={opponentStats}
+      ownStats={ownStats}
       language={language}
       slots={slots}
       stadiumId={stadiumId}
@@ -555,7 +672,7 @@ export function ImportedTeamPlayers({
   const ownPlayers: AssignedPlayer[] = team.players.map((player) => ({
     id_player: player.id,
     name: player.name,
-    id_position: player.position,
+    id_position: getOwnPositionId(player.position) ?? -1,
     shirtNumber: player.shirtNumber,
     typeIndex: player.savedTypeIndex,
     availability: player.availability,

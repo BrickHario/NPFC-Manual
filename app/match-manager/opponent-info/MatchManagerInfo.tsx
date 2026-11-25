@@ -326,6 +326,16 @@ export default function MatchManagerInfo({
             stadiumId={team.stadium_id}
             teamId={team.team_id}
             playerPreference={team.player_pref}
+            experienceGrades={{
+              position: team.pos_loyalty,
+              actions: [
+                team.action_shooting,
+                team.action_long_passing,
+                team.action_through_passing,
+                team.action_dribbling,
+                team.action_direct_passing,
+              ],
+            }}
             typeProfiles={typeProfiles}
             typeProfileError={typeProfileError}
           />

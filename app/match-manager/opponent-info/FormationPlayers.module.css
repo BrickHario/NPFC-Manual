@@ -133,30 +133,14 @@
 }
 
 .chartContainer {
-  width: 115%;
-  max-width: none;
-  align-self: center;
-  margin-top: 20px;
-}
-
-.chartContainer svg {
-  width: 100%;
-  max-width: none;
-  height: auto;
-}
-
-@media (max-width: 700px) {
-  .chartContainer {
-    width: 100%;
-    margin-top: 12px;
-  }
-}
-
-.chartContainer {
   width: 110%;
   max-width: none;
   align-self: center;
   margin-top: 20px;
+}
+
+.chartContainer > p {
+  display: none;
 }
 
 .chartContainer svg {
