@@ -9,6 +9,7 @@ import PlayerImages from "../../marketplace/PlayerImages";
 import {
   calculateAttributes,
   getAttributeImage,
+  getFatigueProgress,
   getOverall,
   getPosition,
   rankImages,
@@ -57,6 +58,7 @@ export type PlayerExperience = {
 export type AssignedPlayer = {
   id_player: number;
   shirtNumber?: number | null;
+  fatigue?: number | null;
   typeIndex?: number | null;
   availability?: PlayerAvailability | null;
   foot?: "L" | "R" | null;
@@ -137,12 +139,17 @@ const INDIVIDUAL_SKILL_NAMES: Record<string, string> = {
 function IndividualSkills({
   values,
   points,
+  fatigue,
 }: {
   values: number[];
   points: boolean;
+  fatigue?: number | null;
 }) {
   return (
     <div className={styles.individualSkills} aria-label="Individual skills">
+      {typeof fatigue === "number" && Number.isFinite(fatigue) && (
+        <PlayerFatigue fatigue={fatigue} iconOnly />
+      )}
       {INDIVIDUAL_SKILL_ROWS.map((row, rowIndex) => (
         <div key={rowIndex} className={styles.individualSkillRow}>
           {row.map((index) => {
@@ -227,6 +234,61 @@ const ACTION_EXPERIENCE = [
   { key: "dribbling", label: "Dribbling" },
   { key: "directPassing", label: "Direct Passing" },
 ] as const;
+
+function PlayerFatigue({
+  fatigue,
+  iconOnly = false,
+}: {
+  fatigue: number;
+  iconOnly?: boolean;
+}) {
+  const value = Math.max(0, fatigue);
+  const color = value >= 700 ? "red" : value >= 400 ? "yellow" : "green";
+  const status =
+    color === "red" ? "Very tired" : color === "yellow" ? "Tired" : "Normal";
+  const label = `Fatigue: ${value} · ${status}`;
+
+  if (iconOnly) {
+    return (
+      <Image
+        src={`/fatigueIcon-${color}.png`}
+        alt={label}
+        title={label}
+        width={20}
+        height={20}
+        unoptimized
+        className={styles.icon}
+        style={{ alignSelf: "flex-start" }}
+      />
+    );
+  }
+
+  const progress = Math.max(0, Math.min(100, getFatigueProgress(value)));
+
+  return (
+    <div className={styles.meter} title={label}>
+      <Image
+        src={`/fatigueIcon-${color}.png`}
+        alt={status}
+        width={20}
+        height={20}
+        unoptimized
+        className={styles.icon}
+      />
+      <div
+        className={styles.track}
+        role="meter"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={progress}
+        aria-valuetext={label}
+      >
+        <span className={styles.marker} style={{ bottom: `${progress}%` }} />
+      </div>
+    </div>
+  );
+}
 
 export default function PlayersOnTeam({
   language = "en",
@@ -418,10 +480,18 @@ export default function PlayersOnTeam({
                             )}
                           </div>
 
+                          {savedLevels &&
+                            !imported &&
+                            typeof player.fatigue === "number" &&
+                            Number.isFinite(player.fatigue) && (
+                              <PlayerFatigue fatigue={player.fatigue} />
+                            )}
+
                           {imported && individualSkills && (
                             <IndividualSkills
                               values={individualSkills}
                               points={imported}
+                              fatigue={player.fatigue}
                             />
                           )}
                         </div>

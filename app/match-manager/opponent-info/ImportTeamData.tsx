@@ -573,65 +573,69 @@ export function ImportedTeamFormation({
         points ? xpScore(attribute.value) : gradeScore(attribute.level),
       );
   };
-  const opponentStats: TeamStatsPlayer[] = opponentRoster.map((player) => {
-    const positionId = positionsById.get(player.id) ?? null;
-    return {
-      id: player.id,
-      positionId,
-      selection: !lineup
-        ? null
-        : starterIds.has(player.id)
-        ? "lineup"
-        : subIds.has(player.id)
-        ? "sub"
-        : "reserve",
-      skillScores: skillScores(player.skills, false),
-      positionScores: Array.from({ length: 4 }, (_, index) =>
-        lineup?.positionExperienceDisabled
-          ? 0
-          : positionId === null
+  const opponentStats: TeamStatsPlayer[] = opponentRoster
+    .filter((player) => !isUnavailable(player.availability))
+    .map((player) => {
+      const positionId = positionsById.get(player.id) ?? null;
+      return {
+        id: player.id,
+        positionId,
+        selection: !lineup
           ? null
-          : index === positionId
-          ? gradeScore(effectiveExperience?.position)
-          : 0,
-      ),
-      actionScores: Array.from({ length: 5 }, (_, index) =>
-        gradeScore(effectiveExperience?.actions[index]),
-      ),
-      movement: getExtraValues(player.rosterSlot),
-    };
-  });
-  const ownStats: TeamStatsPlayer[] = (team?.players ?? []).map((player) => {
-    const rank = player.lineupRank;
-    const xp = player.experience;
-    return {
-      id: player.id,
-      positionId: getOwnPositionId(player.position),
-      selection:
-        rank == null || rank < 0
-          ? null
-          : rank < 11
+          : starterIds.has(player.id)
           ? "lineup"
-          : rank < 18
+          : subIds.has(player.id)
           ? "sub"
           : "reserve",
-      skillScores: skillScores(player.skillPoints, true),
-      positionScores: [
-        xp?.positionXP.gk,
-        xp?.positionXP.df,
-        xp?.positionXP.mf,
-        xp?.positionXP.fw,
-      ].map(xpScore),
-      actionScores: [
-        xp?.actionXP.shooting,
-        xp?.actionXP.longPassing,
-        xp?.actionXP.throughPassing,
-        xp?.actionXP.dribbling,
-        xp?.actionXP.directPassing,
-      ].map(xpScore),
-      movement: player.extraValues ?? null,
-    };
-  });
+        skillScores: skillScores(player.skills, false),
+        positionScores: Array.from({ length: 4 }, (_, index) =>
+          lineup?.positionExperienceDisabled
+            ? 0
+            : positionId === null
+            ? null
+            : index === positionId
+            ? gradeScore(effectiveExperience?.position)
+            : 0,
+        ),
+        actionScores: Array.from({ length: 5 }, (_, index) =>
+          gradeScore(effectiveExperience?.actions[index]),
+        ),
+        movement: getExtraValues(player.rosterSlot),
+      };
+    });
+  const ownStats: TeamStatsPlayer[] = (team?.players ?? [])
+    .filter((player) => !isUnavailable(player.availability))
+    .map((player) => {
+      const rank = player.lineupRank;
+      const xp = player.experience;
+      return {
+        id: player.id,
+        positionId: getOwnPositionId(player.position),
+        selection:
+          rank == null || rank < 0
+            ? null
+            : rank < 11
+            ? "lineup"
+            : rank < 18
+            ? "sub"
+            : "reserve",
+        skillScores: skillScores(player.skillPoints, true),
+        positionScores: [
+          xp?.positionXP.gk,
+          xp?.positionXP.df,
+          xp?.positionXP.mf,
+          xp?.positionXP.fw,
+        ].map(xpScore),
+        actionScores: [
+          xp?.actionXP.shooting,
+          xp?.actionXP.longPassing,
+          xp?.actionXP.throughPassing,
+          xp?.actionXP.dribbling,
+          xp?.actionXP.directPassing,
+        ].map(xpScore),
+        movement: player.extraValues ?? null,
+      };
+    });
 
   return (
     <TeamFormation
@@ -673,6 +677,7 @@ export function ImportedTeamPlayers({
     id_player: player.id,
     name: player.name,
     id_position: getOwnPositionId(player.position) ?? -1,
+    fatigue: player.fatigue,
     shirtNumber: player.shirtNumber,
     typeIndex: player.savedTypeIndex,
     availability: player.availability,
@@ -701,6 +706,7 @@ export function ImportedTeamPlayers({
     id_player: player.id,
     name: lookup.get(player.id)?.name ?? `Player #${player.id}`,
     id_position: lookup.get(player.id)?.id_position ?? -1,
+    fatigue: player.fatigue,
     shirtNumber: player.shirtNumber,
     typeIndex: player.typeIndex,
     availability: player.availability,
