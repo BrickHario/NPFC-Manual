@@ -324,7 +324,7 @@
 
 .chartSwitch {
   display: flex;
-  width: min(100%, 370px);
+  width: min(100%, 500px);
   gap: 4px;
   padding: 4px;
   margin: 0 auto 14px;

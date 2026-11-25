@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import TypesChart from "@/app/training-planner/TypesChart";
+import MovementChart from "@/app/training-planner/MovementChart";
 import { playerTypeRows } from "@/app/training-planner/player-type-data";
 import { calculatePlayerPosition } from "@/app/training-planner/player-type-calculation";
 import chartStyles from "@/app/training-planner/TypesChart.module.css";
@@ -23,6 +24,7 @@ export type FormationPlayer = {
   typeIndex: number | null;
   positionId?: number | null;
   typeWeights?: number[] | null;
+  extraValues?: [number, number] | null;
 };
 
 type Props = {
@@ -183,6 +185,37 @@ function getOpponentChartPlayers(players: FormationPlayer[]) {
   });
 }
 
+function getOpponentMovementPlayers(players: FormationPlayer[]) {
+  const unique = [
+    ...new Map(players.map((player) => [player.playerId, player])).values(),
+  ];
+
+  return unique.flatMap((player) => {
+    const values = player.extraValues;
+    if (
+      !values ||
+      values.length !== 2 ||
+      !values.every(
+        (value) => Number.isFinite(value) && value >= 0 && value <= 100,
+      )
+    )
+      return [];
+
+    return [
+      {
+        id: player.playerId,
+        name: player.name,
+        imageUrl: `/player-images/${String(player.playerId).padStart(
+          4,
+          "0",
+        )}.png`,
+        startPosition: { x: values[0], y: values[1] },
+        path: [],
+      },
+    ];
+  });
+}
+
 export default function TeamFormation({
   language = "en",
   slots,
@@ -192,9 +225,9 @@ export default function TeamFormation({
   loadingNames = false,
   typeProfileError = "",
 }: Props) {
-  const [chartMode, setChartMode] = useState<"formation" | "types">(
-    "formation",
-  );
+  const [chartMode, setChartMode] = useState<
+    "formation" | "types" | "movement"
+  >("formation");
   const [selectedPlayerKey, setSelectedPlayerKey] = useState<string | null>(
     null,
   );
@@ -207,19 +240,45 @@ export default function TeamFormation({
     [chartMode, loadingNames, players, benchPlayers],
   );
 
+  const movementPlayers = useMemo(
+    () =>
+      chartMode === "movement" && !loadingNames
+        ? getOpponentMovementPlayers([
+            ...(players ?? []),
+            ...(benchPlayers ?? []),
+          ])
+        : [],
+    [chartMode, loadingNames, players, benchPlayers],
+  );
+  const visibleChartPlayers =
+    chartMode === "movement" ? movementPlayers : chartPlayers;
+
   const totalPlayers = new Set(
     [...(players ?? []), ...(benchPlayers ?? [])].map(
       (player) => player.playerId,
     ),
   ).size;
-  const missingCoordinates = totalPlayers - chartPlayers.length;
+  const missingCoordinates = totalPlayers - visibleChartPlayers.length;
   const hasTypeMismatch = chartPlayers.some((player) => player.typeMismatch);
 
-  const activePlayerKey = chartPlayers.some(
+  const activePlayerKey = visibleChartPlayers.some(
     (player) => String(player.id) === selectedPlayerKey,
   )
     ? selectedPlayerKey
     : null;
+
+  function handleChartSelect(key: string | null) {
+    setSelectedPlayerKey(key);
+    if (key === null) return;
+
+    document.getElementById(`saved-opponent-player-${key}`)?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  }
 
   const fieldImage = getFieldImage(stadiumId);
   const bySlot = new Map(
@@ -229,8 +288,8 @@ export default function TeamFormation({
   return (
     <section
       className={styles.formationSection}
-      style={{ alignSelf: "start" }}
-      aria-label="Team Formation and Player Types"
+      style={{ alignSelf: players !== undefined ? "start" : "center" }}
+      aria-label="Team Formation"
     >
       <div
         className={chartStyles.chartSwitch}
@@ -257,45 +316,53 @@ export default function TeamFormation({
         >
           Player Types
         </button>
+        <button
+          type="button"
+          className={`${chartStyles.chartSwitchButton} ${
+            chartMode === "movement" ? chartStyles.chartSwitchActive : ""
+          }`}
+          aria-pressed={chartMode === "movement"}
+          onClick={() => setChartMode("movement")}
+        >
+          Movement
+        </button>
       </div>
 
-      {chartMode === "types" ? (
+      {chartMode !== "formation" ? (
         <>
-          <TypesChart
-            players={chartPlayers}
-            selectedPlayerKey={activePlayerKey}
-            language={language}
-            showDescription={false}
-            onSelectPlayer={(key) => {
-              setSelectedPlayerKey(key);
-              if (key === null) return;
-
-              document
-                .getElementById(`saved-opponent-player-${key}`)
-                ?.scrollIntoView({
-                  behavior: window.matchMedia(
-                    "(prefers-reduced-motion: reduce)",
-                  ).matches
-                    ? "auto"
-                    : "smooth",
-                  block: "nearest",
-                  inline: "center",
-                });
-            }}
-          />
+          {chartMode === "types" ? (
+            <TypesChart
+              players={chartPlayers}
+              selectedPlayerKey={activePlayerKey}
+              language={language}
+              showDescription={false}
+              onSelectPlayer={handleChartSelect}
+            />
+          ) : (
+            <MovementChart
+              players={movementPlayers}
+              selectedPlayerKey={activePlayerKey}
+              onSelectPlayer={handleChartSelect}
+            />
+          )}
           {loadingNames ? (
             <div className={labels.caption}>Loading opponent players…</div>
           ) : players === undefined && benchPlayers === undefined ? (
             <div className={labels.caption}>
-              Import a save to display opponent player types.
+              Import a save to display{" "}
+              {chartMode === "movement"
+                ? "opponent movement"
+                : "opponent player types"}
+              .
             </div>
           ) : typeProfileError ? (
             <div className={labels.caption} role="alert">
               Unable to load TeamPlayerTypes: {typeProfileError}
             </div>
-          ) : chartPlayers.length === 0 ? (
+          ) : visibleChartPlayers.length === 0 ? (
             <div className={labels.caption}>
-              No opponent type coordinates available.
+              No opponent {chartMode === "movement" ? "movement" : "type"}{" "}
+              coordinates available.
             </div>
           ) : (
             <>
@@ -304,7 +371,7 @@ export default function TeamFormation({
                   Missing team type profiles for {missingCoordinates} players.
                 </div>
               )}
-              {hasTypeMismatch && (
+              {chartMode === "types" && hasTypeMismatch && (
                 <div className={labels.caption}>
                   Some saved types differ from their team template coordinates.
                 </div>

@@ -380,11 +380,14 @@ export function ImportedTeamFormation({
       .filter((profile) => profile.team_id === teamId)
       .map((profile) => [profile.slot_id, profile]),
   );
-  const getTypeWeights = (rosterSlot: number): number[] | null => {
+  const getTypeProfile = (rosterSlot: number): TeamPlayerTypeProfile | null => {
     if (!lineup) return null;
     const primaryRank = lineup.primaryOrder.slice(0, 24).indexOf(rosterSlot);
     const templateSlot = primaryRank === -1 ? 24 : primaryRank;
-    const profile = profilesBySlot.get(templateSlot);
+    return profilesBySlot.get(templateSlot) ?? null;
+  };
+  const getTypeWeights = (rosterSlot: number): number[] | null => {
+    const profile = getTypeProfile(rosterSlot);
     if (!profile) return null;
     const weights = POT_KEYS.map((key) => profile[key]);
     return weights.every(
@@ -396,6 +399,24 @@ export function ImportedTeamFormation({
     )
       ? weights
       : null;
+  };
+  const getExtraValues = (rosterSlot: number): [number, number] | null => {
+    const profile = getTypeProfile(rosterSlot);
+    if (!profile) return null;
+    const x = profile.extra_01;
+    const y = profile.extra_02;
+    if (
+      typeof x !== "number" ||
+      typeof y !== "number" ||
+      !Number.isFinite(x) ||
+      !Number.isFinite(y) ||
+      x < 0 ||
+      x > 100 ||
+      y < 0 ||
+      y > 100
+    )
+      return null;
+    return [x, y];
   };
   const names = new Map(
     opponentMetadata?.players.map((player) => [
@@ -438,6 +459,7 @@ export function ImportedTeamFormation({
       shirtNumber: player?.shirtNumber ?? null,
       typeIndex: player?.typeIndex ?? null,
       typeWeights: player ? getTypeWeights(player.rosterSlot) : null,
+      extraValues: player ? getExtraValues(player.rosterSlot) : null,
     };
   });
 
@@ -471,6 +493,7 @@ export function ImportedTeamFormation({
           shirtNumber: player.shirtNumber,
           typeIndex: player.typeIndex,
           typeWeights: getTypeWeights(player.rosterSlot),
+          extraValues: getExtraValues(player.rosterSlot),
           positionId: positionsById.get(player.id) ?? null,
         }))
     : undefined;
