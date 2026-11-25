@@ -8,7 +8,6 @@ import {
   STADIUMS,
 } from "@/lib/utils";
 import PlayersOnTeam, { type AssignedPlayer } from "./PlayersOnTeam";
-import TeamFormation from "./TeamFormation";
 import type { TeamFormationSlot } from "./team-formation";
 import { SQUAD_BUDGETS, getSquadSize } from "./possible-players";
 import styles from "./match-manager-info.module.css";
@@ -17,6 +16,7 @@ import {
   ImportTeamHeader,
   ImportedTeamSkillBoost,
   ImportedTeamPlayers,
+  ImportedTeamFormation,
 } from "./ImportTeamData";
 import { LoadingBig } from "@/app/Loading";
 
@@ -212,7 +212,7 @@ export default function MatchManagerInfo({
   const teamBonuses = skillBoosts.map((attribute) => attribute.value ?? 0);
 
   return (
-    <TeamImportProvider>
+    <TeamImportProvider teamId={team.team_id}>
       <ImportTeamHeader title={title} abbr={abbr} />
 
       <div className={styles["panel-opp-info"]}>
@@ -311,7 +311,12 @@ export default function MatchManagerInfo({
             </div>
           }
         >
-          <TeamFormation slots={formationSlots} stadiumId={team.stadium_id} />
+          <ImportedTeamFormation
+            slots={formationSlots}
+            stadiumId={team.stadium_id}
+            teamId={team.team_id}
+            playerPreference={team.player_pref}
+          />
         </Suspense>
 
         <div className={styles.teamAbilities}>

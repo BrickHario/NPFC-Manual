@@ -1,10 +1,25 @@
 import { getFormationName, type TeamFormationSlot } from "./team-formation";
-import { getFieldImage } from "@/lib/utils";
+import {
+  getFieldImage,
+  PLAYER_TYPE_COLORS,
+  PLAYER_TYPE_NAMES,
+} from "@/lib/utils";
 import styles from "./match-manager-info.module.css";
+import labels from "./FormationPlayers.module.css";
+
+export type FormationPlayer = {
+  slotId: number;
+  playerId: number;
+  name: string;
+  shirtNumber: number | null;
+  typeIndex: number | null;
+};
 
 type Props = {
   slots: TeamFormationSlot[];
   stadiumId: number | null;
+  players?: FormationPlayer[];
+  loadingNames?: boolean;
 };
 
 type Position = "goalkeeper" | "defender" | "midfielder" | "forward";
@@ -51,12 +66,24 @@ function getSlotStyle(slot: TeamFormationSlot) {
   };
 }
 
-export default function TeamFormation({ slots, stadiumId }: Props) {
+export default function TeamFormation({
+  slots,
+  stadiumId,
+  players,
+  loadingNames = false,
+}: Props) {
   const fieldImage = getFieldImage(stadiumId);
+  const bySlot = new Map(
+    players?.map((player) => [player.slotId, player]) ?? [],
+  );
 
   return (
     <section className={styles.formationSection} aria-label="Team Formation">
-      <h2 className={styles.formationHeading}>Team Formation</h2>
+      <h2 className={styles.formationHeading}>
+        {players !== undefined && "Probable "}
+        Formation
+        {slots.length > 0 && ` (${getFormationName(slots)})`}
+      </h2>
 
       {slots.length === 0 ? (
         <p className={styles.formationMissing}>Formation not available.</p>
@@ -73,6 +100,13 @@ export default function TeamFormation({ slots, stadiumId }: Props) {
             <div className={styles.formationField}>
               {slots.map((slot) => {
                 const position = getPosition(slot);
+                const player = bySlot.get(slot.slot_id);
+                const typeIndex = player?.typeIndex;
+                const typeName =
+                  typeIndex != null && typeIndex >= 0 && typeIndex < 12
+                    ? PLAYER_TYPE_NAMES.en[typeIndex]
+                    : undefined;
+                const name = loadingNames ? "…" : player?.name;
 
                 return (
                   <div
@@ -80,16 +114,41 @@ export default function TeamFormation({ slots, stadiumId }: Props) {
                     className={styles.formationSlot}
                     style={getSlotStyle(slot)}
                   >
-                    <span
-                      className={`${styles.formationCircle} ${POSITION_CLASSES[position]}`}
-                    />
+                    {player ? (
+                      <div
+                        className={labels.marker}
+                        title={`${player.name} · #${
+                          player.shirtNumber ?? "—"
+                        } · ${typeName ?? "Unknown type"}`}
+                      >
+                        <span className={labels.name}>{name}</span>
+                        <span
+                          className={`${styles.formationCircle} ${POSITION_CLASSES[position]} ${labels.number}`}
+                        >
+                          {player.shirtNumber ?? "—"}
+                        </span>
+                        <span
+                          className={labels.type}
+                          style={{
+                            color:
+                              typeIndex != null
+                                ? PLAYER_TYPE_COLORS[typeIndex] ?? "#ffffff"
+                                : "#ffffff",
+                          }}
+                        >
+                          {typeName ?? "—"}
+                        </span>
+                      </div>
+                    ) : (
+                      <span
+                        className={`${styles.formationCircle} ${POSITION_CLASSES[position]}`}
+                      />
+                    )}
                   </div>
                 );
               })}
             </div>
           </div>
-
-          <div className={styles.formationName}>{getFormationName(slots)}</div>
         </>
       )}
     </section>

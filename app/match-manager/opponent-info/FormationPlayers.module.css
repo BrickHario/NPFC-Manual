@@ -1,0 +1,54 @@
+.marker {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.marker:hover {
+  z-index: 5;
+}
+
+.name,
+.type {
+  position: absolute;
+  left: 0;
+  width: max-content;
+  max-width: 15cqw;
+  transform: translateX(-50%);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  line-height: 1.1;
+  color: #fff;
+  text-shadow: 0 1px 2px #363636, 1px 0 1px #333333, -1px 0 1px #3b3b3b;
+}
+
+.name {
+  bottom: calc(2.55cqw + 3px);
+  font-size: clamp(14px, 2.4cqw, 16px);
+  font-weight: 800;
+}
+
+.type {
+  top: calc(2.55cqw + 3px);
+  font-size: clamp(12px, 2cqw, 14px);
+  font-weight: 100;
+  filter: brightness(1.5) saturate(0.5);
+}
+
+.marker .number {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  font-size: clamp(8px, 3.1cqw, 16px);
+  font-weight: 800;
+  line-height: 1;
+  color: #111;
+}
+
+.caption {
+  text-align: center;
+  font-size: 13px;
+  opacity: 0.8;
+}

@@ -7,6 +7,8 @@ import { opponentTypeRows, playerFootBits } from "./saved-player-metadata";
 
 export type SavedOpponentPlayer = {
   id: number;
+  rosterSlot: number;
+  fatigue: number;
   skills: number[];
   shirtNumber: number | null;
   typeIndex: number | null;
@@ -49,6 +51,20 @@ type SavedOwnPlayer = ImportedSavePlayer & {
   experience: SavedPlayerExperience | null;
 };
 
+export type SavedLineupSlot = {
+  lineupSlot: number;
+  rosterSlot: number;
+  primaryRank: number;
+  playerId: number;
+};
+
+export type SavedOpponentLineup = {
+  predictionSource: "saved-revised-order" | "revised-with-primary-fallback";
+  starters: SavedLineupSlot[];
+  primaryOrder: number[];
+  formationRoleCodes: number[];
+};
+
 export type ImportedTeam = {
   name: string;
   abbreviation: string;
@@ -56,6 +72,7 @@ export type ImportedTeam = {
   counter: number;
   players: SavedOwnPlayer[];
   opponents: Record<number, SavedOpponentPlayer[]>;
+  opponentLineups: Record<number, SavedOpponentLineup>;
 };
 
 const SAVE_SIZE = 76120;
@@ -70,7 +87,7 @@ const SAVE_ROSTER_OFFSET = 0x0c6e;
 const PLAYER_SIZE = 0x98;
 const EMPTY_PLAYER_ID = 1016;
 
-const STORAGE_KEY = "npfc-imported-team-v5";
+const STORAGE_KEY = "npfc-imported-team-v7";
 
 function experienceGrade(points: number): string {
   if (points >= 1000) return "S";
@@ -158,6 +175,55 @@ function readOpponentType(
   return Number.isInteger(value) && value >= 0 && value < 12 ? value : null;
 }
 
+export function readOpponentLineup(
+  view: DataView,
+  teamId: number,
+): SavedOpponentLineup {
+  const base = teamId * 0x260;
+  const primary = Array.from({ length: 25 }, (_, i) =>
+    view.getUint8(base + 0x2573 + i),
+  );
+  const revised = Array.from({ length: 18 }, (_, i) =>
+    view.getUint8(base + 0x258c + i),
+  );
+  const playerIdAt = (slot: number) =>
+    view.getUint16(base + 0x2632 + slot * 2, true);
+  const uniqueValid = (slots: number[]) => {
+    const seen = new Set<number>();
+    return slots.filter((slot) => {
+      if (
+        slot < 0 ||
+        slot >= 25 ||
+        playerIdAt(slot) >= EMPTY_PLAYER_ID ||
+        seen.has(slot)
+      ) {
+        return false;
+      }
+      seen.add(slot);
+      return true;
+    });
+  };
+  const revisedSlots = uniqueValid(revised);
+  const orderedSlots = uniqueValid([...revisedSlots, ...uniqueValid(primary)]);
+
+  return {
+    predictionSource:
+      revisedSlots.length >= 11
+        ? "saved-revised-order"
+        : "revised-with-primary-fallback",
+    primaryOrder: primary,
+    formationRoleCodes: Array.from({ length: 18 }, (_, i) =>
+      view.getUint8(base + 0x259e + i),
+    ),
+    starters: orderedSlots.slice(0, 11).map((rosterSlot, lineupSlot) => ({
+      playerId: playerIdAt(rosterSlot),
+      rosterSlot,
+      lineupSlot,
+      primaryRank: primary.indexOf(rosterSlot),
+    })),
+  };
+}
+
 function readText(bytes: Uint8Array, offset: number, length: number) {
   const region = bytes.subarray(offset, offset + length);
   const end = region.indexOf(0);
@@ -228,6 +294,7 @@ export function parseTeamSave(
   }
 
   const opponents: Record<number, SavedOpponentPlayer[]> = {};
+  const opponentLineups: Record<number, SavedOpponentLineup> = {};
 
   for (let teamId = 0; teamId < 44; teamId++) {
     const roster: SavedOpponentPlayer[] = [];
@@ -249,6 +316,8 @@ export function parseTeamSave(
 
       roster.push({
         id,
+        rosterSlot: slot,
+        fatigue: Math.max(0, view.getInt16(0x9716 + id * 0x24, true)),
         skills,
         shirtNumber: readShirtNumber(bytes, id),
         typeIndex: readOpponentType(bytes, teamId, slot),
@@ -262,6 +331,7 @@ export function parseTeamSave(
     }
 
     opponents[teamId] = roster;
+    opponentLineups[teamId] = readOpponentLineup(view, teamId);
   }
 
   return {
@@ -270,6 +340,7 @@ export function parseTeamSave(
     fileName,
     counter: view.getUint32(0x04, true),
     opponents,
+    opponentLineups,
     players: baseSave.players.map((player) => {
       const slotIndex = slotById.get(player.id);
       return {
@@ -358,7 +429,9 @@ export function readImportedTeam(): ImportedTeam | null {
       typeof team.counter !== "number" ||
       !Array.isArray(team.players) ||
       typeof team.opponents !== "object" ||
-      team.opponents === null
+      team.opponents === null ||
+      typeof team.opponentLineups !== "object" ||
+      team.opponentLineups === null
     ) {
       return null;
     }
@@ -379,4 +452,6 @@ export function removeImportedTeam() {
   localStorage.removeItem("npfc-imported-team-v2");
   localStorage.removeItem("npfc-imported-team-v3");
   localStorage.removeItem("npfc-imported-team-v4");
+  localStorage.removeItem("npfc-imported-team-v5");
+  localStorage.removeItem("npfc-imported-team-v6");
 }

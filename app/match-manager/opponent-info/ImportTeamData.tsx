@@ -13,10 +13,14 @@ import styles from "./ImportTeamData.module.css";
 import PlayersOnTeam, { type AssignedPlayer } from "./PlayersOnTeam";
 import { LoadingSmall } from "@/app/Loading";
 import { playerFootBits } from "./saved-player-metadata";
+import TeamFormation from "./TeamFormation";
+import { predictOpponentLineup } from "./predict-opponent-lineup";
+import type { TeamFormationSlot } from "./team-formation";
 
 type TeamImportContextValue = {
   team: ImportedTeam | null;
   loaded: boolean;
+  opponentMetadata: OpponentMetadata | null;
   setTeam: (team: ImportedTeam) => void;
   removeTeam: () => void;
 };
@@ -33,9 +37,16 @@ function useTeamImport() {
   return context;
 }
 
-export function TeamImportProvider({ children }: { children: ReactNode }) {
+export function TeamImportProvider({
+  children,
+  teamId,
+}: {
+  children: ReactNode;
+  teamId: number;
+}) {
   const [team, setTeamState] = useState<ImportedTeam | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const opponentMetadata = useOpponentMetadata(team, teamId);
 
   useEffect(() => {
     function restoreTeam() {
@@ -65,7 +76,9 @@ export function TeamImportProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <TeamImportContext.Provider value={{ team, loaded, setTeam, removeTeam }}>
+    <TeamImportContext.Provider
+      value={{ team, loaded, setTeam, removeTeam, opponentMetadata }}
+    >
       {children}
     </TeamImportContext.Provider>
   );
@@ -217,17 +230,7 @@ type OpponentMetadata = {
   error: string;
 };
 
-export function ImportedTeamPlayers({
-  title,
-  abbr,
-  teamId,
-}: {
-  title: string;
-  abbr: string;
-  teamId: number;
-}) {
-  const { team, loaded } = useTeamImport();
-
+function useOpponentMetadata(team: ImportedTeam | null, teamId: number) {
   const roster = team?.opponents[teamId];
 
   const [metadata, setMetadata] = useState<OpponentMetadata | null>(null);
@@ -325,6 +328,90 @@ export function ImportedTeamPlayers({
     return () => controller.abort();
   }, [key]);
 
+  return metadata?.key === key ? metadata : null;
+}
+
+export function ImportedTeamFormation({
+  slots,
+  stadiumId,
+  teamId,
+  playerPreference,
+}: {
+  slots: TeamFormationSlot[];
+  stadiumId: number | null;
+  teamId: number;
+  playerPreference: number;
+}) {
+  const { team, opponentMetadata } = useTeamImport();
+  const lineup = team?.opponentLineups[teamId];
+  const opponentRoster = team?.opponents[teamId] ?? [];
+  const roster = new Map(opponentRoster.map((player) => [player.id, player]));
+  const names = new Map(
+    opponentMetadata?.players.map((player) => [
+      player.id_player,
+      player.name,
+    ]) ?? [],
+  );
+  const positionsById = new Map(
+    opponentMetadata?.players.map((player) => [
+      player.id_player,
+      player.id_position,
+    ]) ?? [],
+  );
+  const hasPositions = opponentRoster.every((player) => {
+    const position = positionsById.get(player.id);
+    return (
+      position !== undefined &&
+      Number.isInteger(position) &&
+      position >= 0 &&
+      position <= 3
+    );
+  });
+  const prediction =
+    lineup && opponentMetadata && !opponentMetadata.error && hasPositions
+      ? predictOpponentLineup(
+          opponentRoster,
+          lineup,
+          positionsById,
+          playerPreference,
+        )
+      : null;
+  const starters =
+    prediction?.starters.length === 11 ? prediction.starters : lineup?.starters;
+  const players = starters?.map((starter) => {
+    const player = roster.get(starter.playerId);
+    return {
+      slotId: starter.lineupSlot,
+      playerId: starter.playerId,
+      name: names.get(starter.playerId) ?? `Player #${starter.playerId}`,
+      shirtNumber: player?.shirtNumber ?? null,
+      typeIndex: player?.typeIndex ?? null,
+    };
+  });
+
+  return (
+    <TeamFormation
+      slots={slots}
+      stadiumId={stadiumId}
+      players={players}
+      loadingNames={!!lineup && !opponentMetadata}
+    />
+  );
+}
+
+export function ImportedTeamPlayers({
+  title,
+  abbr,
+  teamId,
+}: {
+  title: string;
+  abbr: string;
+  teamId: number;
+}) {
+  const { team, loaded, opponentMetadata: current } = useTeamImport();
+
+  const roster = team?.opponents[teamId];
+
   if (!loaded || !team) return null;
 
   const ownPlayers: AssignedPlayer[] = team.players.map((player) => ({
@@ -349,8 +436,6 @@ export function ImportedTeamPlayers({
       ]),
     ),
   }));
-
-  const current = metadata?.key === key ? metadata : null;
 
   const lookup = new Map(
     current?.players.map((player) => [player.id_player, player]) ?? [],
