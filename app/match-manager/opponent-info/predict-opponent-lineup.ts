@@ -1,3 +1,5 @@
+import { isUnavailable, type PlayerAvailability } from "./player-availability";
+
 const POSITION_WEIGHTS = [
   [0, 2, 5, 12],
   [10, 3, 4, 11],
@@ -108,6 +110,7 @@ export function arrangeLikeGame<
 
 type OpponentPlayer = {
   id: number;
+  availability?: PlayerAvailability | null;
   rosterSlot: number;
   fatigue: number;
   skills: number[];
@@ -136,6 +139,8 @@ export function predictOpponentLineup(
   playerPreference: number,
 ) {
   const ranked = roster.flatMap((player) => {
+    if (isUnavailable(player.availability)) return [];
+
     const role = positionsById.get(player.id);
 
     if (role === undefined || !Number.isInteger(role) || role < 0 || role > 3) {

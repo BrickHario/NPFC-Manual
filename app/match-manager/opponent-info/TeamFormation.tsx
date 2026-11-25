@@ -1,6 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
+import {
+  getAvailabilityLabel,
+  isUnavailable,
+  type PlayerAvailability,
+} from "./player-availability";
 import TypesChart from "@/app/training-planner/TypesChart";
 import MovementChart from "@/app/training-planner/MovementChart";
 import { playerTypeRows } from "@/app/training-planner/player-type-data";
@@ -22,6 +28,7 @@ export type FormationPlayer = {
   name: string;
   shirtNumber: number | null;
   typeIndex: number | null;
+  availability?: PlayerAvailability | null;
   positionId?: number | null;
   typeWeights?: number[] | null;
   extraValues?: [number, number] | null;
@@ -103,6 +110,8 @@ function PlayerMarker({
   loadingNames: boolean;
 }) {
   const typeIndex = player.typeIndex;
+  const unavailable = isUnavailable(player.availability);
+  const availabilityLabel = getAvailabilityLabel(player.availability);
   const typeName =
     typeIndex != null && typeIndex >= 0 && typeIndex < 12
       ? PLAYER_TYPE_NAMES[language]?.[typeIndex] ??
@@ -119,7 +128,7 @@ function PlayerMarker({
       aria-label={`Show ${player.name} in player list`}
       title={`${player.name} · #${player.shirtNumber ?? "—"} · ${
         typeName ?? "Unknown type"
-      }`}
+      }${unavailable ? ` · ${availabilityLabel}` : ""}`}
       onClick={() => {
         document
           .getElementById(`saved-opponent-player-${player.playerId}`)
@@ -141,6 +150,27 @@ function PlayerMarker({
       >
         {player.shirtNumber ?? "—"}
       </span>
+      {unavailable && (
+        <Image
+          src="/blocked.png"
+          alt={availabilityLabel}
+          title={availabilityLabel}
+          width={20}
+          height={20}
+          unoptimized
+          style={{
+            position: "absolute",
+            left: "calc(100% + 1px)",
+            top: "50%",
+            transform: "translateY(-50%)",
+            width: "3.4cqw",
+            height: "3.4cqw",
+            objectFit: "contain",
+            imageRendering: "pixelated",
+            pointerEvents: "none",
+          }}
+        />
+      )}
       <span className={labels.type} style={{ color: typeColor }}>
         {typeName ?? "—"}
       </span>
@@ -304,6 +334,16 @@ export default function TeamFormation({
       }
     : undefined;
 
+  const substituteCount = Math.min(
+    7,
+    (benchPlayers ?? []).filter((player) => !isUnavailable(player.availability))
+      .length,
+  );
+  const reserveCount = Math.max(
+    0,
+    (benchPlayers?.length ?? 0) - substituteCount,
+  );
+  const benchRowCount = Math.max(3, 1 + 2 * Math.ceil(reserveCount / 7));
   const fieldImage = getFieldImage(stadiumId);
   const bySlot = new Map(
     players?.map((player) => [player.slotId, player]) ?? [],
@@ -530,14 +570,33 @@ export default function TeamFormation({
               aria-label="Substitutes and reserves"
             >
               <div className={labels.benchPitch}>
-                <div className={labels.benchGrid}>
+                <div
+                  className={labels.benchGrid}
+                  style={
+                    benchRowCount > 3
+                      ? {
+                          gridTemplateRows: `repeat(${benchRowCount}, 5.73cqw)`,
+                          backgroundImage: `repeating-linear-gradient(to right, rgba(40, 90, 40, 0.58) 0, rgba(40, 90, 40, 0.58) 1px, transparent 1px, transparent calc(100% / 15)), repeating-linear-gradient(to bottom, rgba(40, 90, 40, 0.58) 0, rgba(40, 90, 40, 0.58) 1px, transparent 1px, transparent calc(100% / ${benchRowCount}))`,
+                        }
+                      : undefined
+                  }
+                >
                   {benchPlayers.map((player, index) => (
                     <div
                       key={player.playerId}
                       className={labels.benchSlot}
                       style={{
-                        gridColumn: (index % 7) * 2 + 2,
-                        gridRow: index < 7 ? 1 : 3,
+                        gridColumn:
+                          ((index < substituteCount
+                            ? index
+                            : index - substituteCount) %
+                            7) *
+                            2 +
+                          2,
+                        gridRow:
+                          index < substituteCount
+                            ? 1
+                            : 3 + 2 * Math.floor((index - substituteCount) / 7),
                       }}
                     >
                       <PlayerMarker

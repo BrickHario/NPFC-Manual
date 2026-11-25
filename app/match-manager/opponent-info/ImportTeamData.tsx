@@ -16,6 +16,7 @@ import { playerFootBits } from "./saved-player-metadata";
 import TeamFormation from "./TeamFormation";
 import type { Language } from "@/lib/utils";
 import { predictOpponentLineup } from "./predict-opponent-lineup";
+import { isUnavailable } from "./player-availability";
 import type { TeamFormationSlot } from "./team-formation";
 
 const POT_KEYS = [
@@ -433,6 +434,7 @@ export function ImportedTeamFormation({
     ]) ?? [],
   );
   const hasPositions = opponentRoster.every((player) => {
+    if (isUnavailable(player.availability)) return true;
     const position = positionsById.get(player.id);
     return (
       position !== undefined &&
@@ -450,8 +452,11 @@ export function ImportedTeamFormation({
           playerPreference,
         )
       : null;
-  const starters =
-    prediction?.starters.length === 11 ? prediction.starters : lineup?.starters;
+  const starters = prediction
+    ? prediction.starters
+    : lineup?.starters.filter(
+        (starter) => !isUnavailable(roster.get(starter.playerId)?.availability),
+      );
   const players = starters?.map((starter) => {
     const player = roster.get(starter.playerId);
     return {
@@ -460,6 +465,7 @@ export function ImportedTeamFormation({
       name: names.get(starter.playerId) ?? `Player #${starter.playerId}`,
       shirtNumber: player?.shirtNumber ?? null,
       typeIndex: player?.typeIndex ?? null,
+      availability: player?.availability ?? null,
       typeWeights: player ? getTypeWeights(player.rosterSlot) : null,
       extraValues: player ? getExtraValues(player.rosterSlot) : null,
     };
@@ -469,9 +475,7 @@ export function ImportedTeamFormation({
     starters?.map((starter) => starter.playerId) ?? [],
   );
   const benchOrder = new Map(
-    (prediction?.starters.length === 11 ? prediction.bench : []).map(
-      (player, index) => [player.playerId, index],
-    ),
+    (prediction?.bench ?? []).map((player, index) => [player.playerId, index]),
   );
   const primaryOrder = new Map<number, number>();
   lineup?.primaryOrder.forEach((slot, index) => {
@@ -482,6 +486,8 @@ export function ImportedTeamFormation({
         .filter((player) => !starterIds.has(player.id))
         .sort(
           (a, b) =>
+            Number(isUnavailable(a.availability)) -
+              Number(isUnavailable(b.availability)) ||
             (benchOrder.get(a.id) ?? Infinity) -
               (benchOrder.get(b.id) ?? Infinity) ||
             (primaryOrder.get(a.rosterSlot) ?? Infinity) -
@@ -494,6 +500,7 @@ export function ImportedTeamFormation({
           name: names.get(player.id) ?? `Player #${player.id}`,
           shirtNumber: player.shirtNumber,
           typeIndex: player.typeIndex,
+          availability: player.availability,
           typeWeights: getTypeWeights(player.rosterSlot),
           extraValues: getExtraValues(player.rosterSlot),
           positionId: positionsById.get(player.id) ?? null,
@@ -506,6 +513,7 @@ export function ImportedTeamFormation({
     name: player.name,
     shirtNumber: player.shirtNumber,
     typeIndex: player.savedTypeIndex,
+    availability: player.availability,
     positionId: player.position,
     typeWeights: player.typeWeights,
     extraValues: player.extraValues ?? null,
@@ -550,6 +558,7 @@ export function ImportedTeamPlayers({
     id_position: player.position,
     shirtNumber: player.shirtNumber,
     typeIndex: player.savedTypeIndex,
+    availability: player.availability,
     foot:
       playerFootBits[player.id] === "1"
         ? "L"
@@ -577,6 +586,7 @@ export function ImportedTeamPlayers({
     id_position: lookup.get(player.id)?.id_position ?? -1,
     shirtNumber: player.shirtNumber,
     typeIndex: player.typeIndex,
+    availability: player.availability,
     foot: player.foot,
     price: lookup.get(player.id)?.price ?? null,
     team_id: teamId,

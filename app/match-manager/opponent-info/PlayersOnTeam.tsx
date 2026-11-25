@@ -1,4 +1,9 @@
 import Image from "next/image";
+import {
+  getAvailabilityLabel,
+  isUnavailable,
+  type PlayerAvailability,
+} from "./player-availability";
 import Link from "next/link";
 import PlayerImages from "../../marketplace/PlayerImages";
 import {
@@ -53,6 +58,7 @@ export type AssignedPlayer = {
   id_player: number;
   shirtNumber?: number | null;
   typeIndex?: number | null;
+  availability?: PlayerAvailability | null;
   foot?: "L" | "R" | null;
   experience?: PlayerExperience | null;
   name: string;
@@ -306,6 +312,8 @@ export default function PlayersOnTeam({
     })
     .sort(
       (a, b) =>
+        Number(isUnavailable(a.player.availability)) -
+          Number(isUnavailable(b.player.availability)) ||
         b.baseOverall - a.baseOverall ||
         a.player.id_player - b.player.id_player,
     );
@@ -339,6 +347,10 @@ export default function PlayersOnTeam({
                     : undefined;
 
                 const hasExperience = imported && !!player.experience;
+                const unavailable = isUnavailable(player.availability);
+                const availabilityLabel = getAvailabilityLabel(
+                  player.availability,
+                );
 
                 const content = (
                   <>
@@ -364,7 +376,12 @@ export default function PlayersOnTeam({
                           </div>
                         )}
                         <div className={styles.playerPortraitSkills}>
-                          <div className={labels.card}>
+                          <div
+                            className={labels.card}
+                            style={
+                              unavailable ? { position: "relative" } : undefined
+                            }
+                          >
                             <PlayerImages
                               playerId={player.id_player}
                               teamId={player.team_id}
@@ -381,6 +398,24 @@ export default function PlayersOnTeam({
                               shirtNumber={player.shirtNumber}
                               foot={player.foot}
                             />
+                            {unavailable && (
+                              <Image
+                                src="/blocked.png"
+                                alt={availabilityLabel}
+                                title={availabilityLabel}
+                                width={20}
+                                height={20}
+                                unoptimized
+                                style={{
+                                  position: "absolute",
+                                  right: 2,
+                                  top: 2,
+                                  zIndex: 10,
+                                  objectFit: "contain",
+                                  imageRendering: "pixelated",
+                                }}
+                              />
+                            )}
                           </div>
 
                           {imported && individualSkills && (

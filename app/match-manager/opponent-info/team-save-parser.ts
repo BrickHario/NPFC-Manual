@@ -4,9 +4,19 @@ import {
 } from "@/app/training-planner/save-parser";
 
 import { opponentTypeRows, playerFootBits } from "./saved-player-metadata";
+import {
+  readPlayerAvailability,
+  type PlayerAvailability,
+} from "./player-availability";
+
+export {
+  readPlayerAvailability,
+  type PlayerAvailability,
+} from "./player-availability";
 
 export type SavedOpponentPlayer = {
   id: number;
+  availability: PlayerAvailability | null;
   rosterSlot: number;
   fatigue: number;
   skills: number[];
@@ -46,7 +56,8 @@ export type SavedPlayerExperience = {
   };
 };
 
-type SavedOwnPlayer = ImportedSavePlayer & {
+export type SavedOwnPlayer = ImportedSavePlayer & {
+  availability: PlayerAvailability | null;
   shirtNumber: number | null;
   experience: SavedPlayerExperience | null;
 };
@@ -87,7 +98,7 @@ const SAVE_ROSTER_OFFSET = 0x0c6e;
 const PLAYER_SIZE = 0x98;
 const EMPTY_PLAYER_ID = 1016;
 
-const STORAGE_KEY = "npfc-imported-team-v7";
+const STORAGE_KEY = "npfc-imported-team-v9";
 
 function experienceGrade(points: number): string {
   if (points >= 1000) return "S";
@@ -317,6 +328,7 @@ export function parseTeamSave(
       roster.push({
         id,
         rosterSlot: slot,
+        availability: readPlayerAvailability(view, id),
         fatigue: Math.max(0, view.getInt16(0x9716 + id * 0x24, true)),
         skills,
         shirtNumber: readShirtNumber(bytes, id),
@@ -345,6 +357,7 @@ export function parseTeamSave(
       const slotIndex = slotById.get(player.id);
       return {
         ...player,
+        availability: readPlayerAvailability(view, player.id),
         foot:
           playerFootBits[player.id] === "1"
             ? "L"
@@ -454,4 +467,6 @@ export function removeImportedTeam() {
   localStorage.removeItem("npfc-imported-team-v4");
   localStorage.removeItem("npfc-imported-team-v5");
   localStorage.removeItem("npfc-imported-team-v6");
+  localStorage.removeItem("npfc-imported-team-v7");
+  localStorage.removeItem("npfc-imported-team-v8");
 }
