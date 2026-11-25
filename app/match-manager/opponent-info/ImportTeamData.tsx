@@ -356,6 +356,7 @@ function useOpponentMetadata(team: ImportedTeam | null, teamId: number) {
 
 export function ImportedTeamFormation({
   language = "en",
+  abbr,
   slots,
   stadiumId,
   teamId,
@@ -364,6 +365,7 @@ export function ImportedTeamFormation({
   typeProfileError = "",
 }: {
   language?: Language;
+  abbr: string;
   slots: TeamFormationSlot[];
   stadiumId: number | null;
   teamId: number;
@@ -498,6 +500,17 @@ export function ImportedTeamFormation({
         }))
     : undefined;
 
+  const ownPlayers = team?.players.map((player, index) => ({
+    slotId: index,
+    playerId: player.id,
+    name: player.name,
+    shirtNumber: player.shirtNumber,
+    typeIndex: player.savedTypeIndex,
+    positionId: player.position,
+    typeWeights: player.typeWeights,
+    extraValues: player.extraValues ?? null,
+  }));
+
   return (
     <TeamFormation
       language={language}
@@ -505,6 +518,9 @@ export function ImportedTeamFormation({
       stadiumId={stadiumId}
       players={players}
       benchPlayers={benchPlayers}
+      ownPlayers={ownPlayers}
+      opponentAbbr={abbr}
+      ownAbbr={team?.abbreviation}
       loadingNames={!!lineup && !opponentMetadata}
       typeProfileError={typeProfileError}
     />

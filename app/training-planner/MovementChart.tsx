@@ -17,6 +17,7 @@ type Props = {
   players: MovementPlayer[];
   selectedPlayerKey: string | null;
   onSelectPlayer: (key: string | null) => void;
+  showDescription?: boolean;
 };
 
 const pathColors = [
@@ -66,6 +67,7 @@ export default function MovementChart({
   players,
   selectedPlayerKey,
   onSelectPlayer,
+  showDescription = true,
 }: Props) {
   const markers = players.map((player, index) => {
     const position =
@@ -92,9 +94,11 @@ export default function MovementChart({
 
   return (
     <>
-      <p className={styles.chartDescription}>
-        Movement during a match. Positive values only!
-      </p>
+      {showDescription && (
+        <p className={styles.chartDescription}>
+          Movement during a match. Positive values only!
+        </p>
+      )}
 
       <svg
         className={styles.chart}

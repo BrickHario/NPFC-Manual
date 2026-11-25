@@ -594,7 +594,9 @@ export default function PlayersOnTeam({
                   <Link
                     key={player.id_player}
                     id={
-                      savedLevels
+                      imported
+                        ? `saved-own-player-${player.id_player}`
+                        : savedLevels
                         ? `saved-opponent-player-${player.id_player}`
                         : undefined
                     }
@@ -609,7 +611,9 @@ export default function PlayersOnTeam({
                   <div
                     key={player.id_player}
                     id={
-                      savedLevels
+                      imported
+                        ? `saved-own-player-${player.id_player}`
+                        : savedLevels
                         ? `saved-opponent-player-${player.id_player}`
                         : undefined
                     }

@@ -321,6 +321,7 @@ export default function MatchManagerInfo({
         >
           <ImportedTeamFormation
             language={language}
+            abbr={abbr}
             slots={formationSlots}
             stadiumId={team.stadium_id}
             teamId={team.team_id}

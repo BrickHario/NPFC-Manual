@@ -33,6 +33,9 @@ type Props = {
   stadiumId: number | null;
   players?: FormationPlayer[];
   benchPlayers?: FormationPlayer[];
+  ownPlayers?: FormationPlayer[];
+  opponentAbbr?: string;
+  ownAbbr?: string;
   loadingNames?: boolean;
   typeProfileError?: string;
 };
@@ -222,6 +225,9 @@ export default function TeamFormation({
   stadiumId,
   players,
   benchPlayers,
+  ownPlayers,
+  opponentAbbr = "—",
+  ownAbbr,
   loadingNames = false,
   typeProfileError = "",
 }: Props) {
@@ -231,33 +237,41 @@ export default function TeamFormation({
   const [selectedPlayerKey, setSelectedPlayerKey] = useState<string | null>(
     null,
   );
+  const [selectedTeam, setSelectedTeam] = useState<"opponent" | "own">(
+    "opponent",
+  );
+  const hasImportedTeam = ownPlayers !== undefined;
+  const showOwnTeam =
+    hasImportedTeam && selectedTeam === "own" && chartMode !== "formation";
+  const chartLoading = !showOwnTeam && loadingNames;
+
+  const currentPlayers = useMemo(
+    () =>
+      showOwnTeam
+        ? ownPlayers ?? []
+        : [...(players ?? []), ...(benchPlayers ?? [])],
+    [showOwnTeam, ownPlayers, players, benchPlayers],
+  );
 
   const chartPlayers = useMemo(
     () =>
-      chartMode === "types" && !loadingNames
-        ? getOpponentChartPlayers([...(players ?? []), ...(benchPlayers ?? [])])
+      chartMode === "types" && !chartLoading
+        ? getOpponentChartPlayers(currentPlayers)
         : [],
-    [chartMode, loadingNames, players, benchPlayers],
+    [chartMode, chartLoading, currentPlayers],
   );
 
   const movementPlayers = useMemo(
     () =>
-      chartMode === "movement" && !loadingNames
-        ? getOpponentMovementPlayers([
-            ...(players ?? []),
-            ...(benchPlayers ?? []),
-          ])
+      chartMode === "movement" && !chartLoading
+        ? getOpponentMovementPlayers(currentPlayers)
         : [],
-    [chartMode, loadingNames, players, benchPlayers],
+    [chartMode, chartLoading, currentPlayers],
   );
   const visibleChartPlayers =
     chartMode === "movement" ? movementPlayers : chartPlayers;
-
-  const totalPlayers = new Set(
-    [...(players ?? []), ...(benchPlayers ?? [])].map(
-      (player) => player.playerId,
-    ),
-  ).size;
+  const totalPlayers = new Set(currentPlayers.map((player) => player.playerId))
+    .size;
   const missingCoordinates = totalPlayers - visibleChartPlayers.length;
   const hasTypeMismatch = chartPlayers.some((player) => player.typeMismatch);
 
@@ -271,14 +285,24 @@ export default function TeamFormation({
     setSelectedPlayerKey(key);
     if (key === null) return;
 
-    document.getElementById(`saved-opponent-player-${key}`)?.scrollIntoView({
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "auto"
-        : "smooth",
-      block: "nearest",
-      inline: "center",
-    });
+    document
+      .getElementById(`saved-${showOwnTeam ? "own" : "opponent"}-player-${key}`)
+      ?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+        block: "nearest",
+        inline: "center",
+      });
   }
+
+  const switchButtonStyle = hasImportedTeam
+    ? {
+        fontSize: "clamp(10px, 3.5cqw, 16px)",
+        padding: "8px 2px",
+        overflowWrap: "anywhere" as const,
+      }
+    : undefined;
 
   const fieldImage = getFieldImage(stadiumId);
   const bySlot = new Map(
@@ -288,66 +312,145 @@ export default function TeamFormation({
   return (
     <section
       className={styles.formationSection}
-      style={{ alignSelf: players !== undefined ? "start" : "center" }}
-      aria-label="Team Formation"
+      style={{ alignSelf: hasImportedTeam ? "start" : "center" }}
+      aria-label="Team Formation, Player Types and Movement"
     >
       <div
-        className={chartStyles.chartSwitch}
-        role="group"
-        aria-label="Team view"
+        style={{
+          display: "flex",
+          alignItems: "stretch",
+          justifyContent: "center",
+          gap: 6,
+          width: "100%",
+          marginBottom: 14,
+          containerType: "inline-size",
+        }}
       >
-        <button
-          type="button"
-          className={`${chartStyles.chartSwitchButton} ${
-            chartMode === "formation" ? chartStyles.chartSwitchActive : ""
-          }`}
-          aria-pressed={chartMode === "formation"}
-          onClick={() => setChartMode("formation")}
+        <div
+          className={chartStyles.chartSwitch}
+          style={{
+            flex: "1 1 370px",
+            minWidth: 0,
+            maxWidth: 370,
+            width: "auto",
+            margin: 0,
+            boxSizing: "border-box",
+          }}
+          role="group"
+          aria-label="Team view"
         >
-          Formation
-        </button>
-        <button
-          type="button"
-          className={`${chartStyles.chartSwitchButton} ${
-            chartMode === "types" ? chartStyles.chartSwitchActive : ""
-          }`}
-          aria-pressed={chartMode === "types"}
-          onClick={() => setChartMode("types")}
-        >
-          Player Types
-        </button>
-        <button
-          type="button"
-          className={`${chartStyles.chartSwitchButton} ${
-            chartMode === "movement" ? chartStyles.chartSwitchActive : ""
-          }`}
-          aria-pressed={chartMode === "movement"}
-          onClick={() => setChartMode("movement")}
-        >
-          Movement
-        </button>
+          <button
+            type="button"
+            className={`${chartStyles.chartSwitchButton} ${
+              chartMode === "formation" ? chartStyles.chartSwitchActive : ""
+            }`}
+            style={switchButtonStyle}
+            aria-pressed={chartMode === "formation"}
+            onClick={() => {
+              setSelectedTeam("opponent");
+              setSelectedPlayerKey(null);
+              setChartMode("formation");
+            }}
+          >
+            Formation
+          </button>
+          <button
+            type="button"
+            className={`${chartStyles.chartSwitchButton} ${
+              chartMode === "types" ? chartStyles.chartSwitchActive : ""
+            }`}
+            style={switchButtonStyle}
+            aria-pressed={chartMode === "types"}
+            onClick={() => setChartMode("types")}
+          >
+            Player Types
+          </button>
+          <button
+            type="button"
+            className={`${chartStyles.chartSwitchButton} ${
+              chartMode === "movement" ? chartStyles.chartSwitchActive : ""
+            }`}
+            style={switchButtonStyle}
+            aria-pressed={chartMode === "movement"}
+            onClick={() => setChartMode("movement")}
+          >
+            Movement
+          </button>
+        </div>
+        {hasImportedTeam && (
+          <button
+            type="button"
+            className={`${chartStyles.chartSwitchButton} ${chartStyles.chartSwitchActive}`}
+            style={{
+              flex: "0 0 52px",
+              minWidth: 0,
+              fontSize: "clamp(10px, 3.5cqw, 16px)",
+              overflowWrap: "anywhere",
+              padding: "8px 2px",
+              border: "2px solid var(--font_black)",
+              borderRadius: 12,
+              background:
+                chartMode === "formation"
+                  ? "var(--button_grey)"
+                  : "var(--color-highlight)",
+              color:
+                chartMode === "formation"
+                  ? "var(--font_black)"
+                  : "var(--font_white)",
+              cursor: chartMode === "formation" ? "not-allowed" : "pointer",
+            }}
+            disabled={chartMode === "formation"}
+            title={
+              chartMode === "formation"
+                ? "Opponent formation only"
+                : `Switch to ${
+                    showOwnTeam ? opponentAbbr : ownAbbr ?? "own team"
+                  }`
+            }
+            aria-label={
+              chartMode === "formation"
+                ? `Opponent: ${opponentAbbr}`
+                : `Switch to ${
+                    showOwnTeam ? opponentAbbr : ownAbbr ?? "own team"
+                  }`
+            }
+            onClick={() => {
+              setSelectedTeam(showOwnTeam ? "opponent" : "own");
+              setSelectedPlayerKey(null);
+            }}
+          >
+            {showOwnTeam ? ownAbbr ?? "—" : opponentAbbr}
+          </button>
+        )}
       </div>
 
       {chartMode !== "formation" ? (
         <>
           {chartMode === "types" ? (
-            <TypesChart
-              players={chartPlayers}
-              selectedPlayerKey={activePlayerKey}
-              language={language}
-              showDescription={false}
-              onSelectPlayer={handleChartSelect}
-            />
+            <div className={labels.chartContainer}>
+              <TypesChart
+                players={chartPlayers}
+                selectedPlayerKey={activePlayerKey}
+                language={language}
+                showDescription={false}
+                onSelectPlayer={handleChartSelect}
+              />
+            </div>
           ) : (
-            <MovementChart
-              players={movementPlayers}
-              selectedPlayerKey={activePlayerKey}
-              onSelectPlayer={handleChartSelect}
-            />
+            <div className={labels.chartContainer}>
+              <MovementChart
+                players={movementPlayers}
+                selectedPlayerKey={activePlayerKey}
+                onSelectPlayer={handleChartSelect}
+                showDescription={false}
+              />
+            </div>
           )}
-          {loadingNames ? (
+          {chartLoading ? (
             <div className={labels.caption}>Loading opponent players…</div>
-          ) : players === undefined && benchPlayers === undefined ? (
+          ) : !showOwnTeam &&
+            players === undefined &&
+            benchPlayers === undefined ? (
             <div className={labels.caption}>
               Import a save to display{" "}
               {chartMode === "movement"
@@ -355,23 +458,25 @@ export default function TeamFormation({
                 : "opponent player types"}
               .
             </div>
-          ) : typeProfileError ? (
+          ) : !showOwnTeam && typeProfileError ? (
             <div className={labels.caption} role="alert">
               Unable to load TeamPlayerTypes: {typeProfileError}
             </div>
           ) : visibleChartPlayers.length === 0 ? (
             <div className={labels.caption}>
-              No opponent {chartMode === "movement" ? "movement" : "type"}{" "}
-              coordinates available.
+              No {showOwnTeam ? "own team" : "opponent"}{" "}
+              {chartMode === "movement" ? "movement" : "type"} coordinates
+              available.
             </div>
           ) : (
             <>
               {missingCoordinates > 0 && (
                 <div className={labels.caption}>
-                  Missing team type profiles for {missingCoordinates} players.
+                  Missing {showOwnTeam ? "save" : "team profile"} coordinates
+                  for {missingCoordinates} players.
                 </div>
               )}
-              {chartMode === "types" && hasTypeMismatch && (
+              {!showOwnTeam && chartMode === "types" && hasTypeMismatch && (
                 <div className={labels.caption}>
                   Some saved types differ from their team template coordinates.
                 </div>
