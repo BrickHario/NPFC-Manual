@@ -18,6 +18,28 @@ import type { Language } from "@/lib/utils";
 import { predictOpponentLineup } from "./predict-opponent-lineup";
 import type { TeamFormationSlot } from "./team-formation";
 
+const POT_KEYS = [
+  "pot_01",
+  "pot_02",
+  "pot_03",
+  "pot_04",
+  "pot_05",
+  "pot_06",
+  "pot_07",
+  "pot_08",
+  "pot_09",
+  "pot_10",
+  "pot_11",
+  "pot_12",
+] as const;
+
+export type TeamPlayerTypeProfile = {
+  team_id: number;
+  slot_id: number;
+  extra_01: number | null;
+  extra_02: number | null;
+} & Record<typeof POT_KEYS[number], number | null>;
+
 type TeamImportContextValue = {
   team: ImportedTeam | null;
   loaded: boolean;
@@ -338,17 +360,43 @@ export function ImportedTeamFormation({
   stadiumId,
   teamId,
   playerPreference,
+  typeProfiles = [],
+  typeProfileError = "",
 }: {
   language?: Language;
   slots: TeamFormationSlot[];
   stadiumId: number | null;
   teamId: number;
   playerPreference: number;
+  typeProfiles?: TeamPlayerTypeProfile[];
+  typeProfileError?: string;
 }) {
   const { team, opponentMetadata } = useTeamImport();
   const lineup = team?.opponentLineups[teamId];
   const opponentRoster = team?.opponents[teamId] ?? [];
   const roster = new Map(opponentRoster.map((player) => [player.id, player]));
+  const profilesBySlot = new Map(
+    typeProfiles
+      .filter((profile) => profile.team_id === teamId)
+      .map((profile) => [profile.slot_id, profile]),
+  );
+  const getTypeWeights = (rosterSlot: number): number[] | null => {
+    if (!lineup) return null;
+    const primaryRank = lineup.primaryOrder.slice(0, 24).indexOf(rosterSlot);
+    const templateSlot = primaryRank === -1 ? 24 : primaryRank;
+    const profile = profilesBySlot.get(templateSlot);
+    if (!profile) return null;
+    const weights = POT_KEYS.map((key) => profile[key]);
+    return weights.every(
+      (value): value is number =>
+        typeof value === "number" &&
+        Number.isFinite(value) &&
+        value >= 0 &&
+        value <= 255,
+    )
+      ? weights
+      : null;
+  };
   const names = new Map(
     opponentMetadata?.players.map((player) => [
       player.id_player,
@@ -389,6 +437,7 @@ export function ImportedTeamFormation({
       name: names.get(starter.playerId) ?? `Player #${starter.playerId}`,
       shirtNumber: player?.shirtNumber ?? null,
       typeIndex: player?.typeIndex ?? null,
+      typeWeights: player ? getTypeWeights(player.rosterSlot) : null,
     };
   });
 
@@ -421,6 +470,7 @@ export function ImportedTeamFormation({
           name: names.get(player.id) ?? `Player #${player.id}`,
           shirtNumber: player.shirtNumber,
           typeIndex: player.typeIndex,
+          typeWeights: getTypeWeights(player.rosterSlot),
           positionId: positionsById.get(player.id) ?? null,
         }))
     : undefined;
@@ -433,6 +483,7 @@ export function ImportedTeamFormation({
       players={players}
       benchPlayers={benchPlayers}
       loadingNames={!!lineup && !opponentMetadata}
+      typeProfileError={typeProfileError}
     />
   );
 }

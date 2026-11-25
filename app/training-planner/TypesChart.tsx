@@ -23,9 +23,19 @@ type TypesChartProps = {
   selectedPlayerKey: string | null;
   language: Language;
   onSelectPlayer: (key: string | null) => void;
+  showDescription?: boolean;
 };
 
-const pathColors = ["#16a34a", "#2563eb", "#dc2626", "#9333ea", "#ea580c", "#0891b2", "#ca8a04", "#be185d"];
+const pathColors = [
+  "#16a34a",
+  "#2563eb",
+  "#dc2626",
+  "#9333ea",
+  "#ea580c",
+  "#0891b2",
+  "#ca8a04",
+  "#be185d",
+];
 
 const dimension = 101;
 const padding = 46;
@@ -51,10 +61,7 @@ const typeDescriptions = [
 
 function createChart() {
   const cells = new Uint8Array(dimension * dimension);
-  const regions = Array.from(
-    { length: PLAYER_TYPE_COLORS.length },
-    () => ""
-  );
+  const regions = Array.from({ length: PLAYER_TYPE_COLORS.length }, () => "");
 
   for (let y = 0; y < dimension; y++) {
     const row = playerTypeRows[y];
@@ -69,11 +76,7 @@ function createChart() {
 
       regions[type] += `M${x} ${top}h${width}v${step}h-${width}Z`;
 
-      cells.fill(
-        type,
-        y * dimension + start,
-        y * dimension + end + 1
-      );
+      cells.fill(type, y * dimension + start, y * dimension + end + 1);
 
       start = end + 1;
     }
@@ -87,8 +90,7 @@ function createChart() {
     for (let y = 0; y <= dimension; y++) {
       const different =
         y < dimension &&
-        cells[y * dimension + x - 1] !==
-          cells[y * dimension + x];
+        cells[y * dimension + x - 1] !== cells[y * dimension + x];
 
       if (different && start === -1) start = y;
 
@@ -110,25 +112,24 @@ function createChart() {
     for (let x = 0; x <= dimension; x++) {
       const different =
         x < dimension &&
-        cells[(y - 1) * dimension + x] !==
-          cells[y * dimension + x];
+        cells[(y - 1) * dimension + x] !== cells[y * dimension + x];
 
       if (different && start === -1) start = x;
 
       if (!different && start !== -1) {
         borders +=
-          `M${padding + start * step} ` +
-          `${boundaryY}h${(x - start) * step}`;
+          `M${padding + start * step} ` + `${boundaryY}h${(x - start) * step}`;
 
         start = -1;
       }
     }
   }
 
-  const sums = Array.from(
-    { length: regions.length },
-    () => ({ x: 0, y: 0, count: 0 })
-  );
+  const sums = Array.from({ length: regions.length }, () => ({
+    x: 0,
+    y: 0,
+    count: 0,
+  }));
 
   for (let y = 0; y < dimension; y++) {
     for (let x = 0; x < dimension; x++) {
@@ -150,27 +151,16 @@ function createChart() {
 
         if (cells[index] !== type) continue;
 
-        let d = Math.min(
-          x + 1,
-          y + 1,
-          dimension - x,
-          dimension - y
-        );
+        let d = Math.min(x + 1, y + 1, dimension - x, dimension - y);
 
         if (x && cells[index - 1] !== type) d = 1;
         if (y && cells[index - dimension] !== type) d = 1;
 
-        if (
-          x < dimension - 1 &&
-          cells[index + 1] !== type
-        ) {
+        if (x < dimension - 1 && cells[index + 1] !== type) {
           d = 1;
         }
 
-        if (
-          y < dimension - 1 &&
-          cells[index + dimension] !== type
-        ) {
+        if (y < dimension - 1 && cells[index + dimension] !== type) {
           d = 1;
         }
 
@@ -185,19 +175,13 @@ function createChart() {
         if (cells[index] !== type) continue;
 
         if (x && cells[index - 1] === type) {
-          distance[index] = Math.min(
-            distance[index],
-            distance[index - 1] + 1
-          );
+          distance[index] = Math.min(distance[index], distance[index - 1] + 1);
         }
 
-        if (
-          y &&
-          cells[index - dimension] === type
-        ) {
+        if (y && cells[index - dimension] === type) {
           distance[index] = Math.min(
             distance[index],
-            distance[index - dimension] + 1
+            distance[index - dimension] + 1,
           );
         }
       }
@@ -209,23 +193,14 @@ function createChart() {
 
         if (cells[index] !== type) continue;
 
-        if (
-          x < dimension - 1 &&
-          cells[index + 1] === type
-        ) {
-          distance[index] = Math.min(
-            distance[index],
-            distance[index + 1] + 1
-          );
+        if (x < dimension - 1 && cells[index + 1] === type) {
+          distance[index] = Math.min(distance[index], distance[index + 1] + 1);
         }
 
-        if (
-          y < dimension - 1 &&
-          cells[index + dimension] === type
-        ) {
+        if (y < dimension - 1 && cells[index + dimension] === type) {
           distance[index] = Math.min(
             distance[index],
-            distance[index + dimension] + 1
+            distance[index + dimension] + 1,
           );
         }
       }
@@ -242,8 +217,7 @@ function createChart() {
         if (cells[index] !== type) continue;
 
         const score =
-          distance[index] * 2 -
-          Math.hypot(x - meanX, y - meanY) * 0.16;
+          distance[index] * 2 - Math.hypot(x - meanX, y - meanY) * 0.16;
 
         if (score > bestScore) {
           bestScore = score;
@@ -272,6 +246,7 @@ export default function TypesChart({
   selectedPlayerKey,
   language,
   onSelectPlayer,
+  showDescription = true,
 }: TypesChartProps) {
   const [selectedType, setSelectedType] = useState<{
     type: number;
@@ -323,333 +298,354 @@ export default function TypesChart({
   }
 
   const markers = players.map((player, index) => {
-    const position = player.path.length > 0 ? player.path[player.path.length - 1] : player.startPosition;
+    const position =
+      player.path.length > 0
+        ? player.path[player.path.length - 1]
+        : player.startPosition;
     return {
       player,
       anchorX: chartX(position.x),
       anchorY: chartY(position.y),
       color: pathColors[index % pathColors.length],
-      faded: selectedPlayerKey !== null && selectedPlayerKey !== (player.id === null ? "dummy" : String(player.id)),
+      faded:
+        selectedPlayerKey !== null &&
+        selectedPlayerKey !==
+          (player.id === null ? "dummy" : String(player.id)),
     };
   });
 
   return (
-  <>
-    <p className={styles.chartDescription}>
-      Vectors change depending on the player&apos;s current
-      position in Types Chart.
-    </p>
+    <>
+      {showDescription && (
+        <p className={styles.chartDescription}>
+          Vectors change depending on the player&apos;s current position in
+          Types Chart.
+        </p>
+      )}
 
-    <svg
-
-      className={styles.chart}
-      viewBox={`0 0 ${canvas} ${canvas}`}
-      role="img"
-      aria-label="NPFC Player Types – click a coloured area for its description"
-      onClick={() => setSelectedType(null)}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <g shapeRendering="crispEdges">
-        {chart.regions.map((pathData, type) => (
-          <path
-            key={type}
-            d={pathData}
-            style={{
-              fill: PLAYER_TYPE_COLORS[type],
-              cursor: "pointer",
-              outline: "none",
-              WebkitTapHighlightColor: "transparent",
-            }}
-            role="button"
-            tabIndex={0}
-            aria-label={`${PLAYER_TYPE_NAMES[language][type]} – show or hide description`}
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={(event) => toggleType(event, type)}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter" && event.key !== " ") return;
-              event.preventDefault();
-              event.stopPropagation();
-              setSelectedType((current) =>
-                current?.type === type
-                  ? null
-                  : { type, x: chart.labels[type].x, y: chart.labels[type].y }
-              );
-            }}
-          />
-        ))}
-      </g>
-
-      <g
-        className={styles.grid}
-        pointerEvents="none"
-        shapeRendering="crispEdges"
+      <svg
+        className={styles.chart}
+        viewBox={`0 0 ${canvas} ${canvas}`}
+        role="img"
+        aria-label="NPFC Player Types – click a coloured area for its description"
+        onClick={() => setSelectedType(null)}
+        xmlns="http://www.w3.org/2000/svg"
       >
-        {ticks.slice(1, -1).map((tick) => (
-          <g key={tick}>
-            <line
-              x1={padding + (tick + 0.5) * step}
-              y1={padding}
-              x2={padding + (tick + 0.5) * step}
-              y2={padding + plot}
+        <g shapeRendering="crispEdges">
+          {chart.regions.map((pathData, type) => (
+            <path
+              key={type}
+              d={pathData}
+              style={{
+                fill: PLAYER_TYPE_COLORS[type],
+                cursor: "pointer",
+                outline: "none",
+                WebkitTapHighlightColor: "transparent",
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label={`${PLAYER_TYPE_NAMES[language][type]} – show or hide description`}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={(event) => toggleType(event, type)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                event.stopPropagation();
+                setSelectedType((current) =>
+                  current?.type === type
+                    ? null
+                    : {
+                        type,
+                        x: chart.labels[type].x,
+                        y: chart.labels[type].y,
+                      },
+                );
+              }}
             />
-            <line
-              x1={padding}
-              y1={padding + (100.5 - tick) * step}
-              x2={padding + plot}
-              y2={padding + (100.5 - tick) * step}
-            />
-          </g>
-        ))}
-      </g>
+          ))}
+        </g>
 
-      <path
-        d={chart.borders}
-        className={styles.boundary}
-        pointerEvents="none"
-        shapeRendering="crispEdges"
-      />
+        <g
+          className={styles.grid}
+          pointerEvents="none"
+          shapeRendering="crispEdges"
+        >
+          {ticks.slice(1, -1).map((tick) => (
+            <g key={tick}>
+              <line
+                x1={padding + (tick + 0.5) * step}
+                y1={padding}
+                x2={padding + (tick + 0.5) * step}
+                y2={padding + plot}
+              />
+              <line
+                x1={padding}
+                y1={padding + (100.5 - tick) * step}
+                x2={padding + plot}
+                y2={padding + (100.5 - tick) * step}
+              />
+            </g>
+          ))}
+        </g>
 
-      <rect
-        x={padding}
-        y={padding}
-        width={plot}
-        height={plot}
-        className={styles.frame}
-        pointerEvents="none"
-      />
+        <path
+          d={chart.borders}
+          className={styles.boundary}
+          pointerEvents="none"
+          shapeRendering="crispEdges"
+        />
 
-      <g className={styles.ticks} pointerEvents="none">
-        {ticks.map((tick) => (
-          <g key={tick}>
-            <text
-              x={padding + (tick + 0.5) * step}
-              y={padding + plot + 23}
-              textAnchor="middle"
-            >
-              {tick}
-            </text>
-            <text
-              x={padding - 12}
-              y={padding + (100.5 - tick) * step + 5}
-              textAnchor="end"
-            >
-              {tick}
-            </text>
-          </g>
-        ))}
-      </g>
-      
-<g className={styles.axisLabels} pointerEvents="none">
-  <text
-    x={padding + plot / 2}
-    y={canvas + 4}
-    textAnchor="middle"
-  >
-    X
-  </text>
-  <text
-    x={0}
-    y={padding + plot / 2}
-    textAnchor="middle"
-    dominantBaseline="middle"
-  >
-    Y
-  </text>
-</g>
+        <rect
+          x={padding}
+          y={padding}
+          width={plot}
+          height={plot}
+          className={styles.frame}
+          pointerEvents="none"
+        />
 
+        <g className={styles.ticks} pointerEvents="none">
+          {ticks.map((tick) => (
+            <g key={tick}>
+              <text
+                x={padding + (tick + 0.5) * step}
+                y={padding + plot + 23}
+                textAnchor="middle"
+              >
+                {tick}
+              </text>
+              <text
+                x={padding - 12}
+                y={padding + (100.5 - tick) * step + 5}
+                textAnchor="end"
+              >
+                {tick}
+              </text>
+            </g>
+          ))}
+        </g>
 
-      <g className={styles.labels} pointerEvents="none">
-        {chart.labels.map((label) => (
+        <g className={styles.axisLabels} pointerEvents="none">
+          <text x={padding + plot / 2} y={canvas + 4} textAnchor="middle">
+            X
+          </text>
           <text
-            key={label.type}
-            x={label.x}
-            y={label.y}
+            x={0}
+            y={padding + plot / 2}
             textAnchor="middle"
             dominantBaseline="middle"
           >
-            {PLAYER_TYPE_NAMES[language][label.type]}
+            Y
           </text>
-        ))}
-      </g>
-
-      {markers.map(({ player, color, faded }) => {
-        const points = [player.startPosition, ...player.path];
-        return (
-          <g
-            key={`path-${player.id ?? "dummy"}`}
-            pointerEvents="none"
-            opacity={faded ? 0.3 : 1}
-          >
-            {points.slice(1).map((point, index) => {
-              const previous = points[index];
-              return (
-                <g key={index}>
-                  <line
-                    x1={chartX(previous.x)}
-                    y1={chartY(previous.y)}
-                    x2={chartX(point.x)}
-                    y2={chartY(point.y)}
-                    stroke={color}
-                    strokeWidth={5}
-                    strokeLinecap="round"
-                  />
-                  <circle
-                    cx={chartX(point.x)}
-                    cy={chartY(point.y)}
-                    r={8}
-                    fill={color}
-                    stroke="#000"
-                    strokeWidth={2}
-                  />
-                  <text
-                    x={chartX(point.x)}
-                    y={chartY(point.y) - 14}
-                    textAnchor="middle"
-                    fontSize={16}
-                    fontWeight={800}
-                    fill={color}
-                  >{index + 1}</text>
-                </g>
-              );
-            })}
-            {player.path.length > 0 && (
-              <circle
-                cx={chartX(player.startPosition.x)}
-                cy={chartY(player.startPosition.y)}
-                r={8}
-                fill={color}
-                stroke="#000"
-                strokeWidth={2}
-              />
-            )}
-          </g>
-        );
-      })}
-
-      {[...markers].sort((a, b) => Number(b.faded) - Number(a.faded)).map(({ player, anchorX, anchorY, color, faded }) => (
-        <g
-          key={`marker-${player.id ?? "dummy"}`}
-          role="button"
-          tabIndex={0}
-          aria-label={`${player.name}${selectedPlayerKey === (player.id === null ? "dummy" : String(player.id)) ? ", selected" : ", select player"}`}
-          aria-pressed={selectedPlayerKey === (player.id === null ? "dummy" : String(player.id))}
-          style={{ cursor: "pointer" }}
-          onClick={(event) => {
-            event.stopPropagation();
-            const key = player.id === null ? "dummy" : String(player.id);
-            onSelectPlayer(selectedPlayerKey === key ? null : key);
-            setSelectedType(null);
-          }}
-          onKeyDown={(event) => {
-            if (event.key !== "Enter" && event.key !== " ") return;
-            event.preventDefault();
-            event.stopPropagation();
-            const key = player.id === null ? "dummy" : String(player.id);
-            onSelectPlayer(selectedPlayerKey === key ? null : key);
-            setSelectedType(null);
-          }}
-        >
-          <circle
-            cx={anchorX}
-            cy={anchorY}
-            r={5}
-            fill={color}
-            stroke="#000"
-            strokeWidth={1.5}
-            opacity={faded ? 0.3 : 1}
-          />
-          <g opacity={faded ? 0.3 : 1} className={styles.playerSize}>
-            <image
-              href={player.imageUrl}
-              x={anchorX - 37.5}
-              y={anchorY - 37.5}
-              width={75}
-              height={75}
-              preserveAspectRatio="xMidYMid meet"
-            />
-            <text
-              x={anchorX}
-              y={anchorY + 45}
-              textAnchor="middle"
-              fontSize={23}
-              fontWeight={300}
-              fill="#000"
-              stroke="#fff"
-              strokeWidth={3}
-              paintOrder="stroke"
-            >{player.name}</text>
-          </g>
-          <rect
-            x={anchorX - 37.5}
-            y={anchorY - 37.5}
-            width={75}
-            height={75}
-            fill="transparent"
-            pointerEvents="all"
-            aria-hidden="true"
-          />
         </g>
-      ))}
 
-      {selectedType !== null && (
-        <foreignObject
-          x={popupX}
-          y={popupY}
-          width={popupWidth}
-          height={popupHeight}
-          onClick={(event) => {
-            event.stopPropagation();
-            setSelectedType(null);
-          }}
-          style={{ cursor: "pointer" }}
-        >
-          <div
-            role="dialog"
-            aria-label={`${PLAYER_TYPE_NAMES[language][selectedType.type]} description`}
-            style={{
-              boxSizing: "border-box",
-              width: "100%",
-              height: "100%",
-              padding: "14px 18px",
-              border: "2px solid #222",
-              borderRadius: "12px",
-              background: "#fffdf4",
-              boxShadow: "0 5px 16px #0004",
-              fontFamily: "var(--font-body)",
-              color: "var(--font_black)",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                marginBottom: "6px",
+        <g className={styles.labels} pointerEvents="none">
+          {chart.labels.map((label) => (
+            <text
+              key={label.type}
+              x={label.x}
+              y={label.y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+            >
+              {PLAYER_TYPE_NAMES[language][label.type]}
+            </text>
+          ))}
+        </g>
+
+        {markers.map(({ player, color, faded }) => {
+          const points = [player.startPosition, ...player.path];
+          return (
+            <g
+              key={`path-${player.id ?? "dummy"}`}
+              pointerEvents="none"
+              opacity={faded ? 0.3 : 1}
+            >
+              {points.slice(1).map((point, index) => {
+                const previous = points[index];
+                return (
+                  <g key={index}>
+                    <line
+                      x1={chartX(previous.x)}
+                      y1={chartY(previous.y)}
+                      x2={chartX(point.x)}
+                      y2={chartY(point.y)}
+                      stroke={color}
+                      strokeWidth={5}
+                      strokeLinecap="round"
+                    />
+                    <circle
+                      cx={chartX(point.x)}
+                      cy={chartY(point.y)}
+                      r={8}
+                      fill={color}
+                      stroke="#000"
+                      strokeWidth={2}
+                    />
+                    <text
+                      x={chartX(point.x)}
+                      y={chartY(point.y) - 14}
+                      textAnchor="middle"
+                      fontSize={16}
+                      fontWeight={800}
+                      fill={color}
+                    >
+                      {index + 1}
+                    </text>
+                  </g>
+                );
+              })}
+              {player.path.length > 0 && (
+                <circle
+                  cx={chartX(player.startPosition.x)}
+                  cy={chartY(player.startPosition.y)}
+                  r={8}
+                  fill={color}
+                  stroke="#000"
+                  strokeWidth={2}
+                />
+              )}
+            </g>
+          );
+        })}
+
+        {[...markers]
+          .sort((a, b) => Number(b.faded) - Number(a.faded))
+          .map(({ player, anchorX, anchorY, color, faded }) => (
+            <g
+              key={`marker-${player.id ?? "dummy"}`}
+              role="button"
+              tabIndex={0}
+              aria-label={`${player.name}${
+                selectedPlayerKey ===
+                (player.id === null ? "dummy" : String(player.id))
+                  ? ", selected"
+                  : ", select player"
+              }`}
+              aria-pressed={
+                selectedPlayerKey ===
+                (player.id === null ? "dummy" : String(player.id))
+              }
+              style={{ cursor: "pointer" }}
+              onClick={(event) => {
+                event.stopPropagation();
+                const key = player.id === null ? "dummy" : String(player.id);
+                onSelectPlayer(selectedPlayerKey === key ? null : key);
+                setSelectedType(null);
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                event.stopPropagation();
+                const key = player.id === null ? "dummy" : String(player.id);
+                onSelectPlayer(selectedPlayerKey === key ? null : key);
+                setSelectedType(null);
               }}
             >
-              <span
-                style={{
-                  flexShrink: 0,
-                  width: "17px",
-                  height: "17px",
-                  border: "1px solid #222",
-                  borderRadius: "3px",
-                  backgroundColor: PLAYER_TYPE_COLORS[selectedType.type],
-                }}
+              <circle
+                cx={anchorX}
+                cy={anchorY}
+                r={5}
+                fill={color}
+                stroke="#000"
+                strokeWidth={1.5}
+                opacity={faded ? 0.3 : 1}
               />
-              <strong style={{ fontSize: "25px", lineHeight: 1.2 }}>
-                {PLAYER_TYPE_NAMES[language][selectedType.type]}
-              </strong>
-            </div>
-            <p style={{ margin: 0, fontSize: "22px", lineHeight: 1.27 }}>
-              {typeDescriptions[selectedType.type]}
-            </p>
-          </div>
-        </foreignObject>
-      )}
+              <g opacity={faded ? 0.3 : 1} className={styles.playerSize}>
+                <image
+                  href={player.imageUrl}
+                  x={anchorX - 37.5}
+                  y={anchorY - 37.5}
+                  width={75}
+                  height={75}
+                  preserveAspectRatio="xMidYMid meet"
+                />
+                <text
+                  x={anchorX}
+                  y={anchorY + 45}
+                  textAnchor="middle"
+                  fontSize={23}
+                  fontWeight={300}
+                  fill="#000"
+                  stroke="#fff"
+                  strokeWidth={3}
+                  paintOrder="stroke"
+                >
+                  {player.name}
+                </text>
+              </g>
+              <rect
+                x={anchorX - 37.5}
+                y={anchorY - 37.5}
+                width={75}
+                height={75}
+                fill="transparent"
+                pointerEvents="all"
+                aria-hidden="true"
+              />
+            </g>
+          ))}
 
-    </svg>
-  </>
-);
+        {selectedType !== null && (
+          <foreignObject
+            x={popupX}
+            y={popupY}
+            width={popupWidth}
+            height={popupHeight}
+            onClick={(event) => {
+              event.stopPropagation();
+              setSelectedType(null);
+            }}
+            style={{ cursor: "pointer" }}
+          >
+            <div
+              role="dialog"
+              aria-label={`${
+                PLAYER_TYPE_NAMES[language][selectedType.type]
+              } description`}
+              style={{
+                boxSizing: "border-box",
+                width: "100%",
+                height: "100%",
+                padding: "14px 18px",
+                border: "2px solid #222",
+                borderRadius: "12px",
+                background: "#fffdf4",
+                boxShadow: "0 5px 16px #0004",
+                fontFamily: "var(--font-body)",
+                color: "var(--font_black)",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  marginBottom: "6px",
+                }}
+              >
+                <span
+                  style={{
+                    flexShrink: 0,
+                    width: "17px",
+                    height: "17px",
+                    border: "1px solid #222",
+                    borderRadius: "3px",
+                    backgroundColor: PLAYER_TYPE_COLORS[selectedType.type],
+                  }}
+                />
+                <strong style={{ fontSize: "25px", lineHeight: 1.2 }}>
+                  {PLAYER_TYPE_NAMES[language][selectedType.type]}
+                </strong>
+              </div>
+              <p style={{ margin: 0, fontSize: "22px", lineHeight: 1.27 }}>
+                {typeDescriptions[selectedType.type]}
+              </p>
+            </div>
+          </foreignObject>
+        )}
+      </svg>
+    </>
+  );
 }

@@ -18,6 +18,7 @@ import {
   ImportedTeamSkillBoost,
   ImportedTeamPlayers,
   ImportedTeamFormation,
+  type TeamPlayerTypeProfile,
 } from "./ImportTeamData";
 import { LoadingBig } from "@/app/Loading";
 
@@ -54,6 +55,8 @@ type Props = {
   assignedPlayers: AssignedPlayer[];
   possiblePlayers: AssignedPlayer[];
   formationSlots: TeamFormationSlot[];
+  typeProfiles?: TeamPlayerTypeProfile[];
+  typeProfileError?: string;
 };
 
 type TacticBarProps = {
@@ -174,6 +177,8 @@ export default function MatchManagerInfo({
   assignedPlayers,
   possiblePlayers,
   formationSlots,
+  typeProfiles = [],
+  typeProfileError = "",
 }: Props) {
   const teamImageId = String(team.team_id).padStart(4, "0");
 
@@ -320,6 +325,8 @@ export default function MatchManagerInfo({
             stadiumId={team.stadium_id}
             teamId={team.team_id}
             playerPreference={team.player_pref}
+            typeProfiles={typeProfiles}
+            typeProfileError={typeProfileError}
           />
         </Suspense>
 

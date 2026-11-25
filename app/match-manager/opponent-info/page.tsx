@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import LanguageSwitcher from "../../LanguageSwitcher";
 import { LoadingBig } from "../../Loading";
 import MatchManagerInfo from "./MatchManagerInfo";
+import type { TeamPlayerTypeProfile } from "./ImportTeamData";
 import { decodeFormation } from "./team-formation";
 import type { AssignedPlayer } from "./PlayersOnTeam";
 import { getPossiblePlayers } from "./possible-players";
@@ -136,6 +137,25 @@ async function getCandidatePlayers(): Promise<AssignedPlayer[]> {
   return data ?? [];
 }
 
+async function getTeamTypeProfiles(teamId: number): Promise<{
+  profiles: TeamPlayerTypeProfile[];
+  error: string;
+}> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("TeamPlayerTypes")
+    .select(
+      "team_id,slot_id,extra_01,extra_02,pot_01,pot_02,pot_03,pot_04,pot_05,pot_06,pot_07,pot_08,pot_09,pot_10,pot_11,pot_12",
+    )
+    .eq("team_id", teamId)
+    .order("slot_id");
+
+  return {
+    profiles: error ? [] : data ?? [],
+    error: error?.message ?? "",
+  };
+}
+
 async function OpponentInfoData({ searchParams }: PageProps) {
   const teamId = getTeamId((await searchParams).team_id);
 
@@ -158,9 +178,10 @@ async function OpponentInfoData({ searchParams }: PageProps) {
     );
   }
 
-  const [assignedPlayers, candidates] = await Promise.all([
+  const [assignedPlayers, candidates, typeProfiles] = await Promise.all([
     getAssignedPlayers(teamId),
     getCandidatePlayers(),
+    getTeamTypeProfiles(teamId),
   ]);
 
   const possiblePlayers = getPossiblePlayers(team, candidates, assignedPlayers);
@@ -179,6 +200,8 @@ async function OpponentInfoData({ searchParams }: PageProps) {
       assignedPlayers={assignedPlayers}
       possiblePlayers={possiblePlayers}
       formationSlots={formationSlots}
+      typeProfiles={typeProfiles.profiles}
+      typeProfileError={typeProfiles.error}
     />
   );
 }
