@@ -42,7 +42,7 @@ function readName(bytes: Uint8Array, start: number, length: number): string {
 
 export function calculateKnownPotentialOffsetWeeks(
   developmentWeeks: number,
-  weeksAtClub: number | null
+  weeksAtClub: number | null,
 ): number | null {
   if (
     weeksAtClub === null ||
@@ -59,13 +59,9 @@ export function calculateKnownPotentialOffsetWeeks(
 
 export function readPlayerFatigue(
   view: DataView,
-  playerId: number
+  playerId: number,
 ): number | null {
-  if (
-    !Number.isInteger(playerId) ||
-    playerId < 0 ||
-    playerId > 1015
-  ) {
+  if (!Number.isInteger(playerId) || playerId < 0 || playerId > 1015) {
     return null;
   }
 
@@ -76,9 +72,7 @@ export function readPlayerFatigue(
   return view.getInt16(offset, true);
 }
 
-export function getFatigueLevel(
-  fatigue: number | null
-): 0 | 1 | 2 | null {
+export function getFatigueLevel(fatigue: number | null): 0 | 1 | 2 | null {
   if (fatigue === null) return null;
 
   return fatigue < 400 ? 0 : fatigue < 700 ? 1 : 2;
@@ -87,14 +81,14 @@ export function getFatigueLevel(
 export function parseSave(buffer: ArrayBuffer, fileName: string): ParsedSave {
   if (buffer.byteLength !== SAVE_SIZE) {
     throw new Error(
-      `${fileName}: Invalid file size (${buffer.byteLength} bytes)`
+      `${fileName}: Invalid file size (${buffer.byteLength} bytes)`,
     );
   }
 
   const view = new DataView(buffer);
   const bytes = new Uint8Array(buffer);
   const signature = new TextDecoder("ascii").decode(
-    bytes.subarray(0x08, 0x08 + MAGIC.length)
+    bytes.subarray(0x08, 0x08 + MAGIC.length),
   );
   if (signature !== MAGIC) {
     throw new Error(`${fileName}: Invalid save signature`);
@@ -114,9 +108,7 @@ export function parseSave(buffer: ArrayBuffer, fileName: string): ParsedSave {
   for (let slot = 0; slot < SLOT_COUNT; slot++) {
     const base = ROSTER_OFFSET + slot * SLOT_SIZE;
     if (base + SLOT_SIZE > buffer.byteLength) {
-      throw new Error(
-        `${fileName}: Roster slot ${slot + 1} is out of bounds`
-      );
+      throw new Error(`${fileName}: Roster slot ${slot + 1} is out of bounds`);
     }
 
     const id = view.getUint16(base + 0x00, true);
@@ -136,7 +128,7 @@ export function parseSave(buffer: ArrayBuffer, fileName: string): ParsedSave {
       name = readName(bytes, nameStart, 0x34);
     } catch {
       throw new Error(
-        `${fileName}: Invalid name in occupied roster slot ${slot + 1}`
+        `${fileName}: Invalid name in occupied roster slot ${slot + 1}`,
       );
     }
     if (!name) {
@@ -145,30 +137,40 @@ export function parseSave(buffer: ArrayBuffer, fileName: string): ParsedSave {
     }
     if (id === 0) {
       throw new Error(
-        `${fileName}: Invalid player ID 0 in roster slot ${slot + 1}`
+        `${fileName}: Invalid player ID 0 in roster slot ${slot + 1}`,
       );
     }
     if (seenIds.has(id)) {
       throw new Error(
-        `${fileName}: Duplicate player ID ${id} in roster slot ${slot + 1}`
+        `${fileName}: Duplicate player ID ${id} in roster slot ${slot + 1}`,
       );
     }
     seenIds.add(id);
 
     const positionAndFoot = view.getUint8(base + 0x06);
     const skillPoints = Array.from({ length: 10 }, (_, index) =>
-      view.getUint16(base + 0x40 + index * 2, true)
+      view.getUint16(base + 0x40 + index * 2, true),
     );
     const developmentWeeks = view.getUint16(base + 0x54, true);
     if (developmentWeeks > 384) {
       throw new Error(
-        `${fileName}: Invalid development counter in slot ${slot + 1}`
+        `${fileName}: Invalid development counter in slot ${slot + 1}`,
       );
     }
 
     const typeWeights = Array.from({ length: 12 }, (_, index) =>
-      view.getUint8(base + 0x6a + index)
+      view.getUint8(base + 0x6a + index),
     );
+    const extraValues: [number, number] = [
+      view.getUint8(base + 0x76),
+      view.getUint8(base + 0x77),
+    ];
+
+    if (extraValues.some((value) => value > 100)) {
+      throw new Error(
+        `${fileName}: Invalid movement values in slot ${slot + 1}`,
+      );
+    }
 
     players.push({
       id,
@@ -176,6 +178,7 @@ export function parseSave(buffer: ArrayBuffer, fileName: string): ParsedSave {
       imageUrl: "",
       skillPoints,
       typeWeights,
+      extraValues,
       position: positionAndFoot & 0x0f,
       foot: (positionAndFoot & 0x10) !== 0 ? "L" : "R",
       savedTypeIndex: view.getUint8(base + 0x68),
@@ -196,7 +199,7 @@ export function parseSave(buffer: ArrayBuffer, fileName: string): ParsedSave {
 export async function parseSaveFiles(files: File[]): Promise<ParsedSave> {
   if (files.length === 0 || files.length > 3) {
     throw new Error(
-      "Select savedata0.bin, savedata1.bin, savedata2.bin or all three"
+      "Select savedata0.bin, savedata1.bin, savedata2.bin or all three",
     );
   }
 
@@ -205,9 +208,9 @@ export async function parseSaveFiles(files: File[]): Promise<ParsedSave> {
   const names = new Set<string>();
 
   for (const file of files) {
-    const match = file.name.toLowerCase().match(
-      /^(savedata[012])(?:\s*\(\d+\))?\.bin$/
-    );
+    const match = file.name
+      .toLowerCase()
+      .match(/^(savedata[012])(?:\s*\(\d+\))?\.bin$/);
     if (!match) {
       errors.push(`Unsupported file: ${file.name}`);
       continue;
@@ -227,7 +230,7 @@ export async function parseSaveFiles(files: File[]): Promise<ParsedSave> {
       errors.push(
         error instanceof Error
           ? error.message
-          : `${file.name}: Unable to read save`
+          : `${file.name}: Unable to read save`,
       );
     }
   }
@@ -247,8 +250,8 @@ export function readImportedPlayers(): ImportedSavePlayer[] {
     if (!Array.isArray(value)) return [];
     const seenIds = new Set<number>();
 
-    return value.filter(
-      (player): player is ImportedSavePlayer => {
+    return value
+      .filter((player): player is ImportedSavePlayer => {
         if (!player || typeof player !== "object") return false;
         const item = player as Partial<ImportedSavePlayer>;
         const valid =
@@ -264,13 +267,19 @@ export function readImportedPlayers(): ImportedSavePlayer[] {
           Array.isArray(item.skillPoints) &&
           item.skillPoints.length === 10 &&
           item.skillPoints.every(
-            (n) => Number.isInteger(n) && n >= 0 && n <= 65535
+            (n) => Number.isInteger(n) && n >= 0 && n <= 65535,
           ) &&
           Array.isArray(item.typeWeights) &&
           item.typeWeights.length === 12 &&
           item.typeWeights.every(
-            (n) => Number.isInteger(n) && n >= 0 && n <= 255
+            (n) => Number.isInteger(n) && n >= 0 && n <= 255,
           ) &&
+          (item.extraValues === undefined ||
+            (Array.isArray(item.extraValues) &&
+              item.extraValues.length === 2 &&
+              item.extraValues.every(
+                (n) => Number.isInteger(n) && n >= 0 && n <= 100,
+              ))) &&
           typeof item.developmentWeeks === "number" &&
           Number.isInteger(item.developmentWeeks) &&
           item.developmentWeeks >= 0 &&
@@ -284,11 +293,11 @@ export function readImportedPlayers(): ImportedSavePlayer[] {
               Number.isInteger(item.fatigue)));
         if (valid) seenIds.add(item.id!);
         return valid;
-      }
-    ).map((player) => ({
-      ...player,
-      imageUrl: `/player-images/${String(player.id).padStart(4, "0")}.png`,
-    }));
+      })
+      .map((player) => ({
+        ...player,
+        imageUrl: `/player-images/${String(player.id).padStart(4, "0")}.png`,
+      }));
   } catch {
     return [];
   }
@@ -300,6 +309,6 @@ export function saveImportedPlayers(players: ImportedSavePlayer[]) {
 
 export function removeImportedPlayer(id: number) {
   saveImportedPlayers(
-    readImportedPlayers().filter((player) => player.id !== id)
+    readImportedPlayers().filter((player) => player.id !== id),
   );
 }

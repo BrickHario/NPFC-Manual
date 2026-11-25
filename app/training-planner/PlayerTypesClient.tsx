@@ -1,22 +1,15 @@
-
 "use client";
 
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { combineTrainingPots, getGroupedTrainingFatigue, getTrainingGroups, resolveTrainingSelection } from "./training-types";
-import type {
-  SelectedTraining,
-  TrainingEntry,
+import {
+  combineTrainingPots,
+  getGroupedTrainingFatigue,
+  getTrainingGroups,
+  resolveTrainingSelection,
 } from "./training-types";
-import type {
-  PlayerTypeSelection,
-} from "./player-selection";
+import type { SelectedTraining, TrainingEntry } from "./training-types";
+import type { PlayerTypeSelection } from "./player-selection";
 import {
   getSavedPlayerIds,
   removeSavedPlayerId,
@@ -30,6 +23,7 @@ import {
 } from "./save-parser";
 import ImportSaveButton from "./ImportSaveButton";
 import TypesChart from "./TypesChart";
+import MovementChart from "./MovementChart";
 import { playerTypeRows } from "./player-type-data";
 import {
   PLAYER_TYPE_COLORS,
@@ -43,27 +37,19 @@ import {
   calculateTrainingStep,
 } from "./player-type-calculation";
 import styles from "./TypesChart.module.css";
-import {
-  TypePlayers,
-  type PlayerDisplay,
-} from "./TypePlayers";
+import { TypePlayers, type PlayerDisplay } from "./TypePlayers";
 import LanguageSwitcher from "../LanguageSwitcher";
 import TrainingSelectFilter from "./TrainingSelectFilter";
 import { usePotentialCurves } from "./PotentialCurvesProvider";
 
 const SKILL_VALUES = [0, 50, 150, 350, 600, 1000] as const;
 
-const SKILL_GROUPS = [
-  [0, 1],
-  [2],
-  [3],
-  [4, 5, 6],
-  [7],
-  [8],
-  [9],
-];
+const SKILL_GROUPS = [[0, 1], [2], [3], [4, 5, 6], [7], [8], [9]];
 
-function getPotentialPercent(curve: number[] | null | undefined, trainingWeeks: number): number | undefined {
+function getPotentialPercent(
+  curve: number[] | null | undefined,
+  trainingWeeks: number,
+): number | undefined {
   const index = Math.max(0, Math.min(32, Math.floor(trainingWeeks / 12)));
   return curve?.[index];
 }
@@ -71,7 +57,7 @@ function getPotentialPercent(curve: number[] | null | undefined, trainingWeeks: 
 function applySkillTraining(
   currentSkills: number[],
   rawChanges: number[],
-  potentialPercent: number
+  potentialPercent: number,
 ): number[] {
   const effectivePotential = Math.max(20, potentialPercent);
 
@@ -103,9 +89,7 @@ function applySkillTraining(
     const change = prepared[index];
 
     const actualDelta =
-      change > 0
-        ? Math.trunc(change * effectivePotential / 100)
-        : change;
+      change > 0 ? Math.trunc((change * effectivePotential) / 100) : change;
 
     return Math.max(0, Math.min(1100, current + actualDelta));
   });
@@ -114,11 +98,11 @@ function applySkillTraining(
 function applyExtraValues(
   current: [number, number],
   xtra_01: number,
-  xtra_02: number
+  xtra_02: number,
 ): [number, number] {
   return [
-    Math.max(0, Math.min(100, current[0] + Math.max(-30, Math.min(30, xtra_01)) * 2)),
-    Math.max(0, Math.min(100, current[1] + Math.max(-30, Math.min(30, xtra_02)) * 2)),
+    Math.max(0, Math.min(100, current[0] + xtra_01 * 2)),
+    Math.max(0, Math.min(100, current[1] + xtra_02 * 2)),
   ];
 }
 
@@ -129,6 +113,12 @@ const SELECTED_PLAYER_STORAGE_KEY = "npfc-selected-player-v1";
 type Position = { x: number; y: number };
 type TrainingOrders = Record<string, SelectedTraining[]>;
 type PlayerEntry = PlayerTypeSelection | ImportedSavePlayer;
+type MovementPlayerDisplay = PlayerDisplay & {
+  initialExtraValues: [number, number];
+  finalExtraValues: [number, number];
+  movementPath: [number, number][];
+  movementDataAvailable: boolean;
+};
 
 type PlayerTypesClientProps = {
   trainings: TrainingEntry[];
@@ -137,15 +127,13 @@ type PlayerTypesClientProps = {
   goalkeeperIds: number[];
 };
 
-function isImportedPlayer(
-  player: PlayerEntry
-): player is ImportedSavePlayer {
+function isImportedPlayer(player: PlayerEntry): player is ImportedSavePlayer {
   return "source" in player && player.source === "save";
 }
 
 function mergePlayers(
   marketplace: PlayerTypeSelection[],
-  imported: ImportedSavePlayer[]
+  imported: ImportedSavePlayer[],
 ): PlayerEntry[] {
   const map = new Map<number, PlayerEntry>();
 
@@ -176,22 +164,18 @@ function getPlayerTypeId(x: number, y: number): number {
   return 0;
 }
 
-function estimatePotsForPosition(
-  targetX: number,
-  targetY: number
-) {
+function estimatePotsForPosition(targetX: number, targetY: number) {
   const baseline = Array<number>(12).fill(50);
 
   const score = (pots: number[]) => {
     const position = calculatePlayerPosition(pots);
 
     const positionError =
-      (position.x - targetX) ** 2 +
-      (position.y - targetY) ** 2;
+      (position.x - targetX) ** 2 + (position.y - targetY) ** 2;
 
     const potentialDifference = pots.reduce(
       (sum, value) => sum + (value - 50) ** 2,
-      0
+      0,
     );
 
     return positionError * 10000 + potentialDifference / 12;
@@ -201,17 +185,10 @@ function estimatePotsForPosition(
   let bestScore = score(bestPots);
 
   for (let restart = 0; restart < 4; restart++) {
-    let seed =
-      (
-        12345 +
-        restart * 7919 +
-        targetX * 101 +
-        targetY * 307
-      ) >>> 0;
+    let seed = (12345 + restart * 7919 + targetX * 101 + targetY * 307) >>> 0;
 
     const random = () => {
-      seed =
-        (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
 
       return seed / 4294967296;
     };
@@ -219,12 +196,7 @@ function estimatePotsForPosition(
     const pots =
       restart === 0
         ? [...baseline]
-        : baseline.map(
-            () =>
-              [0, 25, 50, 75, 100][
-                Math.floor(random() * 5)
-              ]
-          );
+        : baseline.map(() => [0, 25, 50, 75, 100][Math.floor(random() * 5)]);
 
     let currentScore = score(pots);
 
@@ -238,10 +210,7 @@ function estimatePotsForPosition(
           let localBestScore = currentScore;
 
           for (const sign of [-1, 1]) {
-            pots[i] = Math.max(
-              0,
-              Math.min(100, original + sign * step)
-            );
+            pots[i] = Math.max(0, Math.min(100, original + sign * step));
 
             const candidateScore = score(pots);
 
@@ -276,8 +245,7 @@ function toSkillRow(values: number[]) {
   const row: Record<string, number> = {};
 
   for (let i = 0; i < 10; i++) {
-    row[`skill_${String(i + 1).padStart(2, "0")}`] =
-      Number(values[i] ?? 0);
+    row[`skill_${String(i + 1).padStart(2, "0")}`] = Number(values[i] ?? 0);
   }
 
   return row;
@@ -286,14 +254,10 @@ function toSkillRow(values: number[]) {
 function readTrainingOrders(): TrainingOrders {
   try {
     const value: unknown = JSON.parse(
-      localStorage.getItem(TRAINING_STORAGE_KEY) ?? "{}"
+      localStorage.getItem(TRAINING_STORAGE_KEY) ?? "{}",
     );
 
-    if (
-      !value ||
-      typeof value !== "object" ||
-      Array.isArray(value)
-    ) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
       return {};
     }
 
@@ -318,19 +282,23 @@ function readTrainingOrders(): TrainingOrders {
           return [];
         }
 
-        return [{
-          kind: item.kind,
-          id: item.id,
-          ...(item.kind === "card" && typeof item.groupId === "number" &&
-            Number.isSafeInteger(item.groupId) && item.groupId >= 0
+        return [
+          {
+            kind: item.kind,
+            id: item.id,
+            ...(item.kind === "card" &&
+            typeof item.groupId === "number" &&
+            Number.isSafeInteger(item.groupId) &&
+            item.groupId >= 0
               ? { groupId: item.groupId }
               : {}),
-          instanceId:
-            typeof item.instanceId === "number" &&
-            Number.isSafeInteger(item.instanceId)
-              ? item.instanceId
-              : index,
-        }];
+            instanceId:
+              typeof item.instanceId === "number" &&
+              Number.isSafeInteger(item.instanceId)
+                ? item.instanceId
+                : index,
+          },
+        ];
       });
     }
 
@@ -343,14 +311,10 @@ function readTrainingOrders(): TrainingOrders {
 function readPositions(): Record<string, Position> {
   try {
     const value: unknown = JSON.parse(
-      localStorage.getItem(POSITION_STORAGE_KEY) ?? "{}"
+      localStorage.getItem(POSITION_STORAGE_KEY) ?? "{}",
     );
 
-    if (
-      !value ||
-      typeof value !== "object" ||
-      Array.isArray(value)
-    ) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
       return {};
     }
 
@@ -393,44 +357,34 @@ export default function PlayerTypesClient({
   const router = useRouter();
   const dbCurves = usePotentialCurves();
 
-  const [players, setPlayers] = useState<PlayerEntry[]>(
-    initialPlayers
+  const [players, setPlayers] = useState<PlayerEntry[]>(initialPlayers);
+
+  const [positions, setPositions] = useState<Record<string, Position>>({});
+
+  const [selectedPlayerKey, setSelectedPlayerKey] = useState<string | null>(
+    null,
   );
+  const [chartMode, setChartMode] = useState<"types" | "movement">("types");
 
-  const [positions, setPositions] = useState<
-    Record<string, Position>
-  >({});
+  const [trainingOrders, setTrainingOrders] = useState<TrainingOrders>({});
 
-  const [selectedPlayerKey, setSelectedPlayerKey] =
-    useState<string | null>(null);
+  const [storageLoaded, setStorageLoaded] = useState(false);
 
-  const [trainingOrders, setTrainingOrders] =
-    useState<TrainingOrders>({});
-
-  const [storageLoaded, setStorageLoaded] =
-    useState(false);
-
-  const [requestedTrainingKey, setRequestedTrainingKey] =
-    useState<string | null>(null);
+  const [requestedTrainingKey, setRequestedTrainingKey] = useState<
+    string | null
+  >(null);
 
   const language = initialLanguage;
 
   useEffect(() => {
-    setPlayers(
-      mergePlayers(
-        initialPlayers,
-        readImportedPlayers()
-      )
-    );
+    setPlayers(mergePlayers(initialPlayers, readImportedPlayers()));
   }, [initialPlayers]);
 
   useEffect(() => {
     setTrainingOrders(readTrainingOrders());
     setPositions(readPositions());
 
-    const savedSelection = localStorage.getItem(
-      SELECTED_PLAYER_STORAGE_KEY
-    );
+    const savedSelection = localStorage.getItem(SELECTED_PLAYER_STORAGE_KEY);
 
     setSelectedPlayerKey(savedSelection || null);
     setStorageLoaded(true);
@@ -456,38 +410,26 @@ export default function PlayerTypesClient({
   useEffect(() => {
     if (!storageLoaded) return;
 
-    localStorage.setItem(
-      TRAINING_STORAGE_KEY,
-      JSON.stringify(trainingOrders)
-    );
+    localStorage.setItem(TRAINING_STORAGE_KEY, JSON.stringify(trainingOrders));
   }, [trainingOrders, storageLoaded]);
 
   useEffect(() => {
     if (!storageLoaded) return;
 
-    localStorage.setItem(
-      POSITION_STORAGE_KEY,
-      JSON.stringify(positions)
-    );
+    localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(positions));
   }, [positions, storageLoaded]);
 
   useEffect(() => {
     const savedIds = getSavedPlayerIds();
-    const currentIds = initialPlayers.map(
-      (player) => player.id
-    );
+    const currentIds = initialPlayers.map((player) => player.id);
 
-    const combined = [
-      ...new Set([...savedIds, ...currentIds]),
-    ];
+    const combined = [...new Set([...savedIds, ...currentIds])];
 
     if (combined.length !== savedIds.length) {
       savePlayerIds(combined);
     }
 
-    const legacyId = Number(
-      localStorage.getItem("npfc-player-type-id")
-    );
+    const legacyId = Number(localStorage.getItem("npfc-player-type-id"));
 
     if (
       savedIds.length === 0 &&
@@ -502,7 +444,10 @@ export default function PlayerTypesClient({
     localStorage.removeItem("npfc-player-type-id");
   }, [initialPlayers, router]);
 
-  const availablePlayerKeys = players.map((player) => String(player.id)).sort().join(",");
+  const availablePlayerKeys = players
+    .map((player) => String(player.id))
+    .sort()
+    .join(",");
 
   useEffect(() => {
     if (!storageLoaded) return;
@@ -519,10 +464,7 @@ export default function PlayerTypesClient({
         return available[0];
       }
 
-      return current !== null &&
-        available.includes(current)
-        ? current
-        : null;
+      return current !== null && available.includes(current) ? current : null;
     });
   }, [availablePlayerKeys, storageLoaded]);
 
@@ -530,14 +472,9 @@ export default function PlayerTypesClient({
     if (!storageLoaded) return;
 
     if (selectedPlayerKey === null) {
-      localStorage.removeItem(
-        SELECTED_PLAYER_STORAGE_KEY
-      );
+      localStorage.removeItem(SELECTED_PLAYER_STORAGE_KEY);
     } else {
-      localStorage.setItem(
-        SELECTED_PLAYER_STORAGE_KEY,
-        selectedPlayerKey
-      );
+      localStorage.setItem(SELECTED_PLAYER_STORAGE_KEY, selectedPlayerKey);
     }
   }, [selectedPlayerKey, storageLoaded]);
 
@@ -579,7 +516,7 @@ export default function PlayerTypesClient({
       });
       router.refresh();
     },
-    [router]
+    [router],
   );
 
   const handleRemovePlayer = useCallback(
@@ -587,36 +524,26 @@ export default function PlayerTypesClient({
       removeSavedPlayerId(id);
       removeImportedPlayer(id);
 
-      setPlayers((current) =>
-        current.filter((player) => player.id !== id)
-      );
+      setPlayers((current) => current.filter((player) => player.id !== id));
 
       setSelectedPlayerKey((current) =>
-        current === String(id) ? null : current
+        current === String(id) ? null : current,
       );
 
-      if (
-        window.location.search.includes("playerId=")
-      ) {
+      if (window.location.search.includes("playerId=")) {
         router.replace("/training-planner");
       } else {
         router.refresh();
       }
     },
-    [router]
+    [router],
   );
 
   const handlePositionChange = useCallback(
-    (
-      id: number | null,
-      axis: "x" | "y",
-      value: number
-    ) => {
+    (id: number | null, axis: "x" | "y", value: number) => {
       const key = id === null ? "dummy" : String(id);
 
-      const player = players.find(
-        (entry) => String(entry.id) === key
-      );
+      const player = players.find((entry) => String(entry.id) === key);
 
       if (player && isImportedPlayer(player)) {
         return;
@@ -633,84 +560,80 @@ export default function PlayerTypesClient({
         };
 
         if (storageLoaded) {
-          localStorage.setItem(
-            POSITION_STORAGE_KEY,
-            JSON.stringify(updated)
-          );
+          localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(updated));
         }
 
         return updated;
       });
     },
-    [players, storageLoaded]
+    [players, storageLoaded],
   );
 
   const trainingCatalog = useMemo(
     () =>
-      new Map(
-        trainings.map((entry) => [
-          `${entry.kind}:${entry.id}`,
-          entry,
-        ])
-      ),
-    [trainings]
+      new Map(trainings.map((entry) => [`${entry.kind}:${entry.id}`, entry])),
+    [trainings],
   );
 
   const displayPlayers = useMemo(
     () =>
       players.length > 0
         ? players
-        : [{
-            id: -1,
-            name: "Dummy",
-            imageUrl: "/Dummy.png",
-            skills: Array<number>(10).fill(0),
-          }],
-    [players]
+        : [
+            {
+              id: -1,
+              name: "Dummy",
+              imageUrl: "/Dummy.png",
+              skills: Array<number>(10).fill(0),
+            },
+          ],
+    [players],
   );
 
-  const activePlayerKey =
-    players.length === 0
-      ? "dummy"
-      : selectedPlayerKey;
+  const activePlayerKey = players.length === 0 ? "dummy" : selectedPlayerKey;
 
-  const isGoalkeeper = activePlayerKey !== null && activePlayerKey !== "dummy" &&
+  const isGoalkeeper =
+    activePlayerKey !== null &&
+    activePlayerKey !== "dummy" &&
     goalkeeperIds.includes(Number(activePlayerKey));
 
-  const selectedTrainings = useMemo(() =>
-    activePlayerKey === null
-      ? []
-      : resolveTrainingSelection(trainingOrders[activePlayerKey] ?? [], trainingCatalog, isGoalkeeper),
-    [activePlayerKey, trainingOrders, trainingCatalog, isGoalkeeper]
+  const selectedTrainings = useMemo(
+    () =>
+      activePlayerKey === null
+        ? []
+        : resolveTrainingSelection(
+            trainingOrders[activePlayerKey] ?? [],
+            trainingCatalog,
+            isGoalkeeper,
+          ),
+    [activePlayerKey, trainingOrders, trainingCatalog, isGoalkeeper],
   );
 
   const handleSelectionChange = useCallback(
     (items: SelectedTraining[]) => {
-      if (
-        activePlayerKey === null ||
-        !storageLoaded
-      ) {
+      if (activePlayerKey === null || !storageLoaded) {
         return;
       }
 
       setTrainingOrders((current) => {
         const updated = {
           ...current,
-          [activePlayerKey]: resolveTrainingSelection(items, trainingCatalog, isGoalkeeper),
+          [activePlayerKey]: resolveTrainingSelection(
+            items,
+            trainingCatalog,
+            isGoalkeeper,
+          ),
         };
 
-        localStorage.setItem(
-          TRAINING_STORAGE_KEY,
-          JSON.stringify(updated)
-        );
+        localStorage.setItem(TRAINING_STORAGE_KEY, JSON.stringify(updated));
 
         return updated;
       });
     },
-    [activePlayerKey, storageLoaded, trainingCatalog, isGoalkeeper]
+    [activePlayerKey, storageLoaded, trainingCatalog, isGoalkeeper],
   );
 
-  const playerViews = useMemo<PlayerDisplay[]>(() => {
+  const playerViews = useMemo<MovementPlayerDisplay[]>(() => {
     return displayPlayers.map((player) => {
       const id = players.length === 0 ? null : player.id;
       const key = id === null ? "dummy" : String(id);
@@ -720,9 +643,7 @@ export default function PlayerTypesClient({
       const initialSkillPoints = imported
         ? [...player.skillPoints]
         : Array.from({ length: 10 }, (_, index) => {
-            const level = Number(
-              player.skills[index] ?? 0
-            );
+            const level = Number(player.skills[index] ?? 0);
 
             return SKILL_VALUES[level] ?? 0;
           });
@@ -731,44 +652,40 @@ export default function PlayerTypesClient({
         ? [...player.typeWeights]
         : estimatePotsForPosition(
             positions[key]?.x ?? 50,
-            positions[key]?.y ?? 50
+            positions[key]?.y ?? 50,
           );
 
-      const startPosition =
-        calculatePlayerPosition(startPots);
+      const startPosition = calculatePlayerPosition(startPots);
 
-      const x = imported
-        ? startPosition.x
-        : positions[key]?.x ?? 50;
+      const x = imported ? startPosition.x : positions[key]?.x ?? 50;
 
-      const y = imported
-        ? startPosition.y
-        : positions[key]?.y ?? 50;
+      const y = imported ? startPosition.y : positions[key]?.y ?? 50;
 
-      const trainingsForPlayer =
-        resolveTrainingSelection(trainingOrders[key] ?? [], trainingCatalog,
-          id !== null && goalkeeperIds.includes(id));
+      const trainingsForPlayer = resolveTrainingSelection(
+        trainingOrders[key] ?? [],
+        trainingCatalog,
+        id !== null && goalkeeperIds.includes(id),
+      );
       const trainingGroups = getTrainingGroups(trainingsForPlayer);
 
-      const curve = id === null
-        ? dbCurves.dummy
-        : dbCurves.players[id] ??
-          (imported && player.potentialCurve?.length === 33
-            ? player.potentialCurve
-            : null);
+      const curve =
+        id === null
+          ? dbCurves.dummy
+          : dbCurves.players[id] ??
+            (imported && player.potentialCurve?.length === 33
+              ? player.potentialCurve
+              : null);
 
       const developmentWeeks = imported ? player.developmentWeeks : 0;
 
       let finalSkillPoints = [...initialSkillPoints];
       const initialExtraValues: [number, number] =
-        imported && player.extraValues
-          ? [...player.extraValues]
-          : [0, 0];
-      let finalExtraValues: [number, number] =
-        [...initialExtraValues];
+        imported && player.extraValues ? [...player.extraValues] : [0, 0];
+      let finalExtraValues: [number, number] = [...initialExtraValues];
+      const movementPath: [number, number][] = [];
       let fatigue = Math.max(
         0,
-        Math.min(1000, imported ? player.fatigue ?? 0 : 0)
+        Math.min(1000, imported ? player.fatigue ?? 0 : 0),
       );
       let appliedTrainings = 0;
 
@@ -780,10 +697,15 @@ export default function PlayerTypesClient({
 
         if (entries.length !== group.length) continue;
 
-        const fatigueChange = getGroupedTrainingFatigue(entries.map(({ entry }) => entry));
+        const fatigueChange = getGroupedTrainingFatigue(
+          entries.map(({ entry }) => entry),
+        );
 
         if (appliedTrainings > 0 || fatigueChange === 0) {
-          fatigue = Math.max(0, fatigue - calculateWeeklyRecovery(finalSkillPoints));
+          fatigue = Math.max(
+            0,
+            fatigue - calculateWeeklyRecovery(finalSkillPoints),
+          );
         }
 
         fatigue = Math.max(0, Math.min(1000, fatigue + fatigueChange));
@@ -795,12 +717,12 @@ export default function PlayerTypesClient({
           const randomBonus = entry.random_01 ?? 0;
 
           if (item.kind === "card" && randomBonus !== 0) {
-
             const randomIndex =
-              (((item.instanceId * 2654435761 +
-                player.id * 1013904223) >>> 0) % 9);
+              ((item.instanceId * 2654435761 + player.id * 1013904223) >>> 0) %
+              9;
 
-            rawChanges[randomIndex] = (rawChanges[randomIndex] ?? 0) + randomBonus;
+            rawChanges[randomIndex] =
+              (rawChanges[randomIndex] ?? 0) + randomBonus;
           }
 
           rawChanges.forEach((change, index) => {
@@ -809,36 +731,34 @@ export default function PlayerTypesClient({
         }
 
         const trainingWeeks = developmentWeeks + appliedTrainings - 1;
-        const trainingPotentialPercent = getPotentialPercent(curve, trainingWeeks) ?? 100;
+        const trainingPotentialPercent =
+          getPotentialPercent(curve, trainingWeeks) ?? 100;
 
         finalSkillPoints = applySkillTraining(
           finalSkillPoints,
           combinedChanges,
-          trainingPotentialPercent
+          trainingPotentialPercent,
         );
         finalExtraValues = applyExtraValues(
           finalExtraValues,
           entries.reduce((sum, { entry }) => sum + (entry.xtra_01 ?? 0), 0),
-          entries.reduce((sum, { entry }) => sum + (entry.xtra_02 ?? 0), 0)
+          entries.reduce((sum, { entry }) => sum + (entry.xtra_02 ?? 0), 0),
         );
+        movementPath.push([...finalExtraValues]);
       }
 
-      const startAttributes =
-        calculateAttributes(
-          toSkillRow(initialSkillPoints),
-          "points"
-        );
+      const startAttributes = calculateAttributes(
+        toSkillRow(initialSkillPoints),
+        "points",
+      );
 
-      const finalAttributes =
-        calculateAttributes(
-          toSkillRow(finalSkillPoints),
-          "points"
-        );
+      const finalAttributes = calculateAttributes(
+        toSkillRow(finalSkillPoints),
+        "points",
+      );
 
       let currentPots = [...startPots];
-      const path: ReturnType<
-        typeof calculatePlayerPosition
-      >[] = [];
+      const path: ReturnType<typeof calculatePlayerPosition>[] = [];
 
       for (const group of trainingGroups) {
         const entries = group.flatMap((item) => {
@@ -847,20 +767,18 @@ export default function PlayerTypesClient({
         });
         if (entries.length !== group.length) continue;
 
-        const step = calculateTrainingStep(currentPots, combineTrainingPots(entries));
+        const step = calculateTrainingStep(
+          currentPots,
+          combineTrainingPots(entries),
+        );
         currentPots = step.nextPots;
         path.push(step.position);
       }
 
       const finalPosition =
-        path.length > 0
-          ? path[path.length - 1]
-          : startPosition;
+        path.length > 0 ? path[path.length - 1] : startPosition;
 
-      const finalTypeId = getPlayerTypeId(
-        finalPosition.x,
-        finalPosition.y,
-      );
+      const finalTypeId = getPlayerTypeId(finalPosition.x, finalPosition.y);
 
       return {
         id,
@@ -869,31 +787,30 @@ export default function PlayerTypesClient({
         isImported: imported,
         fatigue,
         weeklyRecovery: calculateWeeklyRecovery(finalSkillPoints),
-        potentialPercent: getPotentialPercent(curve, developmentWeeks + appliedTrainings),
+        potentialPercent: getPotentialPercent(
+          curve,
+          developmentWeeks + appliedTrainings,
+        ),
         trainingCount: appliedTrainings,
-        developmentWeeks: imported
-          ? player.developmentWeeks
-          : undefined,
+        developmentWeeks: imported ? player.developmentWeeks : undefined,
         x,
         y,
-        typeColor:
-          PLAYER_TYPE_COLORS[
-            getPlayerTypeId(x, y)
-          ],
+        typeColor: PLAYER_TYPE_COLORS[getPlayerTypeId(x, y)],
         finalX: finalPosition.x,
         finalY: finalPosition.y,
         xOverflow: finalPosition.xOverflow,
         yOverflow: finalPosition.yOverflow,
-        finalType:
-          PLAYER_TYPE_NAMES[
-            language
-          ][finalTypeId],
-        finalTypeColor:
-          PLAYER_TYPE_COLORS[finalTypeId],
+        finalType: PLAYER_TYPE_NAMES[language][finalTypeId],
+        finalTypeColor: PLAYER_TYPE_COLORS[finalTypeId],
         startAttributes,
         finalAttributes,
         initialExtraValues,
         finalExtraValues,
+        movementPath,
+        movementDataAvailable:
+          id === null ||
+          (imported && player.extraValues !== undefined) ||
+          appliedTrainings > 0,
         startPots,
         startPosition,
         path,
@@ -912,26 +829,17 @@ export default function PlayerTypesClient({
 
   const selectedPlayer = playerViews.find(
     (player) =>
-      (
-        player.id === null
-          ? "dummy"
-          : String(player.id)
-      ) === activePlayerKey
+      (player.id === null ? "dummy" : String(player.id)) === activePlayerKey,
   );
 
   const getPlayerType = useCallback(
     (x: number, y: number) =>
-      PLAYER_TYPE_NAMES[language][
-        getPlayerTypeId(x, y)
-      ],
-    [language]
+      PLAYER_TYPE_NAMES[language][getPlayerTypeId(x, y)],
+    [language],
   );
 
   return (
-    <main
-      className={styles.pageContent}
-      style={{ position: "relative" }}
-    >
+    <main className={styles.pageContent} style={{ position: "relative" }}>
       <Suspense>
         <div
           style={{
@@ -941,9 +849,7 @@ export default function PlayerTypesClient({
             zIndex: 10,
           }}
         >
-          <ImportSaveButton
-            onImport={handleImport}
-          />
+          <ImportSaveButton onImport={handleImport} />
         </div>
 
         <div className={styles.languageDock}>
@@ -951,19 +857,16 @@ export default function PlayerTypesClient({
         </div>
 
         <div className={styles.layout}>
-          <h1 className={styles.heading}>
-            Training Planner
-          </h1>
+          <h1 className={styles.heading}>Training Planner</h1>
 
           <TypePlayers
             players={playerViews}
+            chartMode={chartMode}
             selectedPlayerKey={activePlayerKey}
             onSelectPlayer={(key) => {
               if (players.length === 0) return;
 
-              setSelectedPlayerKey((current) =>
-                current === key ? null : key
-              );
+              setSelectedPlayerKey((current) => (current === key ? null : key));
             }}
             onRemovePlayer={handleRemovePlayer}
             onPositionChange={handlePositionChange}
@@ -972,44 +875,84 @@ export default function PlayerTypesClient({
           />
 
           <section className={styles.chartColumn}>
-            <TypesChart
-              players={playerViews.map((player) => ({
-                id: player.id,
-                name: player.name,
-                imageUrl: player.imageUrl,
-                startPosition: player.startPosition,
-                path: player.path,
-              }))}
-              selectedPlayerKey={activePlayerKey}
-              language={language}
-              onSelectPlayer={(key) => {
-                if (players.length === 0) return;
-
-                setSelectedPlayerKey(key);
-              }}
-            />
+            <div
+              className={styles.chartSwitch}
+              role="group"
+              aria-label="Chart view"
+            >
+              <button
+                type="button"
+                className={`${styles.chartSwitchButton} ${
+                  chartMode === "types" ? styles.chartSwitchActive : ""
+                }`}
+                aria-pressed={chartMode === "types"}
+                onClick={() => setChartMode("types")}
+              >
+                Player Types
+              </button>
+              <button
+                type="button"
+                className={`${styles.chartSwitchButton} ${
+                  chartMode === "movement" ? styles.chartSwitchActive : ""
+                }`}
+                aria-pressed={chartMode === "movement"}
+                onClick={() => setChartMode("movement")}
+              >
+                Movement
+              </button>
+            </div>
+            {chartMode === "types" ? (
+              <TypesChart
+                players={playerViews.map((player) => ({
+                  id: player.id,
+                  name: player.name,
+                  imageUrl: player.imageUrl,
+                  startPosition: player.startPosition,
+                  path: player.path,
+                }))}
+                selectedPlayerKey={activePlayerKey}
+                language={language}
+                onSelectPlayer={(key) => {
+                  if (players.length === 0) return;
+                  setSelectedPlayerKey(key);
+                }}
+              />
+            ) : (
+              <MovementChart
+                players={playerViews
+                  .filter((player) => player.movementDataAvailable)
+                  .map((player) => ({
+                    id: player.id,
+                    name: player.name,
+                    imageUrl: player.imageUrl,
+                    startPosition: {
+                      x: player.initialExtraValues[0],
+                      y: player.initialExtraValues[1],
+                    },
+                    path: player.movementPath.map(([x, y]) => ({ x, y })),
+                  }))}
+                selectedPlayerKey={activePlayerKey}
+                onSelectPlayer={(key) => {
+                  if (players.length === 0) return;
+                  setSelectedPlayerKey(key);
+                }}
+              />
+            )}
           </section>
 
           <TrainingSelectFilter
             language={language}
             trainings={trainings}
+            chartMode={chartMode}
+            startExtraValues={selectedPlayer?.initialExtraValues ?? [0, 0]}
             selected={selectedTrainings}
             selectionScope={activePlayerKey}
             isGoalkeeper={isGoalkeeper}
             focusTrainingKey={requestedTrainingKey}
-            selectedPlayerName={
-              selectedPlayer?.name ?? null
-            }
-            hasSelectedPlayer={
-              selectedPlayer !== undefined
-            }
-            onSelectionChange={
-              handleSelectionChange
-            }
-            startPots={
-              selectedPlayer?.startPots ??
-              Array<number>(12).fill(50)
-            }
+            selectedPlayerName={selectedPlayer?.name ?? null}
+            hasSelectedPlayer={selectedPlayer !== undefined}
+            onSelectionChange={handleSelectionChange}
+            startPots={selectedPlayer?.startPots ?? Array<number>(12).fill(50)}
           />
         </div>
       </Suspense>

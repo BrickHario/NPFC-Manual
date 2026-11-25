@@ -1,19 +1,20 @@
-
 "use client";
 
 import Image from "next/image";
 import Link from "next/link";
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent } from "react";
 import type { Language } from "../../lib/utils";
 import styles from "./TrainingSelectFilter.module.css";
-import { calculatePlayerPosition, calculateTrainingStep } from "./player-type-calculation";
-import { canUseTraining, combineTrainingPots, getTrainingGroups } from "./training-types";
+import {
+  calculatePlayerPosition,
+  calculateTrainingStep,
+} from "./player-type-calculation";
+import {
+  canUseTraining,
+  combineTrainingPots,
+  getTrainingGroups,
+} from "./training-types";
 import type {
   SelectedTraining,
   TrainingEntry,
@@ -25,6 +26,8 @@ type TrainingSelectFilterProps = {
   trainings: TrainingEntry[];
   onSelectionChange: (selected: SelectedTraining[]) => void;
   startPots: number[];
+  startExtraValues: [number, number];
+  chartMode: "types" | "movement";
   selected: SelectedTraining[];
   selectedPlayerName: string | null;
   hasSelectedPlayer: boolean;
@@ -56,6 +59,8 @@ const labels = {
     all: "No filter",
     fatigueHigh: "Fatigue High",
     fatigueLow: "Fatigue Low",
+    defMoveHigh: "High Def. move",
+    offMoveHigh: "High Off. move",
     only: "Yes: Match actions",
     excluded: "No: Match actions",
   },
@@ -78,16 +83,12 @@ const sortOptions = [
   ...directions,
 ] as const;
 
-type Direction =
-  | "all"
-  | "zero"
-  | (typeof directions)[number]["value"];
+type Direction = "all" | "zero" | typeof directions[number]["value"];
 
 type MatchFilter = keyof typeof labels.match;
 
 const FILTER_STORAGE_KEY = "npfc-training-filters-v1";
-const CARD_SELECTION_STORAGE_KEY =
-  "npfc-combo-finder-selection-v1";
+const CARD_SELECTION_STORAGE_KEY = "npfc-combo-finder-selection-v1";
 
 type SavedFilters = {
   search: string;
@@ -106,42 +107,26 @@ function readSavedFilters(): SavedFilters | null {
 
     const value: unknown = JSON.parse(raw);
 
-    if (
-      !value ||
-      typeof value !== "object" ||
-      Array.isArray(value)
-    ) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
       return null;
     }
 
     const filters = value as Record<string, unknown>;
 
-    const validDirections = sortOptions.map(
-      (option) => option.value
-    );
+    const validDirections = sortOptions.map((option) => option.value);
 
     const validMatchFilters = Object.keys(labels.match);
 
     return {
-      search:
-        typeof filters.search === "string"
-          ? filters.search
-          : "",
+      search: typeof filters.search === "string" ? filters.search : "",
       showCards:
-        typeof filters.showCards === "boolean"
-          ? filters.showCards
-          : true,
+        typeof filters.showCards === "boolean" ? filters.showCards : true,
       showCombos:
-        typeof filters.showCombos === "boolean"
-          ? filters.showCombos
-          : true,
-      selectedCardsOnly:
-        filters.selectedCardsOnly === true,
+        typeof filters.showCombos === "boolean" ? filters.showCombos : true,
+      selectedCardsOnly: filters.selectedCardsOnly === true,
       direction:
         typeof filters.direction === "string" &&
-        validDirections.includes(
-          filters.direction as Direction
-        )
+        validDirections.includes(filters.direction as Direction)
           ? (filters.direction as Direction)
           : "all",
       matchFilter:
@@ -157,19 +142,13 @@ function readSavedFilters(): SavedFilters | null {
 
 function readSelectedCardIds(): Set<number> {
   try {
-    const raw = localStorage.getItem(
-      CARD_SELECTION_STORAGE_KEY
-    );
+    const raw = localStorage.getItem(CARD_SELECTION_STORAGE_KEY);
 
     if (!raw) return new Set();
 
     const value: unknown = JSON.parse(raw);
 
-    if (
-      !value ||
-      typeof value !== "object" ||
-      Array.isArray(value)
-    ) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
       return new Set();
     }
 
@@ -182,20 +161,15 @@ function readSelectedCardIds(): Set<number> {
     return new Set(
       cards.filter(
         (id): id is number =>
-          typeof id === "number" &&
-          Number.isSafeInteger(id) &&
-          id >= 0
-      )
+          typeof id === "number" && Number.isSafeInteger(id) && id >= 0,
+      ),
     );
   } catch {
     return new Set();
   }
 }
 
-function getTrainingVector(
-  pots: number[],
-  potChanges: number[]
-) {
+function getTrainingVector(pots: number[], potChanges: number[]) {
   const start = calculatePlayerPosition(pots);
   const step = calculateTrainingStep(pots, potChanges);
   const dx = step.position.xRaw - start.xRaw;
@@ -210,9 +184,7 @@ function getTrainingVector(
     };
   }
 
-  const sector =
-    (Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) + 8) %
-    8;
+  const sector = (Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) + 8) % 8;
 
   return {
     ...step,
@@ -222,27 +194,53 @@ function getTrainingVector(
   };
 }
 
+function getMovementVector(
+  current: [number, number],
+  entries: TrainingEntry[],
+) {
+  const rawX = entries.reduce((sum, entry) => sum + (entry.xtra_01 ?? 0), 0);
+  const rawY = entries.reduce((sum, entry) => sum + (entry.xtra_02 ?? 0), 0);
+  const nextX = Math.max(0, Math.min(100, current[0] + rawX * 2));
+  const nextY = Math.max(0, Math.min(100, current[1] + rawY * 2));
+
+  return {
+    dx: nextX - current[0],
+    dy: nextY - current[1],
+    nextValues: [nextX, nextY] as [number, number],
+  };
+}
+
 function getVectorLabel(dx: number, dy: number) {
-  const signed = (value: number) =>
-    value > 0 ? `+${value}` : String(value);
+  const signed = (value: number) => (value > 0 ? `+${value}` : String(value));
 
   return `X ${signed(dx)} / Y ${signed(dy)}`;
 }
 
-function entryKey(entry: {
-  kind: TrainingKind;
-  id: number;
-}) {
+function entryKey(entry: { kind: TrainingKind; id: number }) {
   return `${entry.kind}:${entry.id}`;
 }
 
-function findSpecialCombo(items: SelectedTraining[], trainings: TrainingEntry[], isGoalkeeper: boolean) {
-  if (items.length < 2 || items.length > 3 || items.some((item) => item.kind !== "card")) return undefined;
+function findSpecialCombo(
+  items: SelectedTraining[],
+  trainings: TrainingEntry[],
+  isGoalkeeper: boolean,
+) {
+  if (
+    items.length < 2 ||
+    items.length > 3 ||
+    items.some((item) => item.kind !== "card")
+  )
+    return undefined;
 
   const ids = items.map((item) => item.id).sort((a, b) => a - b);
 
   return trainings.find((entry) => {
-    if (entry.kind !== "combo" || !canUseTraining(entry, isGoalkeeper) || entry.requiredCardIds?.length !== ids.length) return false;
+    if (
+      entry.kind !== "combo" ||
+      !canUseTraining(entry, isGoalkeeper) ||
+      entry.requiredCardIds?.length !== ids.length
+    )
+      return false;
 
     const required = [...entry.requiredCardIds].sort((a, b) => a - b);
     return required.every((id, index) => id === ids[index]);
@@ -254,6 +252,8 @@ export default function TrainingSelectFilter({
   trainings,
   onSelectionChange,
   startPots,
+  startExtraValues,
+  chartMode,
   selected,
   selectedPlayerName,
   hasSelectedPlayer,
@@ -265,23 +265,16 @@ export default function TrainingSelectFilter({
   const [focusedSearch, setFocusedSearch] = useState<string | null>(null);
   const [showCards, setShowCards] = useState(true);
   const [showCombos, setShowCombos] = useState(true);
-  const [selectedCardsOnly, setSelectedCardsOnly] =
-    useState(false);
-  const [savedCardIds, setSavedCardIds] = useState<
-    Set<number>
-  >(new Set());
+  const [selectedCardsOnly, setSelectedCardsOnly] = useState(false);
+  const [savedCardIds, setSavedCardIds] = useState<Set<number>>(new Set());
 
-  const [direction, setDirection] =
-    useState<Direction>("all");
+  const [direction, setDirection] = useState<Direction>("all");
 
-  const [dragOverId, setDragOverId] =
-    useState<number | null>(null);
+  const [dragOverId, setDragOverId] = useState<number | null>(null);
 
-  const [matchFilter, setMatchFilter] =
-    useState<MatchFilter>("all");
+  const [matchFilter, setMatchFilter] = useState<MatchFilter>("all");
 
-  const [filtersLoaded, setFiltersLoaded] =
-    useState(false);
+  const [filtersLoaded, setFiltersLoaded] = useState(false);
 
   const sortRef = useRef<HTMLDetailsElement>(null);
   const matchRef = useRef<HTMLDetailsElement>(null);
@@ -315,10 +308,7 @@ export default function TrainingSelectFilter({
       matchFilter,
     };
 
-    localStorage.setItem(
-      FILTER_STORAGE_KEY,
-      JSON.stringify(filters)
-    );
+    localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filters));
   }, [
     filtersLoaded,
     focusedSearch,
@@ -342,18 +332,9 @@ export default function TrainingSelectFilter({
     window.addEventListener("pageshow", updateSelectedCards);
 
     return () => {
-      window.removeEventListener(
-        "focus",
-        updateSelectedCards
-      );
-      window.removeEventListener(
-        "storage",
-        updateSelectedCards
-      );
-      window.removeEventListener(
-        "pageshow",
-        updateSelectedCards
-      );
+      window.removeEventListener("focus", updateSelectedCards);
+      window.removeEventListener("storage", updateSelectedCards);
+      window.removeEventListener("pageshow", updateSelectedCards);
     };
   }, []);
 
@@ -380,36 +361,18 @@ export default function TrainingSelectFilter({
       }
     };
 
-    document.addEventListener(
-      "pointerdown",
-      handlePointerDown
-    );
-    document.addEventListener(
-      "keydown",
-      handleKeyDown
-    );
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.removeEventListener(
-        "pointerdown",
-        handlePointerDown
-      );
-      document.removeEventListener(
-        "keydown",
-        handleKeyDown
-      );
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
 
   const catalog = useMemo(
-    () =>
-      new Map(
-        trainings.map((entry) => [
-          entryKey(entry),
-          entry,
-        ])
-      ),
-    [trainings]
+    () => new Map(trainings.map((entry) => [entryKey(entry), entry])),
+    [trainings],
   );
 
   useEffect(() => {
@@ -419,7 +382,11 @@ export default function TrainingSelectFilter({
     if (!entry) return;
 
     const url = new URL(window.location.href);
-    if (!url.searchParams.has("trainingKind") || !url.searchParams.has("trainingId")) return;
+    if (
+      !url.searchParams.has("trainingKind") ||
+      !url.searchParams.has("trainingId")
+    )
+      return;
 
     setFocusedSearch(entry.names[language]);
     setShowCards(true);
@@ -433,10 +400,7 @@ export default function TrainingSelectFilter({
     window.history.replaceState(null, "", url.toString());
   }, [focusTrainingKey, catalog, language, filtersLoaded]);
 
-  const trainingGroups = useMemo(
-    () => getTrainingGroups(selected),
-    [selected]
-  );
+  const trainingGroups = useMemo(() => getTrainingGroups(selected), [selected]);
 
   const [marked, setMarked] = useState<{
     scope: string | null | undefined;
@@ -445,11 +409,16 @@ export default function TrainingSelectFilter({
 
   const markedIds = marked.scope === selectionScope ? marked.ids : [];
   const markedGroups = trainingGroups.filter((group) =>
-    markedIds.includes(group[0].instanceId)
+    markedIds.includes(group[0].instanceId),
   );
-  const canGroup = markedGroups.length >= 2 && markedGroups.length <= 3 &&
-    markedGroups.every((group) => group.length === 1 && group[0].kind === "card") &&
-    new Set(markedGroups.map((group) => group[0].id)).size === markedGroups.length;
+  const canGroup =
+    markedGroups.length >= 2 &&
+    markedGroups.length <= 3 &&
+    markedGroups.every(
+      (group) => group.length === 1 && group[0].kind === "card",
+    ) &&
+    new Set(markedGroups.map((group) => group[0].id)).size ===
+      markedGroups.length;
   const canUngroup = markedGroups.length === 1 && markedGroups[0].length > 1;
   const markedCombo = canGroup
     ? findSpecialCombo(markedGroups.flat(), trainings, isGoalkeeper)
@@ -458,15 +427,21 @@ export default function TrainingSelectFilter({
   useEffect(() => {
     function handleOutsideClick(event: PointerEvent) {
       if (!(event.target instanceof Element)) return;
-      if (event.target.closest("[data-training-markable], [data-training-group-action]")) return;
+      if (
+        event.target.closest(
+          "[data-training-markable], [data-training-group-action]",
+        )
+      )
+        return;
 
       setMarked((current) =>
-        current.ids.length > 0 ? { ...current, ids: [] } : current
+        current.ids.length > 0 ? { ...current, ids: [] } : current,
       );
     }
 
     document.addEventListener("pointerdown", handleOutsideClick);
-    return () => document.removeEventListener("pointerdown", handleOutsideClick);
+    return () =>
+      document.removeEventListener("pointerdown", handleOutsideClick);
   }, []);
 
   function clearMarked() {
@@ -478,7 +453,10 @@ export default function TrainingSelectFilter({
     const id = group[0].instanceId;
 
     if (markedIds.includes(id)) {
-      setMarked({ scope: selectionScope, ids: markedIds.filter((value) => value !== id) });
+      setMarked({
+        scope: selectionScope,
+        ids: markedIds.filter((value) => value !== id),
+      });
       return;
     }
 
@@ -487,40 +465,65 @@ export default function TrainingSelectFilter({
       return;
     }
 
-    if (markedGroups.length >= 3 || markedGroups.some((value) => value[0].id === group[0].id)) return;
-    setMarked({ scope: selectionScope, ids: [...markedGroups.map((value) => value[0].instanceId), id] });
+    if (
+      markedGroups.length >= 3 ||
+      markedGroups.some((value) => value[0].id === group[0].id)
+    )
+      return;
+    setMarked({
+      scope: selectionScope,
+      ids: [...markedGroups.map((value) => value[0].instanceId), id],
+    });
   }
 
   function groupMarked() {
     if (!canGroup) return;
     const ids = new Set(markedGroups.map((group) => group[0].instanceId));
-    const groupId = Math.max(-1, ...selected.map((item) => item.groupId ?? -1)) + 1;
+    const groupId =
+      Math.max(-1, ...selected.map((item) => item.groupId ?? -1)) + 1;
     const first = markedGroups[0][0].instanceId;
     const grouped: SelectedTraining[] = markedCombo
       ? [{ kind: "combo", id: markedCombo.id, instanceId: first }]
       : markedGroups.map(([item]) => ({ ...item, groupId }));
-    onSelectionChange(selected.flatMap((item) =>
-      item.instanceId === first ? grouped : ids.has(item.instanceId) ? [] : [item]
-    ));
+    onSelectionChange(
+      selected.flatMap((item) =>
+        item.instanceId === first
+          ? grouped
+          : ids.has(item.instanceId)
+          ? []
+          : [item],
+      ),
+    );
     clearMarked();
   }
 
   function ungroupMarked() {
     if (!canUngroup) return;
     const ids = new Set(markedGroups[0].map((item) => item.instanceId));
-    onSelectionChange(selected.map((item) =>
-      ids.has(item.instanceId) ? { ...item, groupId: undefined } : item
-    ));
+    onSelectionChange(
+      selected.map((item) =>
+        ids.has(item.instanceId) ? { ...item, groupId: undefined } : item,
+      ),
+    );
     clearMarked();
   }
 
-  const { selectedVectors, previewPots } = useMemo(() => {
-    const vectors = new Map<
+  const [initialExtraX, initialExtraY] = startExtraValues;
+
+  const {
+    selectedVectors,
+    selectedMovementVectors,
+    previewPots,
+    previewExtraValues,
+  } = useMemo(() => {
+    const vectors = new Map<number, ReturnType<typeof getTrainingVector>>();
+    const movementVectors = new Map<
       number,
-      ReturnType<typeof getTrainingVector>
+      ReturnType<typeof getMovementVector>
     >();
 
     let currentPots = [...startPots];
+    let currentExtraValues: [number, number] = [initialExtraX, initialExtraY];
 
     for (const group of trainingGroups) {
       const entries = group.flatMap((item) => {
@@ -529,36 +532,52 @@ export default function TrainingSelectFilter({
       });
       if (entries.length !== group.length) continue;
 
-      const vector = getTrainingVector(currentPots, combineTrainingPots(entries));
+      const vector = getTrainingVector(
+        currentPots,
+        combineTrainingPots(entries),
+      );
+      const movementVector = getMovementVector(currentExtraValues, entries);
       vectors.set(group[0].instanceId, vector);
+      movementVectors.set(group[0].instanceId, movementVector);
       currentPots = vector.nextPots;
+      currentExtraValues = movementVector.nextValues;
     }
 
     return {
       selectedVectors: vectors,
+      selectedMovementVectors: movementVectors,
       previewPots: currentPots,
+      previewExtraValues: currentExtraValues,
     };
-  }, [trainingGroups, catalog, startPots]);
+  }, [trainingGroups, catalog, startPots, initialExtraX, initialExtraY]);
 
   const trainingVectors = useMemo(
     () =>
       new Map(
         trainings.map((entry) => [
           entryKey(entry),
-          getTrainingVector(
-            previewPots,
-            combineTrainingPots([entry])
-          ),
-        ])
+          getTrainingVector(previewPots, combineTrainingPots([entry])),
+        ]),
       ),
-    [trainings, previewPots]
+    [trainings, previewPots],
+  );
+
+  const availableMovementVectors = useMemo(
+    () =>
+      new Map(
+        trainings.map((entry) => [
+          entryKey(entry),
+          getMovementVector(previewExtraValues, [entry]),
+        ]),
+      ),
+    [trainings, previewExtraValues],
   );
 
   const options = useMemo(() => {
     const query = (focusedSearch ?? search).trim().toLocaleLowerCase();
 
     const selectedDirection = directions.find(
-      (option) => option.value === direction
+      (option) => option.value === direction,
     );
 
     const projection = (entry: TrainingEntry) => {
@@ -567,11 +586,8 @@ export default function TrainingSelectFilter({
       if (!vector || !selectedDirection) return 0;
 
       return (
-        vector.dx * selectedDirection.dx +
-        vector.dy * selectedDirection.dy
-      ) / Math.hypot(
-        selectedDirection.dx,
-        selectedDirection.dy
+        (vector.dx * selectedDirection.dx + vector.dy * selectedDirection.dy) /
+        Math.hypot(selectedDirection.dx, selectedDirection.dy)
       );
     };
 
@@ -588,9 +604,7 @@ export default function TrainingSelectFilter({
             if (
               !required ||
               required.length === 0 ||
-              !required.every((id) =>
-                savedCardIds.has(id)
-              )
+              !required.every((id) => savedCardIds.has(id))
             ) {
               return false;
             }
@@ -605,24 +619,16 @@ export default function TrainingSelectFilter({
           return false;
         }
 
-        if (
-          matchFilter === "only" &&
-          !entry.hasMatchActions
-        ) {
+        if (matchFilter === "only" && !entry.hasMatchActions) {
           return false;
         }
 
-        if (
-          matchFilter === "excluded" &&
-          entry.hasMatchActions
-        ) {
+        if (matchFilter === "excluded" && entry.hasMatchActions) {
           return false;
         }
 
         if (direction !== "all") {
-          const vector = trainingVectors.get(
-            entryKey(entry)
-          );
+          const vector = trainingVectors.get(entryKey(entry));
 
           if (vector?.direction !== direction) {
             return false;
@@ -631,9 +637,8 @@ export default function TrainingSelectFilter({
 
         if (!query) return true;
 
-        return Object.values(entry.names).some(
-          (name) =>
-            name.toLocaleLowerCase().includes(query)
+        return Object.values(entry.names).some((name) =>
+          name.toLocaleLowerCase().includes(query),
         );
       })
       .sort((a, b) => {
@@ -647,18 +652,25 @@ export default function TrainingSelectFilter({
           if (difference !== 0) return difference;
         }
 
+        if (matchFilter === "defMoveHigh") {
+          const difference = Number(b.xtra_01 ?? 0) - Number(a.xtra_01 ?? 0);
+          if (difference !== 0) return difference;
+        }
+
+        if (matchFilter === "offMoveHigh") {
+          const difference = Number(b.xtra_02 ?? 0) - Number(a.xtra_02 ?? 0);
+          if (difference !== 0) return difference;
+        }
+
         if (selectedDirection) {
-          const difference =
-            projection(b) - projection(a);
+          const difference = projection(b) - projection(a);
 
           if (difference !== 0) {
             return difference;
           }
         }
 
-        return a.names[language].localeCompare(
-          b.names[language]
-        );
+        return a.names[language].localeCompare(b.names[language]);
       });
   }, [
     trainings,
@@ -680,7 +692,7 @@ export default function TrainingSelectFilter({
     const instanceId = Math.max(
       nextInstanceId.current,
       ...selected.map((item) => item.instanceId + 1),
-      0
+      0,
     );
 
     nextInstanceId.current = instanceId + 1;
@@ -698,11 +710,7 @@ export default function TrainingSelectFilter({
   function removeTraining(group: SelectedTraining[]) {
     clearMarked();
     const ids = new Set(group.map((item) => item.instanceId));
-    onSelectionChange(
-      selected.filter(
-        (item) => !ids.has(item.instanceId)
-      )
-    );
+    onSelectionChange(selected.filter((item) => !ids.has(item.instanceId)));
   }
 
   function clearTrainings() {
@@ -710,23 +718,16 @@ export default function TrainingSelectFilter({
     onSelectionChange([]);
   }
 
-  function moveTraining(
-    fromId: number,
-    toId: number
-  ) {
+  function moveTraining(fromId: number, toId: number) {
     const fromIndex = trainingGroups.findIndex(
-      (group) => group[0].instanceId === fromId
+      (group) => group[0].instanceId === fromId,
     );
 
     const toIndex = trainingGroups.findIndex(
-      (group) => group[0].instanceId === toId
+      (group) => group[0].instanceId === toId,
     );
 
-    if (
-      fromIndex === -1 ||
-      toIndex === -1 ||
-      fromIndex === toIndex
-    ) {
+    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) {
       return;
     }
 
@@ -739,42 +740,29 @@ export default function TrainingSelectFilter({
 
   function handleDragStart(
     event: DragEvent<HTMLDivElement>,
-    instanceId: number
+    instanceId: number,
   ) {
     draggedId.current = instanceId;
     event.dataTransfer.effectAllowed = "move";
 
-    event.dataTransfer.setData(
-      "text/plain",
-      String(instanceId)
-    );
+    event.dataTransfer.setData("text/plain", String(instanceId));
   }
 
   function handleDragOver(
     event: DragEvent<HTMLDivElement>,
-    instanceId: number
+    instanceId: number,
   ) {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
 
-    setDragOverId(
-      draggedId.current !== instanceId
-        ? instanceId
-        : null
-    );
+    setDragOverId(draggedId.current !== instanceId ? instanceId : null);
   }
 
-  function handleDrop(
-    event: DragEvent<HTMLDivElement>,
-    instanceId: number
-  ) {
+  function handleDrop(event: DragEvent<HTMLDivElement>, instanceId: number) {
     event.preventDefault();
 
     if (draggedId.current !== null) {
-      moveTraining(
-        draggedId.current,
-        instanceId
-      );
+      moveTraining(draggedId.current, instanceId);
     }
 
     draggedId.current = null;
@@ -787,28 +775,26 @@ export default function TrainingSelectFilter({
   }
 
   function resetFilters() {
-  setFocusedSearch(null);
-  setSearch("");
-  setShowCards(true);
-  setShowCombos(true);
-  setSelectedCardsOnly(false);
-  setDirection("all");
-  setMatchFilter("all");
+    setFocusedSearch(null);
+    setSearch("");
+    setShowCards(true);
+    setShowCombos(true);
+    setSelectedCardsOnly(false);
+    setDirection("all");
+    setMatchFilter("all");
 
-  if (sortRef.current) {
-    sortRef.current.open = false;
-  } 
+    if (sortRef.current) {
+      sortRef.current.open = false;
+    }
 
-  if (matchRef.current) {
-    matchRef.current.open = false;
+    if (matchRef.current) {
+      matchRef.current.open = false;
+    }
   }
-}
 
   return (
     <aside className={styles.trainingPanel}>
-      <h2 className={styles.title}>
-        {labels.heading}
-      </h2>
+      <h2 className={styles.title}>{labels.heading}</h2>
 
       <div className={styles.filterBlock}>
         <div className={styles.toolbar}>
@@ -830,9 +816,7 @@ export default function TrainingSelectFilter({
                 className={styles.checkbox}
                 type="checkbox"
                 checked={showCards}
-                onChange={(event) =>
-                  setShowCards(event.target.checked)
-                }
+                onChange={(event) => setShowCards(event.target.checked)}
               />
               <span>{labels.cards}</span>
             </label>
@@ -842,9 +826,7 @@ export default function TrainingSelectFilter({
                 className={styles.checkbox}
                 type="checkbox"
                 checked={showCombos}
-                onChange={(event) =>
-                  setShowCombos(event.target.checked)
-                }
+                onChange={(event) => setShowCombos(event.target.checked)}
               />
               <span>{labels.combos}</span>
             </label>
@@ -856,9 +838,7 @@ export default function TrainingSelectFilter({
                 checked={selectedCardsOnly}
                 onChange={(event) => {
                   setSavedCardIds(readSelectedCardIds());
-                  setSelectedCardsOnly(
-                    event.target.checked
-                  );
+                  setSelectedCardsOnly(event.target.checked);
                 }}
               />
               <span>{labels.selectedCards}</span>
@@ -868,15 +848,11 @@ export default function TrainingSelectFilter({
               ref={sortRef}
               className={`${styles.singleFilter} ${styles.sortFilter}`}
             >
-              <summary
-                className={`${styles.control} ${styles.filterSummary}`}
-              >
+              <summary className={`${styles.control} ${styles.filterSummary}`}>
                 <span className={styles.filterText}>
                   {
-                    sortOptions.find(
-                      (option) =>
-                        option.value === direction
-                    )?.label
+                    sortOptions.find((option) => option.value === direction)
+                      ?.label
                   }
                 </span>
               </summary>
@@ -887,9 +863,7 @@ export default function TrainingSelectFilter({
                     key={option.value}
                     type="button"
                     className={`${styles.optionButton} ${
-                      direction === option.value
-                        ? styles.optionSelected
-                        : ""
+                      direction === option.value ? styles.optionSelected : ""
                     }`}
                     onClick={() => {
                       setDirection(option.value);
@@ -909,25 +883,19 @@ export default function TrainingSelectFilter({
               ref={matchRef}
               className={`${styles.singleFilter} ${styles.sortFilter}`}
             >
-              <summary
-                className={`${styles.control} ${styles.filterSummary}`}
-              >
+              <summary className={`${styles.control} ${styles.filterSummary}`}>
                 <span className={styles.filterText}>
                   {labels.match[matchFilter]}
                 </span>
               </summary>
 
               <div className={styles.filterMenu}>
-                {(
-                  Object.keys(labels.match) as MatchFilter[]
-                ).map((option) => (
+                {(Object.keys(labels.match) as MatchFilter[]).map((option) => (
                   <button
                     key={option}
                     type="button"
                     className={`${styles.optionButton} ${
-                      matchFilter === option
-                        ? styles.optionSelected
-                        : ""
+                      matchFilter === option ? styles.optionSelected : ""
                     }`}
                     onClick={() => {
                       setMatchFilter(option);
@@ -956,7 +924,7 @@ export default function TrainingSelectFilter({
         <div className={styles.availableShell}>
           <div className={styles.availableList}>
             {options.length === 0 && (
-              <p className={styles.empty} style={{paddingTop: 40}}>
+              <p className={styles.empty} style={{ paddingTop: 40 }}>
                 {labels.noResults}
               </p>
             )}
@@ -967,7 +935,9 @@ export default function TrainingSelectFilter({
                 className={styles.availableItem}
                 key={entryKey(entry)}
                 onClick={() => addTraining(entry)}
-                disabled={!hasSelectedPlayer || !canUseTraining(entry, isGoalkeeper)}
+                disabled={
+                  !hasSelectedPlayer || !canUseTraining(entry, isGoalkeeper)
+                }
                 aria-label={entry.names[language]}
                 title={
                   hasSelectedPlayer
@@ -977,7 +947,10 @@ export default function TrainingSelectFilter({
                     : "Select a player to add training"
                 }
               >
-                <span className={styles.availableImage} style={{ position: "relative" }}>
+                <span
+                  className={styles.availableImage}
+                  style={{ position: "relative" }}
+                >
                   <span
                     style={{
                       position: "absolute",
@@ -996,12 +969,7 @@ export default function TrainingSelectFilter({
                   >
                     +{entry.fatigueChange}
                   </span>
-                  <Image
-                    src={entry.imageUrl}
-                    alt=""
-                    width={150}
-                    height={98}
-                  />
+                  <Image src={entry.imageUrl} alt="" width={150} height={98} />
 
                   <span className={styles.availableName}>
                     {entry.names[language]}
@@ -1009,15 +977,13 @@ export default function TrainingSelectFilter({
 
                   <span className={styles.availableVector}>
                     {(() => {
-                      const vector = trainingVectors.get(
-                        entryKey(entry)
-                      );
+                      const vector =
+                        chartMode === "movement"
+                          ? availableMovementVectors.get(entryKey(entry))
+                          : trainingVectors.get(entryKey(entry));
 
                       return vector
-                        ? getVectorLabel(
-                            vector.dx,
-                            vector.dy
-                          )
+                        ? getVectorLabel(vector.dx, vector.dy)
                         : "X 0 / Y 0";
                     })()}
                   </span>
@@ -1028,7 +994,10 @@ export default function TrainingSelectFilter({
         </div>
       </div>
 
-      <div className={styles.selectedHeader} style={!hasSelectedPlayer ? { marginTop: 48 } : undefined}>
+      <div
+        className={styles.selectedHeader}
+        style={!hasSelectedPlayer ? { marginTop: 48 } : undefined}
+      >
         {hasSelectedPlayer && (
           <h3 className={styles.playerTitle}>
             Order for {selectedPlayerName || "Dummy"}:
@@ -1037,7 +1006,7 @@ export default function TrainingSelectFilter({
         {(canGroup || canUngroup) && (
           <button
             type="button"
-            style={{background: "#555555"}}
+            style={{ background: "#555555" }}
             className={styles.deleteAllButton}
             data-training-group-action
             onClick={canGroup ? groupMarked : ungroupMarked}
@@ -1048,7 +1017,7 @@ export default function TrainingSelectFilter({
         {selected.length > 0 && (
           <button
             type="button"
-            style={{background: "#cf3434"}}
+            style={{ background: "#cf3434" }}
             className={styles.deleteAllButton}
             onClick={clearTrainings}
           >
@@ -1073,7 +1042,16 @@ export default function TrainingSelectFilter({
           }
         `}</style>
         {markedCombo && (
-          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", zIndex: 20, pointerEvents: "none" }}>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "grid",
+              placeItems: "center",
+              zIndex: 20,
+              pointerEvents: "none",
+            }}
+          >
             <Image
               src="/special-combo-text.png"
               alt="Special Combo"
@@ -1081,158 +1059,170 @@ export default function TrainingSelectFilter({
               width={150}
               height={80}
               className="npfc-special-combo-image"
-              style={{ width: "150px", maxWidth: "80%", height: "auto", objectFit: "contain" }}
+              style={{
+                width: "150px",
+                maxWidth: "80%",
+                height: "auto",
+                objectFit: "contain",
+              }}
               unoptimized
               draggable={false}
             />
           </div>
         )}
-      <div className={styles.selectedList}>
-        {!hasSelectedPlayer ? (
-          <p className={styles.empty}>
-            Select a player first
-          </p>
-        ) : selected.length === 0 ? (
-          <p className={styles.empty}>
-            {labels.empty}
-          </p>
-        ) : null}
+        <div className={styles.selectedList}>
+          {!hasSelectedPlayer ? (
+            <p className={styles.empty}>Select a player first</p>
+          ) : selected.length === 0 ? (
+            <p className={styles.empty}>{labels.empty}</p>
+          ) : null}
 
-        {trainingGroups
-          .map((group, index) => ({ group, index }))
-          .reverse()
-          .map(({ group, index }) => (
-            <div
-              key={group[0].instanceId}
-              data-training-markable={group[0].kind === "card" ? "true" : undefined}
-              role={group[0].kind === "card" ? "button" : undefined}
-              tabIndex={group[0].kind === "card" ? 0 : undefined}
-              aria-pressed={group[0].kind === "card" ? markedIds.includes(group[0].instanceId) : undefined}
-              onClick={(event) => {
-                if ((event.target as HTMLElement).closest("button, a")) return;
-                toggleMarked(group);
-              }}
-              onKeyDown={(event) => {
-                if (event.target !== event.currentTarget || group[0].kind !== "card") return;
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  toggleMarked(group);
-                }
-              }}
-              draggable
-              onDragStart={(event) =>
-                handleDragStart(event, group[0].instanceId)
-              }
-              onDragOver={(event) =>
-                handleDragOver(event, group[0].instanceId)
-              }
-              onDrop={(event) =>
-                handleDrop(event, group[0].instanceId)
-              }
-              onDragEnd={handleDragEnd}
-              style={{
-                display: "flex",
-                flexShrink: 0,
-                alignItems: "center",
-                gap: 0,
-                isolation: "isolate",
-                cursor: group[0].kind === "card" ? "pointer" : undefined,
-                outline: markedIds.includes(group[0].instanceId)
-                  ? "3px solid var(--color-highlight, #5581dd)"
-                  : undefined,
-                outlineOffset: 5,
-                borderRadius: 12,
-                position: "relative",
-              }}
-            >
-              {group.map((item, cardIndex) => {
-            const entry = catalog.get(entryKey(item));
-
-            if (!entry) return null;
-
-            return (
+          {trainingGroups
+            .map((group, index) => ({ group, index }))
+            .reverse()
+            .map(({ group, index }) => (
               <div
-                className={`${styles.selectedItem} ${
-                  dragOverId === group[0].instanceId
-                    ? styles.dragOver
-                    : ""
-                }`}
-                key={item.instanceId}
-                style={{
-                  marginLeft: cardIndex > 0 ? -12 : 0,
-                  zIndex: group.length - cardIndex,
+                key={group[0].instanceId}
+                data-training-markable={
+                  group[0].kind === "card" ? "true" : undefined
+                }
+                role={group[0].kind === "card" ? "button" : undefined}
+                tabIndex={group[0].kind === "card" ? 0 : undefined}
+                aria-pressed={
+                  group[0].kind === "card"
+                    ? markedIds.includes(group[0].instanceId)
+                    : undefined
+                }
+                onClick={(event) => {
+                  if ((event.target as HTMLElement).closest("button, a"))
+                    return;
+                  toggleMarked(group);
                 }}
-
-              >
-                {cardIndex === 0 && (
-                  <span className={styles.itemNumber}>
-                    {index + 1}.
-                  </span>
-                )}
-
-                <div className={styles.trainingCard}>
-                  <span className={styles.availableImage}>
-                    <Image
-                      src={entry.imageUrl}
-                      alt=""
-                      width={150}
-                      height={98}
-                      draggable={false}
-                    />
-
-                    <span className={styles.availableName}>
-                      {entry.names[language]}
-                    </span>
-
-                    {cardIndex === 0 && (
-                    <span className={styles.availableVector} title={group.length > 1 ? "Combined training vector" : undefined}>
-                      {(() => {
-                        const vector = selectedVectors.get(
-                          item.instanceId
-                        );
-
-                        return vector
-                          ? getVectorLabel(
-                              vector.dx,
-                              vector.dy
-                            )
-                          : "X 0 / Y 0";
-                      })()}
-                    </span>
-                    )}
-                  </span>
-                </div>
-
-                {cardIndex === group.length - 1 && (
-                  <button
-                    className={styles.removeButton}
-                    type="button"
-                    draggable={false}
-                    aria-label={labels.remove}
-                    onClick={() => removeTraining(group)}
-                  >
-                    ×
-                  </button>
-                )}
-
-                <Link
-                  href={`/cards-and-combos?id=${entry.id}`}
-                  className={`${styles.removeButton} ${styles.trainingInfoButton}`}
-                  aria-label={`View ${entry.names[language]} information`}
-                  title="Training info"
-                  draggable={false}
-                  onDragStart={(event) =>
-                    event.preventDefault()
+                onKeyDown={(event) => {
+                  if (
+                    event.target !== event.currentTarget ||
+                    group[0].kind !== "card"
+                  )
+                    return;
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    toggleMarked(group);
                   }
-                >
-                  i
-                </Link>
+                }}
+                draggable
+                onDragStart={(event) =>
+                  handleDragStart(event, group[0].instanceId)
+                }
+                onDragOver={(event) =>
+                  handleDragOver(event, group[0].instanceId)
+                }
+                onDrop={(event) => handleDrop(event, group[0].instanceId)}
+                onDragEnd={handleDragEnd}
+                style={{
+                  display: "flex",
+                  flexShrink: 0,
+                  alignItems: "center",
+                  gap: 0,
+                  isolation: "isolate",
+                  cursor: group[0].kind === "card" ? "pointer" : undefined,
+                  outline: markedIds.includes(group[0].instanceId)
+                    ? "3px solid var(--color-highlight, #5581dd)"
+                    : undefined,
+                  outlineOffset: 5,
+                  borderRadius: 12,
+                  position: "relative",
+                }}
+              >
+                {group.map((item, cardIndex) => {
+                  const entry = catalog.get(entryKey(item));
+
+                  if (!entry) return null;
+
+                  return (
+                    <div
+                      className={`${styles.selectedItem} ${
+                        dragOverId === group[0].instanceId
+                          ? styles.dragOver
+                          : ""
+                      }`}
+                      key={item.instanceId}
+                      style={{
+                        marginLeft: cardIndex > 0 ? -12 : 0,
+                        zIndex: group.length - cardIndex,
+                      }}
+                    >
+                      {cardIndex === 0 && (
+                        <span className={styles.itemNumber}>{index + 1}.</span>
+                      )}
+
+                      <div className={styles.trainingCard}>
+                        <span className={styles.availableImage}>
+                          <Image
+                            src={entry.imageUrl}
+                            alt=""
+                            width={150}
+                            height={98}
+                            draggable={false}
+                          />
+
+                          <span className={styles.availableName}>
+                            {entry.names[language]}
+                          </span>
+
+                          {cardIndex === 0 && (
+                            <span
+                              className={styles.availableVector}
+                              title={
+                                group.length > 1
+                                  ? "Combined training vector"
+                                  : undefined
+                              }
+                            >
+                              {(() => {
+                                const vector =
+                                  chartMode === "movement"
+                                    ? selectedMovementVectors.get(
+                                        item.instanceId,
+                                      )
+                                    : selectedVectors.get(item.instanceId);
+
+                                return vector
+                                  ? getVectorLabel(vector.dx, vector.dy)
+                                  : "X 0 / Y 0";
+                              })()}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+
+                      {cardIndex === group.length - 1 && (
+                        <button
+                          className={styles.removeButton}
+                          type="button"
+                          draggable={false}
+                          aria-label={labels.remove}
+                          onClick={() => removeTraining(group)}
+                        >
+                          ×
+                        </button>
+                      )}
+
+                      <Link
+                        href={`/cards-and-combos?id=${entry.id}`}
+                        className={`${styles.removeButton} ${styles.trainingInfoButton}`}
+                        aria-label={`View ${entry.names[language]} information`}
+                        title="Training info"
+                        draggable={false}
+                        onDragStart={(event) => event.preventDefault()}
+                      >
+                        i
+                      </Link>
+                    </div>
+                  );
+                })}
               </div>
-            );
-              })}
-            </div>
-          ))}
-      </div>
+            ))}
+        </div>
       </div>
     </aside>
   );

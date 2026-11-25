@@ -111,9 +111,9 @@
   width: 100%;
 }
 
-.chartDescription{
+.chartDescription {
   font-size: 14px;
-  margin-bottom: -20px;
+  margin-bottom: -25px;
 }
 
 @media (max-width: 700px) {
@@ -121,10 +121,10 @@
     top: 8px;
     right: 8px;
   }
-  .chartDescription{
-  font-size: 10px;
-  margin-bottom: -10px;
-}
+  .chartDescription {
+    font-size: 10px;
+    margin-bottom: -10px;
+  }
 }
 
 .axisLabels {
@@ -144,7 +144,6 @@
 .chart g[role="button"]:focus-visible {
   outline: 2px solid var(--dark);
 }
-
 
 .layout {
   min-width: 0;
@@ -184,9 +183,9 @@
     margin-top: 60px;
   }
 
-  .chartDescription{
-  margin-bottom: 0px;
-}
+  .chartDescription {
+    margin-bottom: 0px;
+  }
 
   .players {
     grid-column: 1;
@@ -243,7 +242,7 @@
     margin-top: 60px;
   }
 
-    .playerSize {
+  .playerSize {
     transform: scale(1.5);
   }
 
@@ -323,3 +322,80 @@
   }
 }
 
+.chartSwitch {
+  display: flex;
+  width: min(100%, 370px);
+  gap: 4px;
+  padding: 4px;
+  margin: 0 auto 14px;
+  border: 2px solid var(--font_black);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.chartSwitchButton {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--font_black);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: ease 0.1s;
+}
+
+.chartSwitchButton:hover {
+  background: var(--button_grey);
+}
+
+.chartSwitchActive {
+  background: var(--color-highlight);
+  color: var(--font_white);
+}
+
+.chartSwitchActive:hover {
+  background: var(--color-highlight);
+}
+
+.chartSwitchButton:focus-visible {
+  outline: 3px solid var(--color-highlight);
+  outline-offset: 3px;
+}
+
+.movementQuadrantLabel {
+  fill: #111;
+  font-family: inherit;
+  font-size: 25px;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.movementTicks {
+  fill: #555;
+  font-family: inherit;
+  font-size: 21px;
+  pointer-events: none;
+}
+
+.movementAxes {
+  fill: #111;
+  font-family: inherit;
+  font-size: 23px;
+  font-weight: 550;
+  pointer-events: none;
+}
+
+@media (max-width: 480px) {
+  .chartSwitch {
+    margin-bottom: 8px;
+  }
+
+  .chartSwitchButton {
+    padding: 7px 8px;
+    font-size: 14px;
+  }
+}
