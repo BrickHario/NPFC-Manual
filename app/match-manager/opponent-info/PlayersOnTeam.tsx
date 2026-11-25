@@ -26,6 +26,8 @@ export type AssignedPlayer = {
 type Props = {
   players: AssignedPlayer[];
   teamBonuses: number[];
+  imported?: boolean;
+  savedLevels?: boolean;
   title?: string;
   emptyMessage?: string;
 };
@@ -45,6 +47,8 @@ const SKILL_KEYS = Array.from(
 export default function PlayersOnTeam({
   players,
   teamBonuses,
+  imported = false,
+  savedLevels = false,
   title = "Assigned Players",
   emptyMessage = "No assigned players",
 }: Props) {
@@ -55,6 +59,33 @@ export default function PlayersOnTeam({
         : player.Player_Skills;
 
       const baseSkills = skills ? SKILL_KEYS.map((key) => skills[key]) : null;
+
+      if (imported) {
+        const attributes =
+          skills &&
+          baseSkills?.every((value) => Number.isInteger(value) && value >= 0)
+            ? calculateAttributes(skills, "points")
+            : null;
+        const levels = [0, 50, 150, 350, 600, 1000];
+        const baseOverall =
+          attributes && baseSkills
+            ? Number(
+                getOverall(
+                  Object.fromEntries(
+                    SKILL_KEYS.map((key, i) => [
+                      key,
+                      levels.reduce(
+                        (level, threshold, index) =>
+                          baseSkills[i] >= threshold ? index : level,
+                        0,
+                      ),
+                    ]),
+                  ),
+                ),
+              )
+            : 0;
+        return { player, baseOverall, attributes };
+      }
 
       const valid =
         baseSkills &&
@@ -67,8 +98,10 @@ export default function PlayersOnTeam({
       const position = POSITIONS[player.id_position];
 
       const adjusted =
-        valid && baseSkills && position
-          ? getTeamPlayerSkills(baseSkills, teamBonuses, position)
+        valid && baseSkills && (position || savedLevels)
+          ? savedLevels
+            ? baseSkills
+            : getTeamPlayerSkills(baseSkills, teamBonuses, position!)
           : null;
 
       const attributes = adjusted
@@ -101,10 +134,12 @@ export default function PlayersOnTeam({
         <div className={styles.assignedScroll} tabIndex={0} aria-label={title}>
           <div className={styles.assignedList}>
             {sortedPlayers.map(({ player, baseOverall, attributes }) => {
-              const isAlien = !player.price;
+              const isAlien = imported ? false : !player.price;
 
               const canOpen =
-                !isAlien && (player.id_player < 792 || player.id_player > 1015);
+                imported ||
+                (!isAlien &&
+                  (player.id_player < 792 || player.id_player > 1015));
 
               const content = (
                 <>

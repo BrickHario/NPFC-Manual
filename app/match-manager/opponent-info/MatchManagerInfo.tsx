@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Suspense } from "react";
 import {
   GRADES,
   rankImages,
@@ -11,6 +12,14 @@ import TeamFormation from "./TeamFormation";
 import type { TeamFormationSlot } from "./team-formation";
 import { SQUAD_BUDGETS, getSquadSize } from "./possible-players";
 import styles from "./match-manager-info.module.css";
+import {
+  TeamImportProvider,
+  ImportTeamHeader,
+  ImportedTeamMatchup,
+  ImportedTeamSkillBoost,
+  ImportedTeamPlayers,
+} from "./ImportTeamData";
+import { LoadingBig } from "@/app/Loading";
 
 type Team = {
   team_id: number;
@@ -66,6 +75,7 @@ const CROWD_LEVELS = [1, 1, 2, 3, 4, 5, 6, 7, 7] as const;
 const CROWD_PRESSURE_FACTORS = [0, 1, 1, 1, 2, 2, 3, 3] as const;
 
 const CROWD_LABELS = ["None", "Low", "Medium", "High"] as const;
+
 const CROWD_TONES = [
   styles.crowdNone,
   styles.crowdLow,
@@ -164,8 +174,10 @@ export default function MatchManagerInfo({
   const teamImageId = String(team.team_id).padStart(4, "0");
 
   const league = LEAGUES[getInitialLeague(team.team_id)];
+
   const stadium =
     team.stadium_id === null ? null : STADIUMS[team.stadium_id] ?? null;
+
   const stadiumName = stadium?.name ?? `${englishTeamName} Stadium`;
 
   const squadSize = getSquadSize(team);
@@ -174,6 +186,7 @@ export default function MatchManagerInfo({
   const { crowdLevel, pressureFactor, maxCrowdLevel } = getCrowdPressure(
     team.strength_lvl,
   );
+
   const crowdLabel = CROWD_LABELS[pressureFactor];
   const crowdTone = CROWD_TONES[pressureFactor];
 
@@ -198,10 +211,12 @@ export default function MatchManagerInfo({
   const teamBonuses = skillBoosts.map((attribute) => attribute.value ?? 0);
 
   return (
-    <>
-      <h1>{title}</h1>
+    <TeamImportProvider>
+      <ImportTeamHeader title={title} />
 
       <div className={styles["panel-opp-info"]}>
+        <ImportedTeamMatchup title={title} />
+
         <div className={styles.teamOverview}>
           <Image
             src={`/team-images/${teamImageId}.png`}
@@ -289,7 +304,17 @@ export default function MatchManagerInfo({
           </div>
         </div>
 
-        <TeamFormation slots={formationSlots} stadiumId={team.stadium_id} />
+        <Suspense
+          key={team.team_id}
+          fallback={
+            <div className={styles.formationLoading}>
+              <LoadingBig />
+            </div>
+          }
+        >
+          <TeamFormation slots={formationSlots} stadiumId={team.stadium_id} />
+        </Suspense>
+
         <div className={styles.teamAbilities}>
           <div className={styles.stadium}>
             <div className={styles.stadiumTitle}>
@@ -311,6 +336,7 @@ export default function MatchManagerInfo({
             <div className={styles.crowdPressure}>
               <div className={styles.crowdRow}>
                 <span>Crowd Pressure:</span>
+
                 <strong
                   className={`${styles.crowdValue} ${crowdTone}`}
                   title={`Pressure Factor ${pressureFactor}`}
@@ -318,6 +344,7 @@ export default function MatchManagerInfo({
                   {crowdLabel}
                 </strong>
               </div>
+
               <div className={styles.crowdRow}>
                 <span>Crowd Level:</span>
 
@@ -344,7 +371,7 @@ export default function MatchManagerInfo({
           </div>
 
           <div className={styles.positionFamiliarity}>
-            <strong>Position Familiarity</strong>
+            <strong>Position Experience</strong>
             <GradeIcon value={team.pos_loyalty} />
           </div>
 
@@ -363,46 +390,49 @@ export default function MatchManagerInfo({
         </div>
 
         <div className={styles.skillBoostSection}>
-          <h2 className={styles.skillBoostTitle}>Player Skill Boost</h2>
+          <ImportedTeamSkillBoost>
+            <h2 className={styles.skillBoostTitle}>Player Skill Boost</h2>
 
-          <div className={styles.skillBoostGrid}>
-            {skillBoosts.map((attribute, index) => (
-              <div
-                key={attribute.name}
-                className={styles.skillBoostItem}
-                title={`${attribute.name}: ${attribute.value ?? "—"}`}
-              >
-                <Image
-                  src={getAttributeImage(attribute.name, index)}
-                  alt={attribute.name}
-                  width={30}
-                  height={30}
-                  unoptimized
-                  className={styles.skillBoostIcon}
-                />
+            <div className={styles.skillBoostGrid}>
+              {skillBoosts.map((attribute, index) => (
+                <div
+                  key={attribute.name}
+                  className={styles.skillBoostItem}
+                  title={`${attribute.name}: ${attribute.value ?? "—"}`}
+                >
+                  <Image
+                    src={getAttributeImage(attribute.name, index)}
+                    alt={attribute.name}
+                    width={30}
+                    height={30}
+                    unoptimized
+                    className={styles.skillBoostIcon}
+                  />
 
-                <span className={styles.skillBoostValue}>
-                  {attribute.value ?? "—"}
-                </span>
-              </div>
-            ))}
-          </div>
+                  <span className={styles.skillBoostValue}>
+                    {attribute.value ?? "—"}
+                  </span>
+                </div>
+              ))}
+            </div>
 
-          <PlayersOnTeam
-            title="Assigned Players"
-            emptyMessage="No assigned players"
-            players={assignedPlayers}
-            teamBonuses={teamBonuses}
-          />
+            <PlayersOnTeam
+              title="Assigned Players"
+              emptyMessage="No assigned players"
+              players={assignedPlayers}
+              teamBonuses={teamBonuses}
+            />
 
-          <PlayersOnTeam
-            title="Possible Players"
-            emptyMessage="No possible players"
-            players={possiblePlayers}
-            teamBonuses={teamBonuses}
-          />
+            <PlayersOnTeam
+              title="Possible Players"
+              emptyMessage="No possible players"
+              players={possiblePlayers}
+              teamBonuses={teamBonuses}
+            />
+          </ImportedTeamSkillBoost>
+          <ImportedTeamPlayers title={title} teamId={team.team_id} />
         </div>
       </div>
-    </>
+    </TeamImportProvider>
   );
 }

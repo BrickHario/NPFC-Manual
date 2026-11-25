@@ -1,0 +1,115 @@
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 5px;
+}
+
+.title {
+  margin: 0;
+  min-width: 0;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex-shrink: 0;
+  gap: 6px;
+  font-family: var(--font-body);
+}
+
+.fileInput {
+  display: none;
+}
+
+.importButton {
+  padding: 8px 14px;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  min-width: 200px;
+  height: 60px;
+  background: #263023;
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.15s;
+  margin-right: 100px;
+}
+
+.importButton:hover:not(:disabled) {
+  background: #354531;
+}
+
+.importButton:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.message {
+  max-width: 240px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.success {
+  color: var(--font_black);
+}
+
+.error {
+  color: #b42318;
+  white-space: pre-wrap;
+}
+
+.matchup {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  flex: 0 0 100%;
+  order: -1;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  align-self: start;
+  padding: 12px 0 8px;
+  text-align: center;
+}
+
+.matchupTitle {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--font_black);
+}
+
+@media (max-width: 600px) {
+  .header {
+    gap: 8px;
+  }
+
+  .actions {
+    gap: 4px;
+  }
+
+  .importButton {
+    padding: 7px 11px;
+    font-size: 12px;
+  }
+
+  .message {
+    max-width: 150px;
+    font-size: 11px;
+  }
+
+  .matchupTitle {
+    font-size: 18px;
+  }
+}

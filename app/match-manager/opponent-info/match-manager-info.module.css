@@ -678,3 +678,15 @@
   object-fit: contain;
   image-rendering: pixelated;
 }
+
+.formationLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 380px;
+  width: 100%;
+}
+
+.panel-opp-info {
+  flex-wrap: wrap;
+}
