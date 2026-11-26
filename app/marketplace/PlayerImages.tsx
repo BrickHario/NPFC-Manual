@@ -8,6 +8,7 @@ import {
   getPositionGradient,
   getTier,
   MARKET_LABELS,
+  type MatchActionLabel,
 } from "@/lib/utils";
 import { LoadingSmall } from "../Loading";
 
@@ -72,6 +73,7 @@ export default function PlayerImages({
   shirtNumber,
   foot,
   showRosterLabels = false,
+  matchActionLabels = [],
 }: {
   playerId: number;
   teamId: number | null;
@@ -89,6 +91,7 @@ export default function PlayerImages({
   shirtNumber?: number | null;
   foot?: "L" | "R" | null;
   showRosterLabels?: boolean;
+  matchActionLabels?: readonly MatchActionLabel[];
 }) {
   const [playerLoaded, setPlayerLoaded] = useState(false);
   const [bodyLoaded, setBodyLoaded] = useState(false);
@@ -111,6 +114,10 @@ export default function PlayerImages({
     : "/body.png";
 
   const canHover = enableHover && !isAlien && !isMondial;
+  const matchActionColumns = [
+    matchActionLabels.slice(0, 3),
+    matchActionLabels.slice(3, 6),
+  ];
 
   return (
     <div
@@ -292,6 +299,35 @@ export default function PlayerImages({
           >
             {getMarketLabel(market)}
           </span>
+        )}
+
+        {matchActionColumns.map(
+          (labels, side) =>
+            labels.length > 0 && (
+              <div
+                key={side}
+                style={{
+                  position: "absolute",
+                  top: 52,
+                  ...(side === 0 ? { left: 0 } : { right: 0 }),
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1,
+                  zIndex: 7,
+                  pointerEvents: "none",
+                }}
+              >
+                {labels.map((action) => (
+                  <span
+                    key={action.label}
+                    style={action.style}
+                    title={action.title}
+                  >
+                    {action.label}
+                  </span>
+                ))}
+              </div>
+            ),
         )}
 
         <div

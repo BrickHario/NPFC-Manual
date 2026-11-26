@@ -1,0 +1,29 @@
+.page {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  overflow: visible;
+}
+
+.languageDock {
+  position: absolute;
+  top: 14px;
+  right: 24px;
+  z-index: 1100;
+  overflow: visible;
+}
+
+.heading {
+  min-height: 48px;
+}
+
+@media (max-width: 700px) {
+  .languageDock {
+    top: 8px;
+    right: 12px;
+  }
+
+  .heading {
+    padding-top: 40px;
+  }
+}

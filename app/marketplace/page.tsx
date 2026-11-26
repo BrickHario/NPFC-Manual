@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import PlayerImages from "./PlayerImages";
 import {
@@ -11,10 +12,26 @@ import {
   getFoot,
   getMarket,
   POTENTIAL_CURVE_ORDER,
+  buildMatchActionLookup,
+  getMarketplaceMatchActionLookup,
+  MARKETPLACE_MATCH_ACTION_NAMES,
+  getPlayerMatchActionLabels,
+  getPlayerMatchActionIds,
+  getMatchActionFilterOptions,
 } from "@/lib/utils";
 import MarketplaceFilters from "./MarketplaceFilters";
 import { LoadingBig } from "../Loading";
 import PlayerInfo from "./PlayerInfo";
+import LanguageSwitcher from "../LanguageSwitcher";
+import styles from "./page.module.css";
+
+const MATCH_ACTION_NAME_COLUMNS = {
+  en: "english_name",
+  de: "german_name",
+  es: "spanish_name",
+  it: "italian_name",
+  fr: "french_name",
+} as const;
 
 type MarketplaceParams = {
   id?: string;
@@ -24,6 +41,7 @@ type MarketplaceParams = {
   pos?: string | string[];
   market?: string | string[];
   tier?: string | string[];
+  matchAction?: string | string[];
   sort?: string;
   minPrice?: string;
   maxPrice?: string;
@@ -140,12 +158,87 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
     return visibleQuery.order("id_player").range(start, start + 999);
   };
 
-  const [a, b] = await Promise.all([load(0), load(1000)]);
+  const [a, b, matchActions] = await Promise.all([
+    load(0),
+    load(1000),
+    supabase
+      .from("Combos")
+      .select("combo_id, category_id, has_match_actions")
+      .order("combo_id"),
+  ]);
 
   if (a.error || b.error) {
     return <p>{a.error?.message || b.error?.message}</p>;
   }
 
+  if (matchActions.error) {
+    console.error("Could not load match actions:", matchActions.error.message);
+  }
+
+  const matchActionLookup = buildMatchActionLookup(matchActions.data ?? []);
+  const marketplaceMatchActionLookup =
+    getMarketplaceMatchActionLookup(matchActionLookup);
+  const matchActionNames: Record<number, string> = {
+    ...MARKETPLACE_MATCH_ACTION_NAMES,
+  };
+
+  if (!id && marketplaceMatchActionLookup.size > 0) {
+    const cookieStore = await cookies();
+    const language = cookieStore.get("npfc-language")?.value;
+    const nameColumn =
+      language === "de" ||
+      language === "es" ||
+      language === "it" ||
+      language === "fr"
+        ? MATCH_ACTION_NAME_COLUMNS[language]
+        : MATCH_ACTION_NAME_COLUMNS.en;
+
+    const comboIds = [
+      ...new Set(
+        [...marketplaceMatchActionLookup.values()].map(
+          (action) => action.comboId,
+        ),
+      ),
+    ];
+
+    const { data: comboNames, error: comboNamesError } = await supabase
+      .from("ComboNames")
+      .select(
+        "combo_id, english_name, german_name, spanish_name, italian_name, french_name",
+      )
+      .in("combo_id", comboIds);
+
+    if (comboNamesError) {
+      console.error(
+        "Could not load match action names:",
+        comboNamesError.message,
+      );
+    }
+
+    const namesByComboId = new Map<number, string>();
+
+    for (const row of comboNames ?? []) {
+      const name = row[nameColumn]?.trim() || row.english_name?.trim();
+      if (name) namesByComboId.set(row.combo_id, name);
+    }
+
+    for (const [actionId, action] of marketplaceMatchActionLookup) {
+      const name = namesByComboId.get(action.comboId);
+      if (name) matchActionNames[actionId] = name;
+    }
+  }
+
+  const matchActionOptions = getMatchActionFilterOptions(
+    marketplaceMatchActionLookup,
+    matchActionNames,
+  );
+  const validMatchActionValues = new Set(
+    matchActionOptions.map((option) => option.value),
+  );
+  const selectedMatchActions = [
+    ...new Set(toArray(filters.matchAction)),
+  ].filter((value) => validMatchActionValues.has(value));
+  const selectedMatchActionIds = new Set(selectedMatchActions.map(Number));
   const players = [...(a.data ?? []), ...(b.data ?? [])];
 
   const all = players.map((p) => {
@@ -182,6 +275,10 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
 
     return {
       id_player: p.id_player,
+      matchActions: getPlayerMatchActionIds(
+        p.match_actions,
+        marketplaceMatchActionLookup,
+      ),
       name: p.name,
       id_position: p.id_position,
       team_id: p.team_id,
@@ -272,6 +369,13 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
     if (selectedPositions.length && !selectedPositions.includes(p.position))
       return false;
 
+    if (
+      selectedMatchActionIds.size > 0 &&
+      !p.matchActions.some((actionId) => selectedMatchActionIds.has(actionId))
+    ) {
+      return false;
+    }
+
     if (selectedFoot && p.foot !== selectedFoot) {
       return false;
     }
@@ -305,6 +409,19 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
   });
 
   filtered.sort((a, b) => {
+    if (sort === "match_actions_desc" || sort === "match_actions_asc") {
+      const difference =
+        sort === "match_actions_desc"
+          ? b.matchActions.length - a.matchActions.length
+          : a.matchActions.length - b.matchActions.length;
+
+      return (
+        difference ||
+        a.name.localeCompare(b.name, "de") ||
+        a.id_player - b.id_player
+      );
+    }
+
     if (sort === "price_asc" || sort === "price_desc") {
       if (a.price === null && b.price !== null) return 1;
       if (b.price === null && a.price !== null) return -1;
@@ -419,6 +536,9 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
   selectedPositions.forEach((value) => baseParams.append("pos", value));
   selectedMarkets.forEach((value) => baseParams.append("market", value));
   selectedTiers.forEach((value) => baseParams.append("tier", value));
+  selectedMatchActions.forEach((value) =>
+    baseParams.append("matchAction", value),
+  );
 
   baseParams.set("sort", sort);
 
@@ -446,6 +566,8 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
           selectedPositions={selectedPositions}
           selectedMarkets={selectedMarkets}
           selectedTiers={selectedTiers}
+          matchActionOptions={matchActionOptions}
+          selectedMatchActions={selectedMatchActions}
           selectedFoot={selectedFoot}
           search={filters.q ?? ""}
           sort={sort}
@@ -491,6 +613,10 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
                 showPriceChip={!!p.price}
                 showMarketChip={!!p.price}
                 enableHover={canOpen}
+                matchActionLabels={getPlayerMatchActionLabels(
+                  p.matchActions,
+                  marketplaceMatchActionLookup,
+                )}
               />
             );
 
@@ -549,7 +675,13 @@ async function Players({ filters }: { filters: MarketplaceParams }) {
     );
   }
 
-  return <PlayerInfo id={Number(id)} backHref={pageHref(currentPage)} />;
+  return (
+    <PlayerInfo
+      id={Number(id)}
+      backHref={pageHref(currentPage)}
+      matchActionLookup={marketplaceMatchActionLookup}
+    />
+  );
 }
 
 async function PlayersWrapper({
@@ -569,7 +701,14 @@ async function MarketplaceHeading({
   const filters = await searchParams;
 
   if (!filters.id || !Number.isInteger(Number(filters.id))) {
-    return <h1>Marketplace</h1>;
+    return (
+      <>
+        <div className={styles.languageDock}>
+          <LanguageSwitcher />
+        </div>
+        <h1 className={styles.heading}>Marketplace</h1>
+      </>
+    );
   }
 }
 
@@ -579,8 +718,8 @@ export default function Home({
   searchParams: Promise<MarketplaceParams>;
 }) {
   return (
-    <main>
-      <Suspense fallback={<h1>Marketplace</h1>}>
+    <main className={styles.page}>
+      <Suspense fallback={<h1 className={styles.heading}>Marketplace</h1>}>
         <MarketplaceHeading searchParams={searchParams} />
       </Suspense>
 

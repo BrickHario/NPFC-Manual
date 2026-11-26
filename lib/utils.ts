@@ -524,7 +524,167 @@ export function getMatchActionLabel(
 
   return {
     label,
+    comboId: combo.combo_id,
     style: getMatchActionLabelStyle(combo.category_id),
     title: `Match action: ${label}`,
   };
+}
+
+
+export type MatchActionLabel = NonNullable<ReturnType<typeof getMatchActionLabel>>;
+
+export const COMBO_MATCH_ACTION_IDS: Readonly<Record<number, number>> = {
+  35: 1,
+  38: 6,
+  39: 7,
+  40: 8,
+  41: 9,
+  51: 10,
+  58: 11,
+  72: 12,
+  73: 2,
+  74: 3,
+  75: 13,
+  93: 5,
+  118: 1,
+  119: 1,
+  133: 4,
+  150: 14,
+  158: 17,
+  159: 18,
+  160: 19,
+  161: 20,
+  162: 21,
+  163: 22,
+};
+
+export function buildMatchActionLookup(combos: readonly MatchActionCombo[]): Map<number, MatchActionLabel> {
+  const labels = buildMatchActionLabels(combos);
+  const lookup = new Map<number, MatchActionLabel>();
+
+  for (const combo of [...combos].sort((a, b) => a.combo_id - b.combo_id)) {
+    const actionId = COMBO_MATCH_ACTION_IDS[combo.combo_id];
+    if (actionId === undefined || lookup.has(actionId)) continue;
+
+    const matchAction = getMatchActionLabel(combo, labels);
+    if (matchAction) lookup.set(actionId, matchAction);
+  }
+
+  return lookup;
+}
+
+export const MATCH_ACTION_NAMES: Readonly<Record<number, string>> = {
+  1: "Banana Shot",
+  2: "Scissors Feint",
+  3: "Pivot Turn",
+  4: "Captaincy",
+  5: "Offside Trap",
+  6: "Bicycle Kick",
+  7: "Midfield Strike",
+  8: "Knuckle Shot",
+  9: "Super Long Shot",
+  10: "Sliding Header",
+  11: "No-Look Pass",
+  12: "Long Throw",
+  13: "Roulette Turn",
+  14: "Goalie Runs Up",
+  17: "Blind Plane",
+  18: "Rock-A-Bye",
+  19: "Samba Steps",
+  20: "Acrobatics",
+  21: "Golden Feet",
+  22: "Choo-Choo Train",
+};
+
+export const MARKETPLACE_MATCH_ACTION_NAMES: Readonly<Record<number, string>> = {
+  1: "Banana Shot",
+  2: "Scissors Feint",
+  3: "Pivot Turn",
+  6: "Bicycle Kick",
+  7: "Midfield Strike",
+  8: "Knuckle Shot",
+  9: "Super Long Shot",
+  10: "Sliding Header",
+  11: "No-Look Pass",
+  12: "Long Throw",
+  13: "Roulette Turn",
+  14: "Goalie Runs Up",
+};
+
+export function getMarketplaceMatchActionLookup(
+  lookup: ReadonlyMap<number, MatchActionLabel>,
+): Map<number, MatchActionLabel> {
+  return new Map(
+    [...lookup.entries()].filter(([id]) =>
+      Object.prototype.hasOwnProperty.call(MARKETPLACE_MATCH_ACTION_NAMES, id),
+    ),
+  );
+}
+
+export function getMatchActionFilterOptions(
+  lookup: ReadonlyMap<number, MatchActionLabel>,
+  names: Readonly<Record<number, string>> = MATCH_ACTION_NAMES,
+): { value: string; label: string }[] {
+  return [...lookup.entries()]
+    .sort(([, a], [, b]) => a.label.localeCompare(b.label, "en", { numeric: true }))
+    .map(([id, action]) => ({
+      value: String(id),
+      label: `${action.label}: ${names[id] ?? action.title}`,
+    }));
+}
+
+export function getPlayerMatchActionIds(
+  matchActions: unknown,
+  lookup: ReadonlyMap<number, MatchActionLabel>,
+): number[] {
+  if (!Array.isArray(matchActions)) return [];
+
+  const ids = new Set<number>();
+
+  for (const id of matchActions) {
+    if (typeof id === "number" && Number.isInteger(id) && lookup.has(id)) {
+      ids.add(id);
+    }
+  }
+
+  return [...ids];
+}
+
+export function getPlayerMatchActionLabels(
+  matchActions: unknown,
+  lookup: ReadonlyMap<number, MatchActionLabel>,
+): MatchActionLabel[] {
+  return getPlayerMatchActionIds(matchActions, lookup).flatMap((id) => {
+    const label = lookup.get(id);
+    return label ? [label] : [];
+  });
+}
+
+export function getPlayerMatchActionButtons(
+  matchActions: unknown,
+  lookup: ReadonlyMap<number, MatchActionLabel>,
+  names?: ReadonlyMap<number, string>,
+) {
+  return getPlayerMatchActionIds(matchActions, lookup).flatMap((id) => {
+    const action = lookup.get(id);
+    if (!action) return [];
+
+    const name = names?.get(action.comboId)?.trim() || MATCH_ACTION_NAMES[id] || action.title;
+    const text = `${action.label}: ${name}`;
+
+    return [{
+      id,
+      text,
+      href: `/cards-and-combos?id=${action.comboId}`,
+      style: {
+        ...action.style,
+        width: "auto",
+        minHeight: 24,
+        padding: "0 9px",
+        borderRadius: 999,
+        textDecoration: "none",
+        cursor: "pointer",
+      } as const,
+    }];
+  });
 }
