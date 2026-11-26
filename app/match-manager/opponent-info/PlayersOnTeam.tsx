@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { ReactNode } from "react";
 import {
   getAvailabilityLabel,
   isUnavailable,
@@ -84,6 +85,7 @@ type Props = {
   imported?: boolean;
   savedLevels?: boolean;
   title?: string;
+  titleAction?: ReactNode;
   emptyMessage?: string;
 };
 
@@ -364,6 +366,7 @@ export default function PlayersOnTeam({
   imported = false,
   savedLevels = false,
   title = "Assigned Players",
+  titleAction,
   emptyMessage = "No assigned players",
 }: Props) {
   const sortedPlayers = players
@@ -449,9 +452,31 @@ export default function PlayersOnTeam({
 
   return (
     <section className={styles.assignedPlayers}>
-      <h3 className={styles.assignedTitle}>
-        {title} ({sortedPlayers.length})
-      </h3>
+      {titleAction ? (
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "4px 10px",
+            maxWidth: "100%",
+            minWidth: 0,
+          }}
+        >
+          <h3
+            className={styles.assignedTitle}
+            style={{ overflowWrap: "anywhere", minWidth: 0 }}
+          >
+            {title} ({sortedPlayers.length})
+          </h3>
+          {titleAction}
+        </div>
+      ) : (
+        <h3 className={styles.assignedTitle}>
+          {title} ({sortedPlayers.length})
+        </h3>
+      )}
 
       {sortedPlayers.length === 0 ? (
         <p className={styles.assignedEmpty}>{emptyMessage}</p>

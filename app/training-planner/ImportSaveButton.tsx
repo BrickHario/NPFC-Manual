@@ -1,39 +1,22 @@
-
 "use client";
 
 import { useRef, useState } from "react";
-import {
-  parseSaveFiles,
-  type ImportedSavePlayer,
-} from "./save-parser";
+import { parseSaveFiles, type ImportedSavePlayer } from "./save-parser";
 import styles from "./ImportSaveButton.module.css";
+import { lookupImportedPlayers } from "./import-player-lookup";
 
 type Props = {
   onImport: (players: ImportedSavePlayer[]) => void;
 };
 
-type PlayerLookup = {
-  players?: {
-    id: number;
-    name: string;
-    imageUrl: string;
-    potentialCurve: number[] | null;
-  }[];
-  error?: string;
-};
-
-export default function ImportSaveButton({
-  onImport,
-}: Props) {
+export default function ImportSaveButton({ onImport }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  async function handleFiles(
-    event: React.ChangeEvent<HTMLInputElement>
-  ) {
+  async function handleFiles(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
 
     if (files.length === 0) return;
@@ -45,84 +28,13 @@ export default function ImportSaveButton({
     try {
       const save = await parseSaveFiles(files);
 
-      const response = await fetch(
-        "/api/player-types/lookup",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ids: save.players.map((player) => player.id),
-          }),
-        }
-      );
-
-      const contentType =
-        response.headers.get("content-type") ?? "";
-
-      if (
-        !contentType
-          .toLowerCase()
-          .includes("application/json")
-      ) {
-        throw new Error(
-          `Player lookup API unavailable (HTTP ${response.status}). Check app/api/player-types/lookup/route.ts.`
-        );
-      }
-
-      let result: PlayerLookup;
-
-      try {
-        result = (await response.json()) as PlayerLookup;
-      } catch {
-        throw new Error(
-          "Player lookup API returned invalid JSON"
-        );
-      }
-
-      if (!response.ok || !result.players) {
-        throw new Error(
-          result.error ||
-            `Player lookup failed (HTTP ${response.status})`
-        );
-      }
-
-      const lookup = new Map(
-        result.players.map((player) => [
-          player.id,
-          player,
-        ])
-      );
-
-      const imported = save.players.map((player) => {
-        const record = lookup.get(player.id);
-
-        if (!record) {
-          throw new Error(
-            `Unknown player ID ${player.id}`
-          );
-        }
-
-        return {
-          ...player,
-          name: record.name,
-          imageUrl: record.imageUrl,
-          potentialCurve: record.potentialCurve,
-        };
-      });
+      const imported = await lookupImportedPlayers(save.players);
 
       onImport(imported);
 
-      setSuccess(
-        `${imported.length} players imported from ${save.fileName}`
-      );
+      setSuccess(`${imported.length} players imported from ${save.fileName}`);
     } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "Import failed"
-      );
+      setError(caught instanceof Error ? caught.message : "Import failed");
     } finally {
       setBusy(false);
 
@@ -135,8 +47,7 @@ export default function ImportSaveButton({
   return (
     <div className={styles.container}>
       <p className={styles.instructions}>
-        Open Save Data Location and select{" "}
-        <span>savedata*.bin</span>
+        Open Save Data Location and select <span>savedata*.bin</span>
       </p>
 
       <input

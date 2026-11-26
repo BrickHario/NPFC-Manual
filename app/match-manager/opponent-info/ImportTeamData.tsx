@@ -33,6 +33,7 @@ import {
 import { predictOpponentLineup } from "./predict-opponent-lineup";
 import { isUnavailable } from "./player-availability";
 import type { TeamFormationSlot } from "./team-formation";
+import { ensureTeamPlayersImported } from "@/app/training-planner/import-player-lookup";
 
 const POT_KEYS = [
   "pot_01",
@@ -1083,6 +1084,51 @@ export function ImportedTeamFormation({
   );
 }
 
+function TrainingPlannerButton({ team }: { team: ImportedTeam }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const pending = useRef(false);
+
+  async function handleClick() {
+    if (pending.current) return;
+
+    pending.current = true;
+    setBusy(true);
+    setError("");
+
+    try {
+      await ensureTeamPlayersImported(team.players);
+      window.location.assign("/training-planner");
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Unable to import players",
+      );
+      pending.current = false;
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        className={styles.trainingPlannerButton}
+        onClick={handleClick}
+        disabled={busy}
+        aria-busy={busy}
+      >
+        {busy ? "Importing..." : "Training Planner"}
+        {!busy && <span aria-hidden="true">▶</span>}
+      </button>
+      {error && (
+        <span role="alert" className={styles.trainingPlannerError}>
+          {error}
+        </span>
+      )}
+    </>
+  );
+}
+
 export function ImportedTeamPlayers({
   language = "en",
   title,
@@ -1167,6 +1213,7 @@ export function ImportedTeamPlayers({
       <PlayersOnTeam
         language={language}
         title={team.name}
+        titleAction={<TrainingPlannerButton team={team} />}
         players={ownPlayers}
         teamBonuses={[]}
         imported
