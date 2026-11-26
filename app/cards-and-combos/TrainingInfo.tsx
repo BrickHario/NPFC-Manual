@@ -5,24 +5,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { LoadingSmall } from "../Loading";
 import HorizontalScrollArea from "./HorizontalScrollArea";
-import {
-  ATTRIBUTES,
-  attributeIcon,
-  comboAttributeValues,
-} from "./attributes";
-import {
-  requiredCards,
-  type TrainingCard,
-  type TrainingCombo,
-} from "./types";
-import {
-  CATEGORIES,
-  formatBonus,
-  isEnabled,
-} from "./combo-config";
+import { ATTRIBUTES, attributeIcon, comboAttributeValues } from "./attributes";
+import { requiredCards, type TrainingCard, type TrainingCombo } from "./types";
+import { CATEGORIES, formatBonus, isEnabled } from "./combo-config";
 import styles from "./TrainingInfo.module.css";
 import { formatTypeVector, getTypeVector } from "./combo-type-vector";
-import { getSubSkills } from "@/lib/utils";
+import {
+  getSubSkills,
+  hasMatchAction,
+  type getMatchActionLabel,
+} from "@/lib/utils";
 
 type TrainingSelection =
   | { kind: "card"; data: TrainingCard }
@@ -34,6 +26,7 @@ type Props = {
   cardImageUrls: Record<number, string>;
   comboImageUrls: Record<number, string>;
   comboPreviewUrl?: string;
+  matchAction?: ReturnType<typeof getMatchActionLabel>;
 };
 
 const randomColumns = [0, 0, 1, 2, 3, 3, 3, 4, 5];
@@ -44,44 +37,32 @@ export default function TrainingInfo({
   cardImageUrls,
   comboImageUrls,
   comboPreviewUrl,
+  matchAction,
 }: Props) {
-  const [failedPreviewUrl, setFailedPreviewUrl] =
-    useState<string | null>(null);
+  const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
   const [randomIndex, setRandomIndex] = useState(0);
   const [loadedImageUrl, setLoadedImageUrl] = useState<string | null>(null);
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
   const [loadedPreviewUrl, setLoadedPreviewUrl] = useState<string | null>(null);
 
   const hasPreview =
-    Boolean(comboPreviewUrl) &&
-    failedPreviewUrl !== comboPreviewUrl;
+    Boolean(comboPreviewUrl) && failedPreviewUrl !== comboPreviewUrl;
 
   const { data } = training;
 
   const isCombo = training.kind === "combo";
 
-  const id = isCombo
-    ? training.data.combo_id
-    : training.data.card_id;
+  const id = isCombo ? training.data.combo_id : training.data.card_id;
 
-  const categoryId = isCombo
-    ? training.data.category_id
-    : 1;
+  const categoryId = isCombo ? training.data.category_id : 1;
 
-  const categoryName =
-    CATEGORIES[categoryId] ?? `Category ${categoryId}`;
+  const categoryName = CATEGORIES[categoryId] ?? `Category ${categoryId}`;
 
-  const imageUrl = isCombo
-    ? comboImageUrls[id]
-    : cardImageUrls[id];
+  const imageUrl = isCombo ? comboImageUrls[id] : cardImageUrls[id];
 
-  const recipeIds = isCombo
-    ? requiredCards(training.data)
-    : [];
+  const recipeIds = isCombo ? requiredCards(training.data) : [];
 
-  const cardMap = new Map(
-    cards.map((card) => [card.card_id, card])
-  );
+  const cardMap = new Map(cards.map((card) => [card.card_id, card]));
 
   const fatigueCards = isCombo
     ? recipeIds.map((cardId) => cardMap.get(cardId))
@@ -89,25 +70,30 @@ export default function TrainingInfo({
 
   const fatigueSum = fatigueCards.reduce(
     (total, card) =>
-      total + Array.from({ length: 9 }, (_, index) =>
-        Number(card?.[`skill_${String(index + 1).padStart(2, "0")}` as keyof TrainingCard] ?? 0)
+      total +
+      Array.from({ length: 9 }, (_, index) =>
+        Number(
+          card?.[
+            `skill_${String(index + 1).padStart(2, "0")}` as keyof TrainingCard
+          ] ?? 0,
+        ),
       ).reduce((sum, value) => sum + value, 0),
-    0
+    0,
   );
 
-  const fatigue = fatigueCards.length === 1
-    ? Math.max(0, fatigueSum * 10)
-    : fatigueCards.length === 2
-      ? Math.max(0, Math.trunc(fatigueSum * 20 / 3))
+  const fatigue =
+    fatigueCards.length === 1
+      ? Math.max(0, fatigueSum * 10)
+      : fatigueCards.length === 2
+      ? Math.max(0, Math.trunc((fatigueSum * 20) / 3))
       : fatigueCards.length === 3
-        ? Math.max(0, Math.trunc(fatigueSum * 5))
-        : 0;
+      ? Math.max(0, Math.trunc(fatigueSum * 5))
+      : 0;
 
   const values = comboAttributeValues(data);
   const typeVector = getTypeVector(data);
-  const randomBonus = !isCombo && "random_01" in data
-    ? Number(data.random_01 ?? 0)
-    : 0;
+  const randomBonus =
+    !isCombo && "random_01" in data ? Number(data.random_01 ?? 0) : 0;
 
   useEffect(() => {
     if (!randomBonus) return;
@@ -118,103 +104,99 @@ export default function TrainingInfo({
     return () => clearInterval(timer);
   }, [id, randomBonus]);
 
-  const gkOnly =
-    isCombo && isEnabled(training.data.gk_only);
+  const gkOnly = isCombo && isEnabled(training.data.gk_only);
 
-  const hasMatchActions =
-    isCombo &&
-    isEnabled(training.data.has_match_actions);
+  const hasMatchActions = isCombo && hasMatchAction(training.data);
 
   return (
     <article className={styles.page}>
-<div className={styles.navigationRow}>
-  <Link
-    href="/cards-and-combos"
-    className={styles.backButton}
-    aria-label="Back to Cards and Combos"
-  >
-    <span
-      className={styles.backTriangle}
-      aria-hidden="true"
-    />
-    <span>Back</span>
-  </Link>
-
-  <h1 className={styles.title}>
-    {data.name}
-  </h1>
-
-  <Link
-    href={`/training-planner?trainingKind=${training.kind}&trainingId=${id}`}
-    className={styles.addToTypesButton}
-  >
-    Add to player types
-  </Link>
-</div>
-<div className={styles.categoryRow}>
-  <div className={styles.fatigueBox}>
-    Fatigue: {fatigue > 0 ? `+${fatigue}` : fatigue}
-  </div>
-  <div
-    className={`${styles.categoryBadge} ${
-      styles[`category${categoryId}`] ?? ""
-    }`}
-  >
-    {categoryName}
-  </div>
-
-  <div className={styles.typeVectorBox}>
-    <div
-  className={styles.vector}
-  style={{
-    display: "grid",
-    gridTemplateColumns: "1fr",
-    justifyItems: "center",
-    alignContent: "center",
-    gap: "3px",
-    width: "100%",
-  }}
-  title={formatTypeVector(typeVector.dx, typeVector.dy)}
->
-      {typeVector.dx === 0 && typeVector.dy === 0 ? (
-        <span className={styles.zero}>•</span>
-      ) : (
-       <svg
-  viewBox="0 0 32 32"
-  width="27"
-  height="27"
-  aria-hidden="true"
-  fill="none"
-  stroke="currentColor"
-  strokeWidth="3"
-  strokeLinecap="round"
-  strokeLinejoin="round"
-  style={{
-    transform: `rotate(${
-      (Math.atan2(typeVector.dx, typeVector.dy) * 180) /
-      Math.PI
-    }deg)`,
-  }}
->
-  <path
-    d="M16 28V5M7 14L16 5L25 14"
-    fill="none"
-    stroke="currentColor"
-  />
-</svg>
-      )}
-
-      <span className={styles.label}>
-        {formatTypeVector(typeVector.dx, typeVector.dy)}
-      </span>
-    </div>
-  </div>
-</div>
-      <div className={styles.content}>
-        <section
-          className={styles.hero}
-          aria-label={data.name}
+      <div className={styles.navigationRow}>
+        <Link
+          href="/cards-and-combos"
+          className={styles.backButton}
+          aria-label="Back to Cards and Combos"
         >
+          <span className={styles.backTriangle} aria-hidden="true" />
+          <span>Back</span>
+        </Link>
+
+        <h1 className={styles.title}>{data.name}</h1>
+
+        <Link
+          href={`/training-planner?trainingKind=${training.kind}&trainingId=${id}`}
+          className={styles.addToTypesButton}
+        >
+          Add to player types
+        </Link>
+      </div>
+      <div className={styles.categoryRow}>
+        <div className={styles.fatigueBox}>
+          Fatigue: {fatigue > 0 ? `+${fatigue}` : fatigue}
+        </div>
+        <div
+          className={`${styles.categoryBadge} ${
+            styles[`category${categoryId}`] ?? ""
+          }`}
+        >
+          {categoryName}
+        </div>
+
+        <div className={styles.typeVectorBox}>
+          <div
+            className={styles.vector}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr",
+              justifyItems: "center",
+              alignContent: "center",
+              gap: "3px",
+              width: "100%",
+            }}
+            title={formatTypeVector(typeVector.dx, typeVector.dy)}
+          >
+            {typeVector.dx === 0 && typeVector.dy === 0 ? (
+              <span className={styles.zero}>•</span>
+            ) : (
+              <svg
+                viewBox="0 0 32 32"
+                width="27"
+                height="27"
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  transform: `rotate(${
+                    (Math.atan2(typeVector.dx, typeVector.dy) * 180) / Math.PI
+                  }deg)`,
+                }}
+              >
+                <path
+                  d="M16 28V5M7 14L16 5L25 14"
+                  fill="none"
+                  stroke="currentColor"
+                />
+              </svg>
+            )}
+
+            <span className={styles.label}>
+              {formatTypeVector(typeVector.dx, typeVector.dy)}
+            </span>
+          </div>
+        </div>
+      </div>
+      {hasMatchActions && matchAction && (
+        <div className={styles.matchActionRow}>
+          <span>Match Action Lable:</span>
+          <span style={matchAction.style} title={matchAction.title}>
+            {matchAction.label}
+          </span>
+        </div>
+      )}
+      <div className={styles.content}>
+        <section className={styles.hero} aria-label={data.name}>
           <div
             className={`${styles.heroMedia} ${
               hasPreview ? styles.withPreview : ""
@@ -222,11 +204,19 @@ export default function TrainingInfo({
           >
             <div className={styles.imageArea}>
               <div className={styles.imageFrame}>
-                {imageUrl && loadedImageUrl !== imageUrl && failedImageUrl !== imageUrl && (
-                  <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-                    <LoadingSmall />
-                  </div>
-                )}
+                {imageUrl &&
+                  loadedImageUrl !== imageUrl &&
+                  failedImageUrl !== imageUrl && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        pointerEvents: "none",
+                      }}
+                    >
+                      <LoadingSmall />
+                    </div>
+                  )}
                 {imageUrl && (
                   <Image
                     key={imageUrl}
@@ -236,30 +226,36 @@ export default function TrainingInfo({
                     height={400}
                     priority
                     className={styles.mainImage}
-                    style={{ opacity: loadedImageUrl === imageUrl || failedImageUrl === imageUrl ? 1 : 0 }}
+                    style={{
+                      opacity:
+                        loadedImageUrl === imageUrl ||
+                        failedImageUrl === imageUrl
+                          ? 1
+                          : 0,
+                    }}
                     onLoad={() => setLoadedImageUrl(imageUrl)}
                     onError={() => setFailedImageUrl(imageUrl)}
                   />
                 )}
               </div>
 
-              {gkOnly && (
-                <span className={styles.gkBadge}>
-                  GK only
-                </span>
-              )}
+              {gkOnly && <span className={styles.gkBadge}>GK only</span>}
 
               {hasMatchActions && !hasPreview && (
-                <span className={styles.matchBadge}>
-                  Has match actions
-                </span>
+                <span className={styles.matchBadge}>Has match actions</span>
               )}
             </div>
 
             {hasPreview && (
               <div className={styles.previewFrame}>
                 {loadedPreviewUrl !== comboPreviewUrl && (
-                  <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      pointerEvents: "none",
+                    }}
+                  >
                     <LoadingSmall />
                   </div>
                 )}
@@ -272,65 +268,51 @@ export default function TrainingInfo({
                   muted
                   playsInline
                   preload="metadata"
-                  style={{ opacity: loadedPreviewUrl === comboPreviewUrl ? 1 : 0 }}
-                  onLoadedData={() => setLoadedPreviewUrl(comboPreviewUrl ?? null)}
+                  style={{
+                    opacity: loadedPreviewUrl === comboPreviewUrl ? 1 : 0,
+                  }}
+                  onLoadedData={() =>
+                    setLoadedPreviewUrl(comboPreviewUrl ?? null)
+                  }
                   onCanPlay={() => setLoadedPreviewUrl(comboPreviewUrl ?? null)}
                   onError={() => {
                     console.warn(
                       "Combo preview could not be loaded:",
-                      comboPreviewUrl
+                      comboPreviewUrl,
                     );
 
-                    setFailedPreviewUrl(
-                      comboPreviewUrl ?? null
-                    );
+                    setFailedPreviewUrl(comboPreviewUrl ?? null);
                   }}
                   aria-label={`${data.name} preview`}
                 />
 
                 {hasMatchActions && (
-                  <span className={styles.matchBadge}>
-                    Has match actions
-                  </span>
+                  <span className={styles.matchBadge}>Has match actions</span>
                 )}
               </div>
             )}
           </div>
 
           {isCombo && recipeIds.length > 0 && (
-            <div
-              className={styles.recipe}
-              data-count={recipeIds.length}
-            >
+            <div className={styles.recipe} data-count={recipeIds.length}>
               {recipeIds.map((cardId, index) => {
                 const card = cardMap.get(cardId);
                 const cardImage = cardImageUrls[cardId];
 
                 return (
-                  <div
-                    className={styles.recipePart}
-                    key={`${cardId}-${index}`}
-                  >
+                  <div className={styles.recipePart} key={`${cardId}-${index}`}>
                     {index > 0 && (
-                      <span
-                        className={styles.plus}
-                        aria-hidden="true"
-                      >
+                      <span className={styles.plus} aria-hidden="true">
                         +
                       </span>
                     )}
 
                     <div className={styles.recipeCard}>
-                      <div
-                        className={styles.recipeImageFrame}
-                      >
+                      <div className={styles.recipeImageFrame}>
                         {cardImage && (
                           <Image
                             src={cardImage}
-                            alt={
-                              card?.name ??
-                              `Card #${cardId}`
-                            }
+                            alt={card?.name ?? `Card #${cardId}`}
                             width={250}
                             height={135}
                             className={styles.recipeImage}
@@ -339,8 +321,7 @@ export default function TrainingInfo({
                       </div>
 
                       <span className={styles.recipeName}>
-                        {card?.name ??
-                          `Card #${cardId}`}
+                        {card?.name ?? `Card #${cardId}`}
                       </span>
                     </div>
                   </div>
@@ -350,116 +331,131 @@ export default function TrainingInfo({
           )}
         </section>
 
-       <div className={styles.attributeScrollOuter}>
-  <HorizontalScrollArea label="Training effects">
-        <div className={styles.attributeTableBlock}>
-          <div className={styles.tableTipp}>
-            <p><strong>Shooting: </strong>(Accuracy + Power) / 2</p>
-            <p><strong>Technique: </strong>(Dribbling + Tackling + Ball Control) / 3</p>
-          </div>
-          <section
-            className={styles.attributeTable}
-            aria-label="Training effects"
-          >
-            {ATTRIBUTES.map((attribute, index) => {
-              const bonus = randomBonus && randomColumns[randomIndex] === index
-                ? index === 0
-                  ? Math.ceil(randomBonus / 2)
-                  : index === 3
-                    ? Math.ceil(randomBonus / 3)
-                    : randomBonus
-                : 0;
-              const value = values[attribute.key] + bonus;
-              const subSkills = getSubSkills(attribute.key);
-              const subSkillGrid = {
-                gridTemplateColumns: `repeat(${subSkills.length}, minmax(0, 1fr))`,
-              };
+        <div className={styles.attributeScrollOuter}>
+          <HorizontalScrollArea label="Training effects">
+            <div className={styles.attributeTableBlock}>
+              <div className={styles.tableTipp}>
+                <p>
+                  <strong>Shooting: </strong>(Accuracy + Power) / 2
+                </p>
+                <p>
+                  <strong>Technique: </strong>(Dribbling + Tackling + Ball
+                  Control) / 3
+                </p>
+              </div>
+              <section
+                className={styles.attributeTable}
+                aria-label="Training effects"
+              >
+                {ATTRIBUTES.map((attribute, index) => {
+                  const bonus =
+                    randomBonus && randomColumns[randomIndex] === index
+                      ? index === 0
+                        ? Math.ceil(randomBonus / 2)
+                        : index === 3
+                        ? Math.ceil(randomBonus / 3)
+                        : randomBonus
+                      : 0;
+                  const value = values[attribute.key] + bonus;
+                  const subSkills = getSubSkills(attribute.key);
+                  const subSkillGrid = {
+                    gridTemplateColumns: `repeat(${subSkills.length}, minmax(0, 1fr))`,
+                  };
 
-              return (
-                <div
-                  className={styles.attributeColumn}
-                  key={attribute.key}
-                >
-                  <div
-                    className={styles.attributeHeader}
-                    title={attribute.label}
-                  >
-                    <Image
-                      src={attributeIcon(attribute.label, index)}
-                      alt={attribute.label}
-                      width={100}
-                      height={100}
-                      unoptimized
-                      className={styles.attributeIcon}
-                    />
-                    {subSkills.length > 0 && (
-                      <div className={styles.subSkillIcons} style={subSkillGrid}>
-                        {subSkills.map((skill) => (
-                          <Image
-                            key={skill.key}
-                            src={skill.icon}
-                            alt={skill.label}
-                            title={skill.label}
-                            width={40}
-                            height={40}
-                            unoptimized
-                            className={styles.subSkillIcon}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div
-                    className={`${styles.attributeValue} ${
-                      value > 0
-                        ? styles.positive
-                        : value < 0
-                          ? styles.negative
-                          : styles.zero
-                    } ${subSkills.length ? styles.groupedStatCell : ""}`}
-                  >
-                    {subSkills.length ? (
-                      <>
-                        <span className={styles.mainStatValue}>
-                          {formatBonus(value)}
-                        </span>
-                        <div className={styles.subSkillValues} style={subSkillGrid}>
-                          {subSkills.map((skill) => {
-                            const skillBonus = randomBonus && Number(skill.key.slice(-2)) === randomIndex + 1
-                              ? randomBonus
-                              : 0;
-                            const skillValue = Number(data[skill.key] ?? 0) + skillBonus;
-                            const skillClass = skillValue > 0
-                              ? styles.positive
-                              : skillValue < 0
-                                ? styles.negative
-                                : styles.zero;
-                            const displayValue = formatBonus(skillValue);
-
-                            return (
-                              <span
+                  return (
+                    <div className={styles.attributeColumn} key={attribute.key}>
+                      <div
+                        className={styles.attributeHeader}
+                        title={attribute.label}
+                      >
+                        <Image
+                          src={attributeIcon(attribute.label, index)}
+                          alt={attribute.label}
+                          width={100}
+                          height={100}
+                          unoptimized
+                          className={styles.attributeIcon}
+                        />
+                        {subSkills.length > 0 && (
+                          <div
+                            className={styles.subSkillIcons}
+                            style={subSkillGrid}
+                          >
+                            {subSkills.map((skill) => (
+                              <Image
                                 key={skill.key}
-                                className={skillClass}
-                                title={`${skill.label}: ${displayValue}`}
-                                aria-label={`${skill.label}: ${displayValue}`}
-                              >
-                                {displayValue}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </>
-                    ) : (
-                      formatBonus(value)
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </section>
+                                src={skill.icon}
+                                alt={skill.label}
+                                title={skill.label}
+                                width={40}
+                                height={40}
+                                unoptimized
+                                className={styles.subSkillIcon}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div
+                        className={`${styles.attributeValue} ${
+                          value > 0
+                            ? styles.positive
+                            : value < 0
+                            ? styles.negative
+                            : styles.zero
+                        } ${subSkills.length ? styles.groupedStatCell : ""}`}
+                      >
+                        {subSkills.length ? (
+                          <>
+                            <span className={styles.mainStatValue}>
+                              {formatBonus(value)}
+                            </span>
+                            <div
+                              className={styles.subSkillValues}
+                              style={subSkillGrid}
+                            >
+                              {subSkills.map((skill) => {
+                                const skillBonus =
+                                  randomBonus &&
+                                  Number(skill.key.slice(-2)) ===
+                                    randomIndex + 1
+                                    ? randomBonus
+                                    : 0;
+                                const skillValue =
+                                  Number(data[skill.key] ?? 0) + skillBonus;
+                                const skillClass =
+                                  skillValue > 0
+                                    ? styles.positive
+                                    : skillValue < 0
+                                    ? styles.negative
+                                    : styles.zero;
+                                const displayValue = formatBonus(skillValue);
+
+                                return (
+                                  <span
+                                    key={skill.key}
+                                    className={skillClass}
+                                    title={`${skill.label}: ${displayValue}`}
+                                    aria-label={`${skill.label}: ${displayValue}`}
+                                  >
+                                    {displayValue}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </>
+                        ) : (
+                          formatBonus(value)
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </section>
+            </div>
+          </HorizontalScrollArea>
         </div>
-        </HorizontalScrollArea></div>
       </div>
     </article>
   );
