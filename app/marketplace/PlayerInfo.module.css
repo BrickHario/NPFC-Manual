@@ -1,7 +1,19 @@
+.pageLayout {
+  position: relative;
+  isolation: isolate;
+  display: flow-root;
+  width: 100%;
+  box-sizing: border-box;
+  padding-top: 54px;
+  overflow: visible;
+}
+
 .page {
+  position: relative;
+  z-index: 0;
   width: 100%;
   max-width: 1140px;
-  margin: 50px auto calc(var(--space-md) * 2);
+  margin: 0 auto calc(var(--space-md) * 2);
 }
 
 .backLink {
@@ -279,24 +291,6 @@
   text-shadow: 3px 3px 0 #989898;
 }
 
-.additionalGrades {
-  display: flex;
-  align-items: stretch;
-  gap: 12px;
-  width: 100%;
-  margin-top: 20px;
-  margin-left: 12px;
-}
-
-.additionalGrade {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  box-sizing: border-box;
-  width: 100%;
-  gap: 12px;
-}
-
 .additionalGradeLabel {
   font-size: 24px;
   font-weight: 800;
@@ -325,8 +319,9 @@
   min-width: 0;
   padding: 4px;
   background: transparent;
-  overflow: hidden;
-  height: 200px;
+  overflow-x: auto;
+  height: auto;
+  box-sizing: border-box;
 }
 
 .potentialPanel :global(canvas),
@@ -378,6 +373,25 @@
   margin-bottom: var(--space-sm);
 }
 
+.navigationActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-left: auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.languageDock {
+  position: absolute;
+  top: 8px;
+  right: 0;
+  z-index: 1000;
+  overflow: visible;
+}
+
 .navigationRow .backLink {
   margin-bottom: 0;
 }
@@ -393,10 +407,6 @@
 }
 
 @media (max-width: 1050px) {
-  .page {
-    margin-top: 30px;
-  }
-
   .topBar {
     flex-wrap: wrap;
     min-height: 64px;
@@ -562,17 +572,9 @@
   .potentialPanel :global(svg) {
     margin-inline: auto;
   }
-
-  .potentialPanel :global(svg text) {
-    font-size: 16px;
-  }
 }
 
 @media (max-width: 600px) {
-  .page {
-    margin-top: 16px;
-  }
-
   .panel {
     border-width: 3px;
     box-shadow: 5px 5px 0 black;
@@ -648,19 +650,6 @@
 
   .attributeLayout {
     gap: 8px;
-  }
-
-  .additionalGrades {
-    gap: 8px;
-    margin-top: 0;
-    flex-direction: column;
-  }
-
-  .additionalGrade {
-    min-width: 0;
-    gap: 6px;
-    padding: 5px 7px;
-    justify-content: center;
   }
 
   .additionalGradeLabel {
@@ -741,11 +730,6 @@
   .gradeText {
     font-size: 18px;
     -webkit-text-stroke: 1px var(--font_black);
-  }
-
-  .potentialPanel :global(svg > text),
-  .potentialPanel :global(svg text[text-anchor="middle"]) {
-    font-size: 21px;
   }
 }
 
@@ -943,17 +927,6 @@
   height: 8px;
 }
 
-.additionalGrades {
-  margin-left: 0;
-  flex-wrap: wrap;
-}
-
-.additionalGrade {
-  flex: 1 1 180px;
-  width: auto;
-  min-width: 0;
-}
-
 @media (max-width: 1050px) {
   .skillGroups {
     flex: none;
@@ -1031,11 +1004,6 @@
     border-width: 1px;
   }
 
-  .additionalGrades {
-    flex-direction: row;
-    justify-content: center;
-  }
-
   .additionalGrade {
     flex: 0 1 auto;
   }
@@ -1106,5 +1074,89 @@
   .individualLevelDot {
     width: 4px;
     height: 4px;
+  }
+}
+
+.additionalGrades {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  width: 100%;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.withMatchActions {
+  grid-template-columns: max-content minmax(0, 1fr);
+}
+
+.gradeColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-self: start;
+  width: max-content;
+  max-width: 100%;
+  gap: 4px;
+  min-width: 0;
+}
+
+.additionalGrade {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  gap: 12px;
+}
+
+.matchActionButtons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+  text-align: center;
+}
+
+.matchActionTitle {
+  flex: 0 0 100%;
+  font-size: 16px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.matchActionButton:hover {
+  filter: brightness(1.15);
+}
+
+.matchActionButton:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -3px;
+}
+
+@media (max-width: 830px) {
+  .withMatchActions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gradeColumn {
+    justify-self: center;
+    width: max-content;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .additionalGrades {
+    margin-top: 8px;
+    gap: 12px;
+  }
+
+  .additionalGrade {
+    gap: 6px;
+    padding: 5px 7px;
   }
 }

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import PlayerImages from "./PlayerImages";
 import PotentialChart from "./PotentialChart";
@@ -15,13 +16,18 @@ import {
   MARKET_LABELS,
   rankImages,
   GRADES,
+  getPlayerMatchActionButtons,
+  getPlayerMatchActionLabels,
+  type MatchActionLabel,
 } from "@/lib/utils";
 import styles from "./PlayerInfo.module.css";
 import AddPlayerTypeButton from "./AddPlayerTypeButton";
+import LanguageSwitcher from "../LanguageSwitcher";
 
 type PlayerInfoProps = {
   id: number;
   backHref: string;
+  matchActionLookup?: ReadonlyMap<number, MatchActionLabel>;
 };
 
 const INDIVIDUAL_SKILL_ROWS = [
@@ -39,6 +45,14 @@ const INDIVIDUAL_SKILL_ROWS = [
     { key: "skill_07", name: "Dribbling", icon: "/dribbling.png" },
   ],
 ] as const;
+
+const MATCH_ACTION_NAME_COLUMNS = {
+  en: "english_name",
+  de: "german_name",
+  es: "spanish_name",
+  it: "italian_name",
+  fr: "french_name",
+} as const;
 
 const LEVEL_THRESHOLDS = [0, 50, 150, 350, 600, 1000] as const;
 
@@ -84,7 +98,11 @@ function getGrade(value: number | null | undefined): string | null {
   return GRADES[value] ?? null;
 }
 
-export default async function PlayerInfo({ id, backHref }: PlayerInfoProps) {
+export default async function PlayerInfo({
+  id,
+  backHref,
+  matchActionLookup = new Map<number, MatchActionLabel>(),
+}: PlayerInfoProps) {
   const supabase = await createClient();
 
   const { data: player, error } = await supabase
@@ -138,6 +156,50 @@ export default async function PlayerInfo({ id, backHref }: PlayerInfoProps) {
     { label: "Action Learning", value: player.action_learning },
   ];
 
+  const matchActionComboIds = getPlayerMatchActionLabels(
+    player.match_actions,
+    matchActionLookup,
+  ).map((action) => action.comboId);
+
+  const matchActionNames = new Map<number, string>();
+
+  if (matchActionComboIds.length > 0) {
+    const cookieStore = await cookies();
+    const language = cookieStore.get("npfc-language")?.value;
+    const nameColumn =
+      language === "de" ||
+      language === "es" ||
+      language === "it" ||
+      language === "fr"
+        ? MATCH_ACTION_NAME_COLUMNS[language]
+        : MATCH_ACTION_NAME_COLUMNS.en;
+
+    const { data: comboNames, error: comboNamesError } = await supabase
+      .from("ComboNames")
+      .select(
+        "combo_id, english_name, german_name, spanish_name, italian_name, french_name",
+      )
+      .in("combo_id", matchActionComboIds);
+
+    if (comboNamesError) {
+      console.error(
+        "Could not load match action names:",
+        comboNamesError.message,
+      );
+    }
+
+    for (const row of comboNames ?? []) {
+      const name = row[nameColumn]?.trim() || row.english_name?.trim();
+      if (name) matchActionNames.set(row.combo_id, name);
+    }
+  }
+
+  const matchActionButtons = getPlayerMatchActionButtons(
+    player.match_actions,
+    matchActionLookup,
+    matchActionNames,
+  );
+
   const teamId = player.team_id;
 
   const imageUrl = `/player-images/${String(player.id_player).padStart(
@@ -146,327 +208,376 @@ export default async function PlayerInfo({ id, backHref }: PlayerInfoProps) {
   )}.png`;
 
   return (
-    <div className={styles.page}>
-      <div className={styles.navigationRow}>
-        <Link href={backHref} className={styles.backLink}>
-          ◀ Back
-        </Link>
-
-        {skills && <AddPlayerTypeButton playerId={player.id_player} />}
+    <div className={styles.pageLayout}>
+      <div className={styles.languageDock}>
+        <LanguageSwitcher />
       </div>
+      <div className={styles.page}>
+        <div className={styles.navigationRow}>
+          <Link href={backHref} className={styles.backLink}>
+            ◀ Back
+          </Link>
 
-      <article className={styles.panel}>
-        <header
-          className={styles.topBar}
-          style={{
-            backgroundColor:
-              (
-                {
-                  GK: "#9955dd",
-                  DF: "#dd555c",
-                  MF: "#be9c10",
-                  FW: "#5581dd",
-                } as Record<string, string>
-              )[position] ?? "var(--color-physical)",
-          }}
-        >
-          <div className={styles.position} title="Position">
-            {position}
-          </div>
-          {teamId != null && (
-            <Image
-              src={`/team-images/${String(teamId).padStart(4, "0")}.png`}
-              alt={"Core Team"}
-              title={"Core Team"}
-              width={70}
-              height={70}
-              unoptimized
-              className={styles.teamLogo}
-            />
-          )}
-          <div>
-            {weeklyRecovery !== null && (
-              <span title="Weekly fatigue recovery" className={styles.recovery}>
-                Recovery -{weeklyRecovery}/w
-              </span>
-            )}
-          </div>
-
-          <div
-            className={styles.priceWrap}
-            title={`Price: ${formatPrice(player.price)}`}
-          >
-            <span className={styles.price}>{formatPrice(player.price)}</span>
-            <Image
-              src="/coins-icon.png"
-              alt=""
-              width={43}
-              height={54}
-              unoptimized
-              className={styles.coins}
-            />
-          </div>
-        </header>
-
-        <div className={styles.content}>
-          <div className={styles.portraitPanel}>
-            {skills ? (
-              <div className={styles.cardStage}>
-                <div
-                  className={styles.scaledCard}
-                  style={{ filter: "drop-shadow(0 0 5px rgba(0, 0, 0, 0.5))" }}
-                >
-                  <PlayerImages
-                    key={player.id_player}
-                    playerId={player.id_player}
-                    teamId={teamId}
-                    imageUrl={imageUrl}
-                    name={player.name}
-                    topText={getOverall(skills)}
-                    bottomText={player.name}
-                    position={position}
-                    isAlien={!player.price}
-                  />
-                </div>
-              </div>
-            ) : (
-              <p className={styles.empty}>No player rating available</p>
-            )}
-          </div>
-
-          <div className={styles.rightColumn}>
-            <section
-              className={styles.attributes}
-              aria-label="Player attributes"
-            >
-              <div className={styles.attributeLayout}>
-                {attributes.length > 0 ? (
-                  <div className={styles.skillGroups}>
-                    <div className={styles.attributeGrid}>
-                      {attributes.map((attribute, index) => {
-                        const grade = String(attribute.grade ?? "—")
-                          .trim()
-                          .toUpperCase();
-                        const rankImage = rankImages[grade];
-                        const icon = getAttributeImage(
-                          String(attribute.name),
-                          index,
-                        );
-                        const progress = getLevelProgress(
-                          attribute.value,
-                          attribute.level,
-                        );
-                        const maxLevel =
-                          attribute.level === LEVEL_THRESHOLDS.length - 1;
-                        const progressLabel = maxLevel
-                          ? `${attribute.name}: Max grade (S)`
-                          : `${attribute.name}: ${Math.round(
-                              progress,
-                            )}% to next grade`;
-
-                        return (
-                          <div
-                            className={styles.attributeItem}
-                            key={`${attribute.name}-${index}`}
-                            title={`${attribute.name}: ${grade}`}
-                          >
-                            <Image
-                              src={icon}
-                              alt={String(attribute.name)}
-                              width={74}
-                              height={75}
-                              unoptimized
-                              className={styles.attributeIcon}
-                            />
-
-                            <div className={styles.gradeSlot}>
-                              <div className={styles.gradeValue}>
-                                {rankImage ? (
-                                  <Image
-                                    src={rankImage}
-                                    alt={`Rating ${grade}`}
-                                    width={74}
-                                    height={72}
-                                    unoptimized
-                                    className={styles.gradeImage}
-                                  />
-                                ) : (
-                                  <span className={styles.gradeText}>
-                                    {grade}
-                                  </span>
-                                )}
-                              </div>
-
-                              <div
-                                className={styles.levelTrack}
-                                role="progressbar"
-                                aria-label={progressLabel}
-                                aria-valuemin={0}
-                                aria-valuemax={100}
-                                aria-valuenow={Math.round(progress)}
-                                title={progressLabel}
-                              >
-                                <span
-                                  className={styles.levelDot}
-                                  style={{ bottom: `${progress}%` }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {skills && (
-                      <div
-                        className={styles.individualSkills}
-                        aria-label="Individual skills"
-                      >
-                        {INDIVIDUAL_SKILL_ROWS.map((row, index) => (
-                          <div
-                            className={styles.individualSkillRow}
-                            key={index}
-                          >
-                            {row.map(({ key, name, icon }) => {
-                              const level = skills[key];
-                              const grade = getGrade(level);
-                              const image = grade ? rankImages[grade] : null;
-
-                              const progress = level === 5 ? 100 : 0;
-
-                              const progressLabel =
-                                level === 5
-                                  ? `${name}: Max grade (S)`
-                                  : `${name}: Exact XP progress unavailable`;
-
-                              return (
-                                <div
-                                  className={styles.individualSkill}
-                                  key={key}
-                                  title={`${name}: ${grade ?? "Unavailable"}`}
-                                >
-                                  <Image
-                                    src={icon}
-                                    alt={name}
-                                    width={32}
-                                    height={32}
-                                    unoptimized
-                                    className={styles.individualSkillIcon}
-                                  />
-
-                                  <div className={styles.individualGradeSlot}>
-                                    {image ? (
-                                      <Image
-                                        src={image}
-                                        alt={`${name}: ${grade}`}
-                                        width={28}
-                                        height={28}
-                                        unoptimized
-                                        className={styles.individualSkillGrade}
-                                      />
-                                    ) : (
-                                      <span
-                                        className={
-                                          styles.individualSkillMissing
-                                        }
-                                      >
-                                        —
-                                      </span>
-                                    )}
-
-                                    {grade && (
-                                      <div
-                                        className={styles.individualLevelTrack}
-                                        title={progressLabel}
-                                        aria-label={progressLabel}
-                                      >
-                                        <span
-                                          className={styles.individualLevelDot}
-                                          style={{ bottom: `${progress}%` }}
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className={styles.empty}>No attributes available</p>
-                )}
-
-                <div className={styles.attributeBadges}>
-                  <div className={styles.footWrap} title="Preferred foot">
-                    <span
-                      className={`${styles.footBadge} ${
-                        foot === "L" ? styles.leftFoot : styles.rightFoot
-                      }`}
-                    >
-                      {foot}
-                    </span>
-                  </div>
-
-                  <div className={styles.marketWrap}>
-                    <span
-                      className={styles.marketBadge}
-                      title={`Market: ${market}`}
-                      style={{ backgroundColor: getMarketColor(market) }}
-                    >
-                      {getMarketLabel(market)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.additionalGrades}>
-                {additionalGrades.map(({ label, value }) => {
-                  const grade = getGrade(value);
-                  const image = grade ? rankImages[grade] : null;
-
-                  return (
-                    <div
-                      className={styles.additionalGrade}
-                      key={label}
-                      title={`${label}: ${grade ?? "Unavailable"}`}
-                    >
-                      <span className={styles.additionalGradeLabel}>
-                        {label}:
-                      </span>
-                      {image ? (
-                        <Image
-                          src={image}
-                          alt={`${label}: ${grade}`}
-                          width={42}
-                          height={42}
-                          unoptimized
-                          className={styles.additionalGradeImage}
-                        />
-                      ) : (
-                        <span className={styles.additionalGradeMissing}>—</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-
-            <section
-              className={styles.potentialPanel}
-              aria-label="Potential curve"
-            >
-              {potential ? (
-                <PotentialChart potential={potential} />
-              ) : (
-                <p className={styles.empty}>No potential available</p>
-              )}
-            </section>
+          <div className={styles.navigationActions}>
+            {skills && <AddPlayerTypeButton playerId={player.id_player} />}
           </div>
         </div>
-      </article>
+
+        <article className={styles.panel}>
+          <header
+            className={styles.topBar}
+            style={{
+              backgroundColor:
+                (
+                  {
+                    GK: "#9955dd",
+                    DF: "#dd555c",
+                    MF: "#be9c10",
+                    FW: "#5581dd",
+                  } as Record<string, string>
+                )[position] ?? "var(--color-physical)",
+            }}
+          >
+            <div className={styles.position} title="Position">
+              {position}
+            </div>
+            {teamId != null && (
+              <Image
+                src={`/team-images/${String(teamId).padStart(4, "0")}.png`}
+                alt={"Core Team"}
+                title={"Core Team"}
+                width={70}
+                height={70}
+                unoptimized
+                className={styles.teamLogo}
+              />
+            )}
+            <div>
+              {weeklyRecovery !== null && (
+                <span
+                  title="Weekly fatigue recovery"
+                  className={styles.recovery}
+                >
+                  Recovery -{weeklyRecovery}/w
+                </span>
+              )}
+            </div>
+
+            <div
+              className={styles.priceWrap}
+              title={`Price: ${formatPrice(player.price)}`}
+            >
+              <span className={styles.price}>{formatPrice(player.price)}</span>
+              <Image
+                src="/coins-icon.png"
+                alt=""
+                width={43}
+                height={54}
+                unoptimized
+                className={styles.coins}
+              />
+            </div>
+          </header>
+
+          <div className={styles.content}>
+            <div className={styles.portraitPanel}>
+              {skills ? (
+                <div className={styles.cardStage}>
+                  <div
+                    className={styles.scaledCard}
+                    style={{
+                      filter: "drop-shadow(0 0 5px rgba(0, 0, 0, 0.5))",
+                    }}
+                  >
+                    <PlayerImages
+                      key={player.id_player}
+                      playerId={player.id_player}
+                      teamId={teamId}
+                      imageUrl={imageUrl}
+                      name={player.name}
+                      topText={getOverall(skills)}
+                      bottomText={player.name}
+                      position={position}
+                      isAlien={!player.price}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <p className={styles.empty}>No player rating available</p>
+              )}
+            </div>
+
+            <div className={styles.rightColumn}>
+              <section
+                className={styles.attributes}
+                aria-label="Player attributes"
+              >
+                <div className={styles.attributeLayout}>
+                  {attributes.length > 0 ? (
+                    <div className={styles.skillGroups}>
+                      <div className={styles.attributeGrid}>
+                        {attributes.map((attribute, index) => {
+                          const grade = String(attribute.grade ?? "—")
+                            .trim()
+                            .toUpperCase();
+                          const rankImage = rankImages[grade];
+                          const icon = getAttributeImage(
+                            String(attribute.name),
+                            index,
+                          );
+                          const progress = getLevelProgress(
+                            attribute.value,
+                            attribute.level,
+                          );
+                          const maxLevel =
+                            attribute.level === LEVEL_THRESHOLDS.length - 1;
+                          const progressLabel = maxLevel
+                            ? `${attribute.name}: Max grade (S)`
+                            : `${attribute.name}: ${Math.round(
+                                progress,
+                              )}% to next grade`;
+
+                          return (
+                            <div
+                              className={styles.attributeItem}
+                              key={`${attribute.name}-${index}`}
+                              title={`${attribute.name}: ${grade}`}
+                            >
+                              <Image
+                                src={icon}
+                                alt={String(attribute.name)}
+                                width={74}
+                                height={75}
+                                unoptimized
+                                className={styles.attributeIcon}
+                              />
+
+                              <div className={styles.gradeSlot}>
+                                <div className={styles.gradeValue}>
+                                  {rankImage ? (
+                                    <Image
+                                      src={rankImage}
+                                      alt={`Rating ${grade}`}
+                                      width={74}
+                                      height={72}
+                                      unoptimized
+                                      className={styles.gradeImage}
+                                    />
+                                  ) : (
+                                    <span className={styles.gradeText}>
+                                      {grade}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div
+                                  className={styles.levelTrack}
+                                  role="progressbar"
+                                  aria-label={progressLabel}
+                                  aria-valuemin={0}
+                                  aria-valuemax={100}
+                                  aria-valuenow={Math.round(progress)}
+                                  title={progressLabel}
+                                >
+                                  <span
+                                    className={styles.levelDot}
+                                    style={{ bottom: `${progress}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {skills && (
+                        <div
+                          className={styles.individualSkills}
+                          aria-label="Individual skills"
+                        >
+                          {INDIVIDUAL_SKILL_ROWS.map((row, index) => (
+                            <div
+                              className={styles.individualSkillRow}
+                              key={index}
+                            >
+                              {row.map(({ key, name, icon }) => {
+                                const level = skills[key];
+                                const grade = getGrade(level);
+                                const image = grade ? rankImages[grade] : null;
+
+                                const progress = level === 5 ? 100 : 0;
+
+                                const progressLabel =
+                                  level === 5
+                                    ? `${name}: Max grade (S)`
+                                    : `${name}: Exact XP progress unavailable`;
+
+                                return (
+                                  <div
+                                    className={styles.individualSkill}
+                                    key={key}
+                                    title={`${name}: ${grade ?? "Unavailable"}`}
+                                  >
+                                    <Image
+                                      src={icon}
+                                      alt={name}
+                                      width={32}
+                                      height={32}
+                                      unoptimized
+                                      className={styles.individualSkillIcon}
+                                    />
+
+                                    <div className={styles.individualGradeSlot}>
+                                      {image ? (
+                                        <Image
+                                          src={image}
+                                          alt={`${name}: ${grade}`}
+                                          width={28}
+                                          height={28}
+                                          unoptimized
+                                          className={
+                                            styles.individualSkillGrade
+                                          }
+                                        />
+                                      ) : (
+                                        <span
+                                          className={
+                                            styles.individualSkillMissing
+                                          }
+                                        >
+                                          —
+                                        </span>
+                                      )}
+
+                                      {grade && (
+                                        <div
+                                          className={
+                                            styles.individualLevelTrack
+                                          }
+                                          title={progressLabel}
+                                          aria-label={progressLabel}
+                                        >
+                                          <span
+                                            className={
+                                              styles.individualLevelDot
+                                            }
+                                            style={{ bottom: `${progress}%` }}
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className={styles.empty}>No attributes available</p>
+                  )}
+
+                  <div className={styles.attributeBadges}>
+                    <div className={styles.footWrap} title="Preferred foot">
+                      <span
+                        className={`${styles.footBadge} ${
+                          foot === "L" ? styles.leftFoot : styles.rightFoot
+                        }`}
+                      >
+                        {foot}
+                      </span>
+                    </div>
+
+                    <div className={styles.marketWrap}>
+                      <span
+                        className={styles.marketBadge}
+                        title={`Market: ${market}`}
+                        style={{ backgroundColor: getMarketColor(market) }}
+                      >
+                        {getMarketLabel(market)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className={`${styles.additionalGrades}${
+                    matchActionButtons.length
+                      ? ` ${styles.withMatchActions}`
+                      : ""
+                  }`}
+                >
+                  <div className={styles.gradeColumn}>
+                    {additionalGrades.map(({ label, value }) => {
+                      const grade = getGrade(value);
+                      const image = grade ? rankImages[grade] : null;
+
+                      return (
+                        <div
+                          className={styles.additionalGrade}
+                          key={label}
+                          title={`${label}: ${grade ?? "Unavailable"}`}
+                        >
+                          <span className={styles.additionalGradeLabel}>
+                            {label}:
+                          </span>
+                          {image ? (
+                            <Image
+                              src={image}
+                              alt={`${label}: ${grade}`}
+                              width={42}
+                              height={42}
+                              unoptimized
+                              className={styles.additionalGradeImage}
+                            />
+                          ) : (
+                            <span className={styles.additionalGradeMissing}>
+                              —
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {matchActionButtons.length > 0 && (
+                    <div
+                      className={styles.matchActionButtons}
+                      aria-label="Enemy Match Actions"
+                    >
+                      <span className={styles.matchActionTitle}>
+                        Enemy Match Actions
+                      </span>
+                      {matchActionButtons.map((action) => (
+                        <Link
+                          key={action.id}
+                          href={action.href}
+                          title={action.text}
+                          className={styles.matchActionButton}
+                          style={action.style}
+                        >
+                          {action.text}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section
+                className={styles.potentialPanel}
+                aria-label="Potential curve"
+              >
+                {potential ? (
+                  <PotentialChart potential={potential} />
+                ) : (
+                  <p className={styles.empty}>No potential available</p>
+                )}
+              </section>
+            </div>
+          </div>
+        </article>
+      </div>
     </div>
   );
 }
