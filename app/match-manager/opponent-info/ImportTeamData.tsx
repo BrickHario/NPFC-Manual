@@ -58,6 +58,7 @@ export type TeamPlayerTypeProfile = {
 
 type TeamImportContextValue = {
   team: ImportedTeam | null;
+  storedTeam: ImportedTeam | null;
   loaded: boolean;
   ownHome: boolean;
   toggleHome: () => void;
@@ -85,9 +86,16 @@ export function TeamImportProvider({
   children: ReactNode;
   teamId: number;
 }) {
-  const [team, setTeamState] = useState<ImportedTeam | null>(null);
+  const [storedTeam, setTeamState] = useState<ImportedTeam | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [ownHome, setOwnHome] = useState(false);
+  const roster = storedTeam?.opponents[teamId];
+  const team =
+    Array.isArray(roster) &&
+    roster.length > 0 &&
+    storedTeam?.opponentLineups[teamId]
+      ? storedTeam
+      : null;
   const opponentMetadata = useOpponentMetadata(team, teamId);
 
   useEffect(() => {
@@ -125,6 +133,7 @@ export function TeamImportProvider({
     <TeamImportContext.Provider
       value={{
         team,
+        storedTeam,
         loaded,
         ownHome: !!team && ownHome,
         toggleHome: () => setOwnHome((previous) => !previous),
@@ -145,7 +154,7 @@ export function ImportTeamHeader({
   title: string;
   abbr: string;
 }) {
-  const { team, loaded, setTeam, removeTeam } = useTeamImport();
+  const { storedTeam: team, loaded, setTeam, removeTeam } = useTeamImport();
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -267,6 +276,7 @@ export function ImportedTeamMatchup({
 }) {
   const { team, loaded, ownHome, toggleHome, opponentMetadata } =
     useTeamImport();
+  const [switchRotation, setSwitchRotation] = useState(0);
 
   if (!loaded || !team) return null;
 
@@ -299,11 +309,21 @@ export function ImportedTeamMatchup({
         <button
           type="button"
           className={forecastStyles.switchButton}
-          onClick={toggleHome}
+          onClick={() => {
+            toggleHome();
+            setSwitchRotation((rotation) => rotation + 180);
+          }}
           title={`Switch home team to ${away}`}
           aria-label={`Switch home team to ${away}`}
         >
-          <Image src="/switch.png" alt="" width={42} height={42} unoptimized />
+          <Image
+            src="/switch.png"
+            alt=""
+            width={42}
+            height={42}
+            unoptimized
+            style={{ transform: `rotate(${switchRotation}deg)` }}
+          />
         </button>
       </div>
       <div

@@ -47,7 +47,6 @@
 }
 
 .importButton:disabled {
-  opacity: 0.65;
   cursor: wait;
 }
 

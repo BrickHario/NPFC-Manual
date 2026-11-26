@@ -22,6 +22,12 @@
   height: auto;
   object-fit: contain;
   image-rendering: pixelated;
+  flex-shrink: 0;
+  transform-origin: center;
+  transition: transform 0.3s ease, scale 0.18s ease, filter 0.18s ease;
+}
+
+.heading .switchButton img {
   margin-bottom: 10px;
 }
 
@@ -80,4 +86,70 @@
   text-align: center;
   font-size: 11px;
   opacity: 0.8;
+}
+
+@media (hover: hover) {
+  .switchButton:not(:disabled):hover img {
+    scale: 1.07;
+  }
+}
+
+.switchButton:not(:disabled):active img {
+  scale: 0.95;
+}
+
+.switchButton:disabled {
+  cursor: not-allowed;
+}
+
+.switchButton:disabled img {
+  filter: grayscale(100%);
+}
+
+.teamSwitchButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font: inherit;
+}
+
+.teamSwitchLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  gap: 5px;
+  box-sizing: border-box;
+  width: auto;
+  padding: 8px 6px;
+  border: 2px solid var(--font_black);
+  border-radius: 12px;
+  background: var(--color-tactical);
+  color: var(--font_white);
+  font-size: clamp(10px, 3.5cqw, 16px);
+  font-weight: 750;
+  white-space: nowrap;
+  min-width: 90px;
+}
+
+.teamSwitchLabel img {
+  width: clamp(16px, 5cqw, 24px);
+  height: auto;
+  flex-shrink: 0;
+}
+
+.teamSwitchButton:disabled .teamSwitchLabel {
+  background: var(--button_bg);
+  color: #000;
+}
+
+.teamSwitchButton img {
+  width: clamp(20px, 5.5cqw, 30px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switchButton img {
+    transition: none;
+  }
 }

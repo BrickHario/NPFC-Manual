@@ -23,6 +23,7 @@ import {
 } from "@/lib/utils";
 import styles from "./match-manager-info.module.css";
 import labels from "./FormationPlayers.module.css";
+import forecastStyles from "./MatchForecast.module.css";
 
 export type FormationPlayer = {
   slotId: number;
@@ -276,6 +277,7 @@ export default function TeamFormation({
   const [selectedTeam, setSelectedTeam] = useState<"opponent" | "own">(
     "opponent",
   );
+  const [switchRotation, setSwitchRotation] = useState(0);
   const hasImportedTeam = ownPlayers !== undefined;
   const chartMode = hasImportedTeam ? requestedChartMode : "formation";
   const showOwnTeam =
@@ -377,9 +379,9 @@ export default function TeamFormation({
           <div
             className={chartStyles.chartSwitch}
             style={{
-              flex: "1 1 450px",
-              minWidth: 0,
-              maxWidth: 450,
+              flex: "1 1 500px",
+              minWidth: 500,
+              maxWidth: 500,
               width: "auto",
               margin: 0,
               boxSizing: "border-box",
@@ -395,6 +397,8 @@ export default function TeamFormation({
               style={switchButtonStyle}
               aria-pressed={chartMode === "formation"}
               onClick={() => {
+                if (showOwnTeam)
+                  setSwitchRotation((rotation) => rotation + 180);
                 setSelectedTeam("opponent");
                 setSelectedPlayerKey(null);
                 setChartMode("formation");
@@ -439,22 +443,7 @@ export default function TeamFormation({
           {hasImportedTeam && (
             <button
               type="button"
-              className={`${chartStyles.chartSwitchButton} ${chartStyles.chartSwitchActive}`}
-              style={{
-                flex: "0 0 52px",
-                minWidth: 0,
-                fontSize: "clamp(10px, 3.5cqw, 16px)",
-                overflowWrap: "anywhere",
-                padding: "8px 2px",
-                border: "2px solid var(--font_black)",
-                borderRadius: 12,
-                background:
-                  chartMode === "formation"
-                    ? "var(--button_grey)"
-                    : "var(--color-highlight)",
-                color: "var(--font_white)",
-                cursor: chartMode === "formation" ? "not-allowed" : "pointer",
-              }}
+              className={`${forecastStyles.switchButton} ${forecastStyles.teamSwitchButton}`}
               disabled={chartMode === "formation"}
               title={
                 chartMode === "formation"
@@ -473,9 +462,20 @@ export default function TeamFormation({
               onClick={() => {
                 setSelectedTeam(showOwnTeam ? "opponent" : "own");
                 setSelectedPlayerKey(null);
+                setSwitchRotation((rotation) => rotation + 180);
               }}
             >
-              {showOwnTeam ? ownAbbr ?? "—" : opponentAbbr}
+              <span className={forecastStyles.teamSwitchLabel}>
+                {showOwnTeam ? ownAbbr ?? "—" : opponentAbbr}
+                <Image
+                  src="/switch.png"
+                  alt=""
+                  width={42}
+                  height={42}
+                  unoptimized
+                  style={{ transform: `rotate(${switchRotation}deg)` }}
+                />
+              </span>
             </button>
           )}
         </div>
