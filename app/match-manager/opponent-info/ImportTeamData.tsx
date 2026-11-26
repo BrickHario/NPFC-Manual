@@ -2,6 +2,13 @@
 
 import Image from "next/image";
 import matchStyles from "./match-manager-info.module.css";
+import forecastStyles from "./MatchForecast.module.css";
+import {
+  getResultsForecast,
+  getTeamForecastStrength,
+  xpToForecastGrade,
+  type MatchPlayer,
+} from "./match-forecast";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode, ChangeEvent } from "react";
 import {
@@ -249,55 +256,90 @@ export function ImportTeamHeader({
   );
 }
 
-export function ImportedTeamMatchup({ abbr }: { abbr?: string }) {
-  const { team, loaded, ownHome, toggleHome } = useTeamImport();
+export function ImportedTeamMatchup({
+  abbr,
+  teamId,
+  playerPreference,
+}: {
+  abbr?: string;
+  teamId?: number;
+  playerPreference?: number;
+}) {
+  const { team, loaded, ownHome, toggleHome, opponentMetadata } =
+    useTeamImport();
 
   if (!loaded || !team) return null;
 
   const opponentAbbr = abbr ?? "—";
   const home = ownHome ? team.abbreviation : opponentAbbr;
   const away = ownHome ? opponentAbbr : team.abbreviation;
+  const result: ImportedForecastResult =
+    teamId === undefined || playerPreference === undefined
+      ? { forecast: null, message: "Match forecast data unavailable." }
+      : getImportedMatchForecast(
+          team,
+          teamId,
+          opponentMetadata,
+          playerPreference,
+          ownHome,
+        );
+  const forecast = result.forecast;
 
   return (
-    <div
-      className={styles.matchup}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 10,
-      }}
-    >
-      <h2
-        className={styles.matchupTitle}
-        title={`${home} (Home) - ${away} (Away)`}
+    <div className={styles.matchup}>
+      <div className={forecastStyles.heading}>
+        <h2
+          className={styles.matchupTitle}
+          title={`${home} (Home) - ${away} (Away)${
+            result.details ? `\n${result.details}` : ""
+          }`}
+        >
+          {home} - {away}
+        </h2>
+        <button
+          type="button"
+          className={forecastStyles.switchButton}
+          onClick={toggleHome}
+          title={`Switch home team to ${away}`}
+          aria-label={`Switch home team to ${away}`}
+        >
+          <Image src="/switch.png" alt="" width={42} height={42} unoptimized />
+        </button>
+      </div>
+      <div
+        className={forecastStyles.panel}
+        aria-label="Match forecast"
+        aria-live="polite"
       >
-        {home} - {away}
-      </h2>
-      <button
-        type="button"
-        onClick={toggleHome}
-        title={`Switch home team to ${away}`}
-        aria-label={`Switch home team to ${away}`}
-        style={{
-          display: "grid",
-          placeItems: "center",
-          width: 32,
-          height: 28,
-          padding: 0,
-          border: "2px solid var(--font_black)",
-          borderRadius: 8,
-          background: "var(--color-surface)",
-          color: "var(--font_black)",
-          fontSize: 22,
-          fontWeight: 800,
-          lineHeight: 1,
-          cursor: "pointer",
-          flexShrink: 0,
-        }}
-      >
-        ⇄
-      </button>
+        {[
+          { label: "Win", team: home, value: forecast?.team0Win },
+          { label: "Draw", team: "Draw", value: forecast?.draw },
+          { label: "Win", team: away, value: forecast?.team1Win },
+        ].map((entry, index) => (
+          <div
+            className={forecastStyles.column}
+            key={index}
+            title={`${entry.team}: ${
+              entry.value === undefined ? "Unavailable" : `${entry.value}%`
+            }`}
+          >
+            <div className={forecastStyles.label}>{entry.label}</div>
+            <div
+              className={forecastStyles.value}
+              aria-label={`${entry.team}: ${
+                entry.value === undefined
+                  ? "Unavailable"
+                  : `${entry.value} percent`
+              }`}
+            >
+              {entry.value ?? "—"}
+            </div>
+          </div>
+        ))}
+      </div>
+      {result.message && (
+        <p className={forecastStyles.message}>{result.message}</p>
+      )}
     </div>
   );
 }
@@ -503,6 +545,178 @@ function useOpponentMetadata(team: ImportedTeam | null, teamId: number) {
   return metadata?.key === key ? metadata : null;
 }
 
+function getOpponentPrediction(
+  team: ImportedTeam | null,
+  teamId: number,
+  opponentMetadata: OpponentMetadata | null,
+  playerPreference: number,
+) {
+  const lineup = team?.opponentLineups[teamId];
+  const opponentRoster = team?.opponents[teamId] ?? [];
+  const positionsById = new Map(
+    opponentMetadata?.players.map((player) => [
+      player.id_player,
+      player.id_position,
+    ]) ?? [],
+  );
+  const hasPositions = opponentRoster.every((player) => {
+    if (isUnavailable(player.availability)) return true;
+    const position = positionsById.get(player.id);
+    return (
+      position !== undefined &&
+      Number.isInteger(position) &&
+      position >= 0 &&
+      position <= 3
+    );
+  });
+  return lineup && opponentMetadata && !opponentMetadata.error && hasPositions
+    ? predictOpponentLineup(
+        opponentRoster,
+        lineup,
+        positionsById,
+        playerPreference,
+      )
+    : null;
+}
+
+type ImportedForecastResult = {
+  forecast: ReturnType<typeof getResultsForecast>;
+  message: string;
+  details?: string;
+};
+
+function getImportedMatchForecast(
+  team: ImportedTeam,
+  teamId: number,
+  opponentMetadata: OpponentMetadata | null,
+  playerPreference: number,
+  ownHome: boolean,
+): ImportedForecastResult {
+  const unavailable = (message: string): ImportedForecastResult => ({
+    forecast: null,
+    message,
+  });
+  if (!opponentMetadata) return unavailable("Loading opponent players…");
+  if (opponentMetadata.error)
+    return unavailable("Opponent player data unavailable.");
+  const ownRankBase = team.ownRankBase;
+  const opponentRankBase = team.opponentRankBases?.[teamId];
+  if (ownRankBase == null || opponentRankBase == null)
+    return unavailable("League ranking unavailable. Import the latest save.");
+  const prediction = getOpponentPrediction(
+    team,
+    teamId,
+    opponentMetadata,
+    playerPreference,
+  );
+  if (!prediction) return unavailable("Opponent lineup unavailable.");
+  const opponentById = new Map(
+    (team.opponents[teamId] ?? []).map((player) => [player.id, player]),
+  );
+  const opponentSlots: (MatchPlayer | null)[] = Array.from(
+    { length: 18 },
+    () => null,
+  );
+  for (const entry of [...prediction.starters, ...prediction.bench]) {
+    const player = opponentById.get(entry.playerId);
+    if (
+      player &&
+      !isUnavailable(player.availability) &&
+      entry.lineupSlot >= 0 &&
+      entry.lineupSlot < 18
+    ) {
+      opponentSlots[entry.lineupSlot] = { skills: player.skills };
+    }
+  }
+  const ownSlots: (MatchPlayer | null)[] = Array.from(
+    { length: 18 },
+    () => null,
+  );
+  const comparisonSlots: (MatchPlayer | null)[] = Array.from(
+    { length: 18 },
+    () => null,
+  );
+  const excludedBench: string[] = [];
+  for (const player of team.players) {
+    const rank = player.lineupRank;
+    if (rank == null || !Number.isInteger(rank) || rank < 0 || rank >= 18)
+      continue;
+    if (isUnavailable(player.availability) && rank < 11) continue;
+    if (
+      player.skillPoints.length !== 10 ||
+      player.skillPoints.some((xp) => !Number.isFinite(xp) || xp < 0)
+    )
+      return unavailable("Invalid saved skill data.");
+    const matchPlayer = { skills: player.skillPoints.map(xpToForecastGrade) };
+    comparisonSlots[rank] = matchPlayer;
+    if (isUnavailable(player.availability)) {
+      excludedBench.push(`${player.name} (ID ${player.id}, slot ${rank + 1})`);
+      continue;
+    }
+    ownSlots[rank] = matchPlayer;
+  }
+  if (ownSlots.slice(0, 11).some((player) => !player))
+    return unavailable("Your saved lineup needs 11 available starters.");
+  if (opponentSlots.slice(0, 11).some((player) => !player))
+    return unavailable("Opponent lineup needs 11 available starters.");
+  try {
+    const ownStrength = getTeamForecastStrength(ownSlots);
+    const opponentStrength = getTeamForecastStrength(opponentSlots);
+    const homeSide = 0;
+    const forecast = ownHome
+      ? getResultsForecast(
+          ownStrength,
+          opponentStrength,
+          ownRankBase,
+          opponentRankBase,
+          homeSide,
+        )
+      : getResultsForecast(
+          opponentStrength,
+          ownStrength,
+          opponentRankBase,
+          ownRankBase,
+          homeSide,
+        );
+    const comparisonStrength = getTeamForecastStrength(comparisonSlots);
+    const comparison = ownHome
+      ? getResultsForecast(
+          comparisonStrength,
+          opponentStrength,
+          ownRankBase,
+          opponentRankBase,
+          homeSide,
+        )
+      : getResultsForecast(
+          opponentStrength,
+          comparisonStrength,
+          opponentRankBase,
+          ownRankBase,
+          homeSide,
+        );
+    const format = (result: ReturnType<typeof getResultsForecast>) =>
+      result
+        ? `${result.team0Win} / ${result.draw} / ${result.team1Win}`
+        : "Unavailable";
+    const details = [
+      `Opponent: DEF ${opponentStrength.defense}, OFF ${opponentStrength.offense}, Rank Base ${opponentRankBase}`,
+      `${team.abbreviation}: DEF ${ownStrength.defense}, OFF ${ownStrength.offense}, Rank Base ${ownRankBase}`,
+      `Home advantage: ${ownHome ? team.abbreviation : "Opponent"}`,
+      `Forecast: ${format(forecast)}`,
+      `Excluded own substitutes: ${excludedBench.join(", ") || "None"}`,
+      `Including excluded own substitutes (diagnostic only): DEF ${comparisonStrength.defense}, OFF ${comparisonStrength.offense}`,
+      `Comparison: ${format(comparison)}`,
+    ].join("\n");
+    return {
+      forecast,
+      message: forecast ? "" : "Match forecast unavailable.",
+      details,
+    };
+  } catch {
+    return unavailable("Invalid match skill data.");
+  }
+}
+
 const OWN_POSITION_GROUPS = [0, 1, 1, 2, 2, 2, 3] as const;
 
 function getOwnPositionId(position: number): number | null {
@@ -593,25 +807,12 @@ export function ImportedTeamFormation({
       player.id_position,
     ]) ?? [],
   );
-  const hasPositions = opponentRoster.every((player) => {
-    if (isUnavailable(player.availability)) return true;
-    const position = positionsById.get(player.id);
-    return (
-      position !== undefined &&
-      Number.isInteger(position) &&
-      position >= 0 &&
-      position <= 3
-    );
-  });
-  const prediction =
-    lineup && opponentMetadata && !opponentMetadata.error && hasPositions
-      ? predictOpponentLineup(
-          opponentRoster,
-          lineup,
-          positionsById,
-          playerPreference,
-        )
-      : null;
+  const prediction = getOpponentPrediction(
+    team,
+    teamId,
+    opponentMetadata,
+    playerPreference,
+  );
   const starters = prediction
     ? prediction.starters
     : lineup?.starters.filter(
@@ -803,11 +1004,13 @@ export function ImportedTeamPlayers({
   title,
   abbr,
   teamId,
+  playerPreference,
 }: {
   language?: Language;
   title: string;
   abbr: string;
   teamId: number;
+  playerPreference: number;
 }) {
   const { team, loaded, opponentMetadata: current } = useTeamImport();
 
@@ -865,7 +1068,11 @@ export function ImportedTeamPlayers({
 
   return (
     <>
-      <ImportedTeamMatchup abbr={abbr} />
+      <ImportedTeamMatchup
+        abbr={abbr}
+        teamId={teamId}
+        playerPreference={playerPreference}
+      />
 
       <PlayersOnTeam
         language={language}

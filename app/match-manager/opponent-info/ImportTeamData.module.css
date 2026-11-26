@@ -78,16 +78,17 @@
   min-width: 0;
   box-sizing: border-box;
   align-self: start;
-  padding: 12px 0 8px;
+  padding: 0 0 8px;
   text-align: center;
 }
 
 .matchupTitle {
   margin: 0;
-  font-family: var(--font-body);
-  font-size: 22px;
+  font-family: var(--font-display);
+  font-size: clamp(40px, 5vw, 50px);
   font-weight: 800;
   color: var(--font_black);
+  white-space: nowrap;
 }
 
 @media (max-width: 600px) {
@@ -110,9 +111,5 @@
   .message {
     max-width: 150px;
     font-size: 11px;
-  }
-
-  .matchupTitle {
-    font-size: 18px;
   }
 }

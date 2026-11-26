@@ -3,6 +3,7 @@ import {
   type ImportedSavePlayer,
 } from "@/app/training-planner/save-parser";
 
+import { readForecastRankBase } from "./match-forecast";
 import { opponentTypeRows, playerFootBits } from "./saved-player-metadata";
 import {
   readPlayerAvailability,
@@ -107,6 +108,8 @@ export type HomeStadium = ReturnType<typeof readMyHomeStadium>;
 
 export type ImportedTeam = {
   homeStadium: HomeStadium;
+  ownRankBase: number | null;
+  opponentRankBases: Record<number, number | null>;
   name: string;
   abbreviation: string;
   fileName: string;
@@ -128,7 +131,7 @@ const SAVE_ROSTER_OFFSET = 0x0c6e;
 const PLAYER_SIZE = 0x98;
 const EMPTY_PLAYER_ID = 1016;
 
-const STORAGE_KEY = "npfc-imported-team-v11";
+const STORAGE_KEY = "npfc-imported-team-v12";
 
 function experienceGrade(points: number): string {
   if (points >= 1000) return "S";
@@ -410,6 +413,13 @@ export function parseTeamSave(
     fileName,
     counter: view.getUint32(0x04, true),
     homeStadium: readMyHomeStadium(view),
+    ownRankBase: readForecastRankBase(view, -1),
+    opponentRankBases: Object.fromEntries(
+      Array.from({ length: 44 }, (_, teamId) => [
+        teamId,
+        readForecastRankBase(view, teamId),
+      ]),
+    ),
     opponents,
     opponentLineups,
     players: baseSave.players.map((player) => {
@@ -503,6 +513,9 @@ export function readImportedTeam(): ImportedTeam | null {
       typeof team.abbreviation !== "string" ||
       typeof team.fileName !== "string" ||
       typeof team.counter !== "number" ||
+      (team.ownRankBase !== null && typeof team.ownRankBase !== "number") ||
+      !team.opponentRankBases ||
+      typeof team.opponentRankBases !== "object" ||
       !team.homeStadium ||
       !Number.isInteger(team.homeStadium.stadiumId) ||
       team.homeStadium.stadiumId < 0 ||
@@ -544,4 +557,5 @@ export function removeImportedTeam() {
   localStorage.removeItem("npfc-imported-team-v8");
   localStorage.removeItem("npfc-imported-team-v9");
   localStorage.removeItem("npfc-imported-team-v10");
+  localStorage.removeItem("npfc-imported-team-v11");
 }

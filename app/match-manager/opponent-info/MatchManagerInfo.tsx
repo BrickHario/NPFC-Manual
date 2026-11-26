@@ -397,6 +397,7 @@ export default function MatchManagerInfo({
             title={title}
             abbr={abbr}
             teamId={team.team_id}
+            playerPreference={team.player_pref}
           />
         </div>
       </div>
