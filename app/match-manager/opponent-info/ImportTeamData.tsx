@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+import matchStyles from "./match-manager-info.module.css";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode, ChangeEvent } from "react";
 import {
@@ -14,7 +16,7 @@ import PlayersOnTeam, { type AssignedPlayer } from "./PlayersOnTeam";
 import { LoadingSmall } from "@/app/Loading";
 import { playerFootBits } from "./saved-player-metadata";
 import TeamFormation from "./TeamFormation";
-import { calculateAttributes, type Language } from "@/lib/utils";
+import { calculateAttributes, STADIUMS, type Language } from "@/lib/utils";
 import {
   gradeScore,
   xpScore,
@@ -50,6 +52,8 @@ export type TeamPlayerTypeProfile = {
 type TeamImportContextValue = {
   team: ImportedTeam | null;
   loaded: boolean;
+  ownHome: boolean;
+  toggleHome: () => void;
   opponentMetadata: OpponentMetadata | null;
   setTeam: (team: ImportedTeam) => void;
   removeTeam: () => void;
@@ -76,11 +80,14 @@ export function TeamImportProvider({
 }) {
   const [team, setTeamState] = useState<ImportedTeam | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [ownHome, setOwnHome] = useState(false);
   const opponentMetadata = useOpponentMetadata(team, teamId);
 
   useEffect(() => {
     function restoreTeam() {
-      setTeamState(readImportedTeam());
+      const restored = readImportedTeam();
+      setTeamState(restored);
+      if (!restored) setOwnHome(false);
       setLoaded(true);
     }
 
@@ -98,16 +105,26 @@ export function TeamImportProvider({
   function setTeam(imported: ImportedTeam) {
     saveImportedTeam(imported);
     setTeamState(imported);
+    setOwnHome(false);
   }
 
   function removeTeam() {
     removeImportedTeam();
     setTeamState(null);
+    setOwnHome(false);
   }
 
   return (
     <TeamImportContext.Provider
-      value={{ team, loaded, setTeam, removeTeam, opponentMetadata }}
+      value={{
+        team,
+        loaded,
+        ownHome: !!team && ownHome,
+        toggleHome: () => setOwnHome((previous) => !previous),
+        setTeam,
+        removeTeam,
+        opponentMetadata,
+      }}
     >
       {children}
     </TeamImportContext.Provider>
@@ -233,15 +250,140 @@ export function ImportTeamHeader({
 }
 
 export function ImportedTeamMatchup({ abbr }: { abbr?: string }) {
-  const { team, loaded } = useTeamImport();
+  const { team, loaded, ownHome, toggleHome } = useTeamImport();
 
   if (!loaded || !team) return null;
 
+  const opponentAbbr = abbr ?? "—";
+  const home = ownHome ? team.abbreviation : opponentAbbr;
+  const away = ownHome ? opponentAbbr : team.abbreviation;
+
   return (
-    <div className={styles.matchup}>
-      <h2 className={styles.matchupTitle}>
-        {team.abbreviation} - {abbr}
+    <div
+      className={styles.matchup}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 10,
+      }}
+    >
+      <h2
+        className={styles.matchupTitle}
+        title={`${home} (Home) - ${away} (Away)`}
+      >
+        {home} - {away}
       </h2>
+      <button
+        type="button"
+        onClick={toggleHome}
+        title={`Switch home team to ${away}`}
+        aria-label={`Switch home team to ${away}`}
+        style={{
+          display: "grid",
+          placeItems: "center",
+          width: 32,
+          height: 28,
+          padding: 0,
+          border: "2px solid var(--font_black)",
+          borderRadius: 8,
+          background: "var(--color-surface)",
+          color: "var(--font_black)",
+          fontSize: 22,
+          fontWeight: 800,
+          lineHeight: 1,
+          cursor: "pointer",
+          flexShrink: 0,
+        }}
+      >
+        ⇄
+      </button>
+    </div>
+  );
+}
+
+export function ImportedMatchStadium({
+  opponentStadiumId,
+  opponentStadiumName,
+  opponentCrowdLevel,
+  opponentPressureFactor,
+}: {
+  opponentStadiumId: number | null;
+  opponentStadiumName: string;
+  opponentCrowdLevel: number;
+  opponentPressureFactor: number;
+}) {
+  const { team, ownHome } = useTeamImport();
+  const home = ownHome ? team?.homeStadium : undefined;
+  const stadiumId = home?.stadiumId ?? opponentStadiumId;
+  const stadium = stadiumId === null ? null : STADIUMS[stadiumId] ?? null;
+  const stadiumName = home
+    ? stadium?.name ?? `${team?.name ?? "Home"} Stadium`
+    : stadium?.name ?? opponentStadiumName;
+  const crowdLevel = home?.crowdLevel ?? opponentCrowdLevel;
+  const pressureFactor = home?.crowdPressure ?? opponentPressureFactor;
+  const maxCrowdLevel = 7;
+  const crowdLabel = ["None", "Low", "Medium", "High"][pressureFactor];
+  const crowdTone = [
+    matchStyles.crowdNone,
+    matchStyles.crowdLow,
+    matchStyles.crowdMedium,
+    matchStyles.crowdHigh,
+  ][pressureFactor];
+
+  return (
+    <div className={matchStyles.stadium}>
+      <div className={matchStyles.stadiumTitle}>
+        {stadium ? stadiumName : "Stadium not available"}
+      </div>
+
+      {stadium && (
+        <Image
+          src={`/stadion-images/${stadium.model}.png`}
+          alt={stadiumName}
+          title={stadium.model}
+          width={300}
+          height={230}
+          unoptimized
+          className={matchStyles.stadiumImage}
+        />
+      )}
+
+      <div className={matchStyles.crowdPressure}>
+        <div className={matchStyles.crowdRow}>
+          <span>Crowd Pressure:</span>
+
+          <strong
+            className={`${matchStyles.crowdValue} ${crowdTone}`}
+            title={`Pressure Factor ${pressureFactor}`}
+          >
+            {crowdLabel}
+          </strong>
+        </div>
+
+        <div className={matchStyles.crowdRow}>
+          <span>Crowd Level:</span>
+
+          <div
+            className={matchStyles.crowdLevelIcons}
+            title={`${crowdLevel}/${maxCrowdLevel}`}
+            aria-label={`Crowd Level ${crowdLevel} of ${maxCrowdLevel}`}
+          >
+            {Array.from({ length: crowdLevel }).map((_, index) => (
+              <Image
+                key={index}
+                src="/crowd.png"
+                alt=""
+                width={20}
+                height={20}
+                unoptimized
+                aria-hidden="true"
+                className={matchStyles.crowdLevelIcon}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -392,7 +534,7 @@ export function ImportedTeamFormation({
   typeProfileError?: string;
   experienceGrades?: TeamExperienceGrades;
 }) {
-  const { team, opponentMetadata } = useTeamImport();
+  const { team, opponentMetadata, ownHome } = useTeamImport();
   const lineup = team?.opponentLineups[teamId];
   const opponentRoster = team?.opponents[teamId] ?? [];
   const roster = new Map(opponentRoster.map((player) => [player.id, player]));
@@ -644,7 +786,7 @@ export function ImportedTeamFormation({
       ownStats={ownStats}
       language={language}
       slots={slots}
-      stadiumId={stadiumId}
+      stadiumId={ownHome ? team?.homeStadium.stadiumId ?? stadiumId : stadiumId}
       players={players}
       benchPlayers={benchPlayers}
       ownPlayers={ownPlayers}

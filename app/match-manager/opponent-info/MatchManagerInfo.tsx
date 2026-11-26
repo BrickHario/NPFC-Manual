@@ -5,7 +5,6 @@ import {
   rankImages,
   formatPrice,
   getAttributeImage,
-  STADIUMS,
   type Language,
 } from "@/lib/utils";
 import PlayersOnTeam, { type AssignedPlayer } from "./PlayersOnTeam";
@@ -18,6 +17,7 @@ import {
   ImportedTeamSkillBoost,
   ImportedTeamPlayers,
   ImportedTeamFormation,
+  ImportedMatchStadium,
   type TeamPlayerTypeProfile,
 } from "./ImportTeamData";
 import { LoadingBig } from "@/app/Loading";
@@ -78,15 +78,6 @@ const LEAGUES = [
 const CROWD_LEVELS = [1, 1, 2, 3, 4, 5, 6, 7, 7] as const;
 
 const CROWD_PRESSURE_FACTORS = [0, 1, 1, 1, 2, 2, 3, 3] as const;
-
-const CROWD_LABELS = ["None", "Low", "Medium", "High"] as const;
-
-const CROWD_TONES = [
-  styles.crowdNone,
-  styles.crowdLow,
-  styles.crowdMedium,
-  styles.crowdHigh,
-] as const;
 
 export function getCrowdPressure(strengthLevel: number) {
   const strength = Math.max(0, Math.min(8, Math.trunc(strengthLevel)));
@@ -184,20 +175,10 @@ export default function MatchManagerInfo({
 
   const league = LEAGUES[getInitialLeague(team.team_id)];
 
-  const stadium =
-    team.stadium_id === null ? null : STADIUMS[team.stadium_id] ?? null;
-
-  const stadiumName = stadium?.name ?? `${englishTeamName} Stadium`;
-
   const squadSize = getSquadSize(team);
   const targetSquadBudget = SQUAD_BUDGETS[team.strength_lvl];
 
-  const { crowdLevel, pressureFactor, maxCrowdLevel } = getCrowdPressure(
-    team.strength_lvl,
-  );
-
-  const crowdLabel = CROWD_LABELS[pressureFactor];
-  const crowdTone = CROWD_TONES[pressureFactor];
+  const { crowdLevel, pressureFactor } = getCrowdPressure(team.strength_lvl);
 
   const actionSkills = [
     { name: "Shooting", value: team.action_shooting },
@@ -220,7 +201,7 @@ export default function MatchManagerInfo({
   const teamBonuses = skillBoosts.map((attribute) => attribute.value ?? 0);
 
   return (
-    <TeamImportProvider teamId={team.team_id}>
+    <TeamImportProvider key={team.team_id} teamId={team.team_id}>
       <ImportTeamHeader title={title} abbr={abbr} />
 
       <div className={styles["panel-opp-info"]}>
@@ -342,59 +323,12 @@ export default function MatchManagerInfo({
         </Suspense>
 
         <div className={styles.teamAbilities}>
-          <div className={styles.stadium}>
-            <div className={styles.stadiumTitle}>
-              {stadium ? stadiumName : "Stadium not available"}
-            </div>
-
-            {stadium && (
-              <Image
-                src={`/stadion-images/${stadium.model}.png`}
-                alt={stadiumName}
-                title={stadium.model}
-                width={300}
-                height={230}
-                unoptimized
-                className={styles.stadiumImage}
-              />
-            )}
-
-            <div className={styles.crowdPressure}>
-              <div className={styles.crowdRow}>
-                <span>Crowd Pressure:</span>
-
-                <strong
-                  className={`${styles.crowdValue} ${crowdTone}`}
-                  title={`Pressure Factor ${pressureFactor}`}
-                >
-                  {crowdLabel}
-                </strong>
-              </div>
-
-              <div className={styles.crowdRow}>
-                <span>Crowd Level:</span>
-
-                <div
-                  className={styles.crowdLevelIcons}
-                  title={`${crowdLevel}/${maxCrowdLevel}`}
-                  aria-label={`Crowd Level ${crowdLevel} of ${maxCrowdLevel}`}
-                >
-                  {Array.from({ length: crowdLevel }).map((_, index) => (
-                    <Image
-                      key={index}
-                      src="/crowd.png"
-                      alt=""
-                      width={20}
-                      height={20}
-                      unoptimized
-                      aria-hidden="true"
-                      className={styles.crowdLevelIcon}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          <ImportedMatchStadium
+            opponentStadiumId={team.stadium_id}
+            opponentStadiumName={`${englishTeamName} Stadium`}
+            opponentCrowdLevel={crowdLevel}
+            opponentPressureFactor={pressureFactor}
+          />
 
           <div className={styles.positionFamiliarity}>
             <strong>Position Experience</strong>

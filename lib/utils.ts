@@ -395,6 +395,11 @@ export const STADIUMS = [
   { model: "ST_N1l", name: null },
   { model: "ST_NZAsia", name: "Europe Cup Stadium" },
   { model: "ST_NZEuro", name: "World Cup Stadium" },
+  { model: "ST_Testmatch", name: "Test Match Stadium" },
+  { model: "ST_Home1", name: "Home Stadium 1" },
+  { model: "ST_Home2", name: "Home Stadium 2" },
+  { model: "ST_Home3", name: "Home Stadium 3" },
+  { model: "ST_JC", name: null },
 ] as const;
 
 export type FieldImage =

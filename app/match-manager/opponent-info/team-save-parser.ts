@@ -80,7 +80,33 @@ export type SavedOpponentLineup = {
   formationRoleCodes: number[];
 };
 
+const STADIUM_BY_STRENGTH = [0, 0, 1, 26, 27, 27, 27, 27, 28] as const;
+const CROWD_LEVEL_BY_STRENGTH = [1, 1, 2, 3, 4, 5, 6, 7, 7] as const;
+const CROWD_PRESSURE_BY_LEVEL = [0, 1, 1, 1, 2, 2, 3, 3] as const;
+const CROWD_PRESSURE_LABELS = ["None", "Low", "Medium", "High"] as const;
+
+export function readMyHomeStadium(view: DataView) {
+  const strength = Math.min(8, view.getUint8(0x0858) & 0x0f);
+  const savedStadiumId = view.getUint8(0x091a);
+  const stadiumId =
+    savedStadiumId <= 29 ? savedStadiumId : STADIUM_BY_STRENGTH[strength];
+  const crowdLevel = CROWD_LEVEL_BY_STRENGTH[strength];
+  const crowdPressure = CROWD_PRESSURE_BY_LEVEL[crowdLevel];
+
+  return {
+    strength,
+    savedStadiumId,
+    stadiumId,
+    crowdLevel,
+    crowdPressure,
+    crowdPressureLabel: CROWD_PRESSURE_LABELS[crowdPressure],
+  };
+}
+
+export type HomeStadium = ReturnType<typeof readMyHomeStadium>;
+
 export type ImportedTeam = {
+  homeStadium: HomeStadium;
   name: string;
   abbreviation: string;
   fileName: string;
@@ -102,7 +128,7 @@ const SAVE_ROSTER_OFFSET = 0x0c6e;
 const PLAYER_SIZE = 0x98;
 const EMPTY_PLAYER_ID = 1016;
 
-const STORAGE_KEY = "npfc-imported-team-v10";
+const STORAGE_KEY = "npfc-imported-team-v11";
 
 function experienceGrade(points: number): string {
   if (points >= 1000) return "S";
@@ -383,6 +409,7 @@ export function parseTeamSave(
     abbreviation,
     fileName,
     counter: view.getUint32(0x04, true),
+    homeStadium: readMyHomeStadium(view),
     opponents,
     opponentLineups,
     players: baseSave.players.map((player) => {
@@ -476,6 +503,16 @@ export function readImportedTeam(): ImportedTeam | null {
       typeof team.abbreviation !== "string" ||
       typeof team.fileName !== "string" ||
       typeof team.counter !== "number" ||
+      !team.homeStadium ||
+      !Number.isInteger(team.homeStadium.stadiumId) ||
+      team.homeStadium.stadiumId < 0 ||
+      team.homeStadium.stadiumId > 29 ||
+      !Number.isInteger(team.homeStadium.crowdLevel) ||
+      team.homeStadium.crowdLevel < 1 ||
+      team.homeStadium.crowdLevel > 7 ||
+      !Number.isInteger(team.homeStadium.crowdPressure) ||
+      team.homeStadium.crowdPressure < 0 ||
+      team.homeStadium.crowdPressure > 3 ||
       !Array.isArray(team.players) ||
       typeof team.opponents !== "object" ||
       team.opponents === null ||
@@ -506,4 +543,5 @@ export function removeImportedTeam() {
   localStorage.removeItem("npfc-imported-team-v7");
   localStorage.removeItem("npfc-imported-team-v8");
   localStorage.removeItem("npfc-imported-team-v9");
+  localStorage.removeItem("npfc-imported-team-v10");
 }
