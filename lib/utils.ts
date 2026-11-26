@@ -449,3 +449,82 @@ export function getFieldImage(stadiumId: number | null): FieldImage {
   return stadiumId === null ? "empty" : STADIUM_FIELD_IMAGES[stadiumId] ?? "empty";
 }
 
+export type MatchActionCombo = {
+  combo_id: number;
+  category_id: number;
+  has_match_actions?: boolean | number | string | null;
+};
+
+export const MATCH_ACTION_CATEGORIES: Record<number, { prefix: string; color: string }> = {
+  1: { prefix: "C", color: "#595959" },
+  2: { prefix: "A", color: "#2537aa" },
+  3: { prefix: "C", color: "#a31515" },
+  4: { prefix: "D", color: "#984153" },
+  5: { prefix: "F", color: "#226b2a" },
+  6: { prefix: "G", color: "#7d048a" },
+  7: { prefix: "M", color: "#786000" },
+  8: { prefix: "M", color: "#054502" },
+  9: { prefix: "S", color: "#176676" },
+  10: { prefix: "T", color: "#555555" },
+};
+
+export function hasMatchAction(combo: Pick<MatchActionCombo, "has_match_actions">): boolean {
+  const value = combo.has_match_actions;
+  return value === true || value === 1 || value === "1" || value === "true";
+}
+
+export function getMatchActionLabelStyle(categoryId: number) {
+  return {
+    display: "inline-grid",
+    placeItems: "center",
+    width: 24,
+    height: 24,
+    boxSizing: "border-box",
+    flexShrink: 0,
+    border: "2px solid #000",
+    borderRadius: "50%",
+    backgroundColor: MATCH_ACTION_CATEGORIES[categoryId]?.color ?? "#595959",
+    color: "#fff",
+    fontSize: "0.8rem",
+    fontWeight: 300,
+    lineHeight: 1,
+    textShadow: "none",
+    whiteSpace: "nowrap",
+  } as const;
+}
+
+export function buildMatchActionLabels(combos: readonly MatchActionCombo[]): Map<number, string> {
+  const labels = new Map<number, string>();
+  const counts = new Map<string, number>();
+
+  const matchCombos = combos
+    .filter(hasMatchAction)
+    .sort((a, b) => a.combo_id - b.combo_id);
+
+  for (const combo of matchCombos) {
+    if (labels.has(combo.combo_id)) continue;
+
+    const prefix = MATCH_ACTION_CATEGORIES[combo.category_id]?.prefix ?? "C";
+    const number = (counts.get(prefix) ?? 0) + 1;
+    counts.set(prefix, number);
+    labels.set(combo.combo_id, `${prefix}${number}`);
+  }
+
+  return labels;
+}
+
+export function getMatchActionLabel(
+  combo: MatchActionCombo,
+  labels: ReadonlyMap<number, string>
+) {
+  if (!hasMatchAction(combo)) return null;
+
+  const label = labels.get(combo.combo_id);
+  if (!label) return null;
+
+  return {
+    label,
+    style: getMatchActionLabelStyle(combo.category_id),
+    title: `Match action: ${label}`,
+  };
+}

@@ -1,26 +1,14 @@
 import HorizontalScrollArea from "./HorizontalScrollArea";
 import { getTypeVector, formatTypeVector } from "./combo-type-vector";
 import vectorStyles from "./combo-type-vector.module.css";
-import {
-  ATTRIBUTES,
-  attributeIcon,
-  comboAttributeValues,
-} from "./attributes";
-import {
-  requiredCards,
-  type TrainingCard,
-  type TrainingCombo,
-} from "./types";
-import {
-  CATEGORIES,
-  formatBonus,
-  getCardGroup,
-} from "./combo-config";
+import { ATTRIBUTES, attributeIcon, comboAttributeValues } from "./attributes";
+import { requiredCards, type TrainingCard, type TrainingCombo } from "./types";
+import { CATEGORIES, formatBonus, getCardGroup } from "./combo-config";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import styles from "./cards-and-combos.module.css";
-import { getSubSkills } from "@/lib/utils";
+import { getMatchActionLabel, getSubSkills } from "@/lib/utils";
 
 export type ResultRow =
   | {
@@ -42,6 +30,7 @@ export type ResultRow =
 
 type Props = {
   rows: ResultRow[];
+  matchActionLabels: ReadonlyMap<number, string>;
   cardNames: Map<number, string>;
   cardImageUrls: Record<number, string>;
   comboImageUrls: Record<number, string>;
@@ -49,6 +38,7 @@ type Props = {
 
 export default function ComboTable({
   rows,
+  matchActionLabels,
   cardNames,
   cardImageUrls,
   comboImageUrls,
@@ -61,33 +51,25 @@ export default function ComboTable({
       <table className={styles.table}>
         <thead>
           <tr>
-            <th
-              scope="col"
-              className={styles.nameHead}
-            >
+            <th scope="col" className={styles.nameHead}>
               Name
             </th>
 
-            <th
-              scope="col"
-              className={styles.comboHead}
-            >
+            <th scope="col" className={styles.comboHead}>
               Combo
             </th>
 
-            <th scope="col" className={styles.statHead}>Fatigue</th>
+            <th scope="col" className={styles.statHead}>
+              Fatigue
+            </th>
 
             <th scope="col" className={vectorStyles.header}>
               Type Vector
             </th>
 
-            <th
-              scope="col"
-              className={styles.typeHead}
-            >
+            <th scope="col" className={styles.typeHead}>
               Group
             </th>
-
 
             {ATTRIBUTES.map((attribute, index) => {
               const subSkills = getSubSkills(attribute.key);
@@ -97,7 +79,9 @@ export default function ComboTable({
                 <th
                   key={attribute.key}
                   scope="col"
-                  className={`${styles.statHead} ${subSkills.length ? styles.groupedStatHead : ""}`}
+                  className={`${styles.statHead} ${
+                    subSkills.length ? styles.groupedStatHead : ""
+                  }`}
                   title={attribute.label}
                 >
                   {subSkills.length ? (
@@ -112,7 +96,9 @@ export default function ComboTable({
                       />
                       <div
                         className={styles.subSkillIcons}
-                        style={{ gridTemplateColumns: `repeat(${subSkills.length}, minmax(0, 1fr))` }}
+                        style={{
+                          gridTemplateColumns: `repeat(${subSkills.length}, minmax(0, 1fr))`,
+                        }}
                       >
                         {subSkills.map((skill) => (
                           <Image
@@ -145,9 +131,12 @@ export default function ComboTable({
 
         <tbody>
           {rows.map((row) => {
-            const values =
-              comboAttributeValues(row.data);
+            const values = comboAttributeValues(row.data);
             const typeVector = getTypeVector(row.data);
+            const matchActionLabel =
+              row.kind === "combo"
+                ? getMatchActionLabel(row.data, matchActionLabels)
+                : null;
 
             const recipeIds =
               row.kind === "card"
@@ -174,32 +163,33 @@ export default function ComboTable({
                   >
                     {row.name}
                   </Link>
+                  {matchActionLabel && (
+                    <span
+                      className={styles.matchActionLabel}
+                      style={matchActionLabel.style}
+                      title={matchActionLabel.title}
+                      aria-label={matchActionLabel.title}
+                    >
+                      {matchActionLabel.label}
+                    </span>
+                  )}
                 </td>
 
                 <td className={styles.ingredients}>
-                  <div
-                    className={styles.ingredientList}
-                  >
+                  <div className={styles.ingredientList}>
                     {recipeIds.map((cardId, index) => (
                       <span
                         key={`${row.kind}-${row.id}-${index}`}
                         className={styles.ingredientItem}
                       >
-                        {index > 0 && (
-                          <span className={styles.plus}>
-                            +
-                          </span>
-                        )}
+                        {index > 0 && <span className={styles.plus}>+</span>}
 
                         <span
-                          className={`${
-                            styles.ingredient
-                          } ${
+                          className={`${styles.ingredient} ${
                             styles[getCardGroup(cardId)]
                           }`}
                         >
-                          {cardNames.get(cardId) ??
-                            `Card #${cardId}`}
+                          {cardNames.get(cardId) ?? `Card #${cardId}`}
                         </span>
                       </span>
                     ))}
@@ -223,7 +213,10 @@ export default function ComboTable({
                         viewBox="0 0 32 32"
                         aria-hidden="true"
                         style={{
-                          transform: `rotate(${Math.atan2(typeVector.dx, typeVector.dy) * 180 / Math.PI}deg)`,
+                          transform: `rotate(${
+                            (Math.atan2(typeVector.dx, typeVector.dy) * 180) /
+                            Math.PI
+                          }deg)`,
                         }}
                       >
                         <path d="M16 28V5M7 14l9-9 9 9" />
@@ -236,16 +229,11 @@ export default function ComboTable({
                 </td>
 
                 <td
-                  className={`${
-                    styles.categoryCell
-                  } ${
-                    styles[
-                      `category${row.category}`
-                    ] ?? ""
+                  className={`${styles.categoryCell} ${
+                    styles[`category${row.category}`] ?? ""
                   }`}
                 >
-                  {CATEGORIES[row.category] ??
-                    `Category ${row.category}`}
+                  {CATEGORIES[row.category] ?? `Category ${row.category}`}
                 </td>
 
                 {ATTRIBUTES.map((attribute, index) => {
@@ -253,26 +241,24 @@ export default function ComboTable({
                   const subSkills = getSubSkills(attribute.key);
 
                   const random_01 =
-                    row.kind === "card"
-                      ? Number(row.data.random_01 ?? 0)
-                      : 0;
+                    row.kind === "card" ? Number(row.data.random_01 ?? 0) : 0;
 
-                  const hasRandomBonus =
-                    random_01 !== 0 && index < 6;
+                  const hasRandomBonus = random_01 !== 0 && index < 6;
 
-                  const valueClass =
-                    hasRandomBonus
-                      ? styles.zero
-                      : value > 0
-                        ? styles.positive
-                        : value < 0
-                          ? styles.negative
-                          : styles.zero;
+                  const valueClass = hasRandomBonus
+                    ? styles.zero
+                    : value > 0
+                    ? styles.positive
+                    : value < 0
+                    ? styles.negative
+                    : styles.zero;
 
                   return (
                     <td
                       key={attribute.key}
-                      className={`${styles.value} ${valueClass} ${subSkills.length ? styles.groupedStatCell : ""}`}
+                      className={`${styles.value} ${valueClass} ${
+                        subSkills.length ? styles.groupedStatCell : ""
+                      }`}
                     >
                       {subSkills.length ? (
                         <>
@@ -281,13 +267,16 @@ export default function ComboTable({
                           </span>
                           <div
                             className={styles.subSkillValues}
-                            style={{ gridTemplateColumns: `repeat(${subSkills.length}, minmax(0, 1fr))` }}
+                            style={{
+                              gridTemplateColumns: `repeat(${subSkills.length}, minmax(0, 1fr))`,
+                            }}
                           >
                             {subSkills.map((skill) => {
                               const skillValue = Number(row.data[skill.key]);
-                              const skillClass = skillValue > 0
-                                ? styles.subSkillPositive
-                                : skillValue < 0
+                              const skillClass =
+                                skillValue > 0
+                                  ? styles.subSkillPositive
+                                  : skillValue < 0
                                   ? styles.subSkillNegative
                                   : styles.subSkillZero;
                               const displayValue = Number.isFinite(skillValue)
@@ -320,9 +309,7 @@ export default function ComboTable({
       </table>
 
       {rows.length === 0 && (
-        <p className={styles.empty}>
-          No matching training results.
-        </p>
+        <p className={styles.empty}>No matching training results.</p>
       )}
     </HorizontalScrollArea>
   );

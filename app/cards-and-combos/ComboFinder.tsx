@@ -15,6 +15,7 @@ import { getTypeVector, getClockwiseAngle } from "./combo-type-vector";
 import ComboFilters from "./ComboFilters";
 import ComboTable, { type ResultRow } from "./ComboTable";
 import styles from "./cards-and-combos.module.css";
+import { buildMatchActionLabels, hasMatchAction } from "@/lib/utils";
 
 type Props = {
   cards: TrainingCard[];
@@ -33,7 +34,6 @@ type SavedSelection = {
 
 type ComboFlags = {
   gk_only?: boolean | number | string | null;
-  has_match_actions?: boolean | number | string | null;
 };
 
 const collator = new Intl.Collator("en", {
@@ -41,12 +41,7 @@ const collator = new Intl.Collator("en", {
   sensitivity: "base",
 });
 
-
-function sortRows(
-  a: ResultRow,
-  b: ResultRow,
-  sort: SortValue
-): number {
+function sortRows(a: ResultRow, b: ResultRow, sort: SortValue): number {
   let comparison = 0;
 
   if (sort === "name_asc" || sort === "name_desc") {
@@ -55,22 +50,18 @@ function sortRows(
     if (sort === "name_desc") {
       comparison *= -1;
     }
-  } else if (
-    sort === "category_asc" ||
-    sort === "category_desc"
-  ) {
+  } else if (sort === "category_asc" || sort === "category_desc") {
     comparison = collator.compare(
       CATEGORIES[a.category] ?? "",
-      CATEGORIES[b.category] ?? ""
+      CATEGORIES[b.category] ?? "",
     );
 
     if (sort === "category_desc") {
       comparison *= -1;
     }
   } else if (sort === "fatigue_desc" || sort === "fatigue_asc") {
-    comparison = sort === "fatigue_desc"
-      ? b.fatigue - a.fatigue
-      : a.fatigue - b.fatigue;
+    comparison =
+      sort === "fatigue_desc" ? b.fatigue - a.fatigue : a.fatigue - b.fatigue;
   } else if (sort.startsWith("direction:")) {
     const vectorA = getTypeVector(a.data);
     const vectorB = getTypeVector(b.data);
@@ -105,9 +96,7 @@ function sortRows(
     const valueA = Number(a.data[key] ?? 0);
     const valueB = Number(b.data[key] ?? 0);
 
-    comparison = direction === "desc"
-      ? valueB - valueA
-      : valueA - valueB;
+    comparison = direction === "desc" ? valueB - valueA : valueA - valueB;
   } else if (sort.startsWith("attribute:")) {
     const [, key, direction] = sort.split(":") as [
       string,
@@ -116,21 +105,15 @@ function sortRows(
     ];
 
     comparison =
-      comboAttributeValues(a.data)[key] -
-      comboAttributeValues(b.data)[key];
+      comboAttributeValues(a.data)[key] - comboAttributeValues(b.data)[key];
 
     if (direction === "desc") {
       comparison *= -1;
     }
   }
 
-  return (
-    comparison ||
-    collator.compare(a.name, b.name) ||
-    a.id - b.id
-  );
+  return comparison || collator.compare(a.name, b.name) || a.id - b.id;
 }
-
 
 export default function CardsAndCombos({
   cards,
@@ -139,7 +122,7 @@ export default function CardsAndCombos({
   comboImageUrls,
 }: Props) {
   const [selectedCards, setSelectedCards] = useState<Set<number>>(
-    () => new Set()
+    () => new Set(),
   );
 
   const [showSingleCards, setShowSingleCards] = useState(true);
@@ -159,17 +142,14 @@ export default function CardsAndCombos({
 
       if (stored) {
         const saved = JSON.parse(stored) as Partial<SavedSelection>;
-        const validIds = new Set(
-          cards.map((card) => card.card_id)
-        );
+        const validIds = new Set(cards.map((card) => card.card_id));
 
         setSelectedCards(
           new Set(
             (Array.isArray(saved.cards) ? saved.cards : []).filter(
-              (id): id is number =>
-                typeof id === "number" && validIds.has(id)
-            )
-          )
+              (id): id is number => typeof id === "number" && validIds.has(id),
+            ),
+          ),
         );
 
         setShowSingleCards(saved.showSingleCards !== false);
@@ -179,10 +159,7 @@ export default function CardsAndCombos({
         setMatchActionsOnly(saved.matchActionsOnly === true);
       }
     } catch (error) {
-      console.warn(
-        "Could not restore training selection.",
-        error
-      );
+      console.warn("Could not restore training selection.", error);
     } finally {
       setStorageLoaded(true);
     }
@@ -200,15 +177,9 @@ export default function CardsAndCombos({
     };
 
     try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(data)
-      );
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
-      console.warn(
-        "Could not save training selection.",
-        error
-      );
+      console.warn("Could not save training selection.", error);
     }
   }, [
     selectedCards,
@@ -220,21 +191,17 @@ export default function CardsAndCombos({
   ]);
 
   const cardNames = useMemo(
-    () =>
-      new Map(
-        cards.map((card) => [
-          card.card_id,
-          card.name,
-        ])
-      ),
-    [cards]
+    () => new Map(cards.map((card) => [card.card_id, card.name])),
+    [cards],
+  );
+
+  const matchActionLabels = useMemo(
+    () => buildMatchActionLabels(combos),
+    [combos],
   );
 
   const allSelected =
-    cards.length > 0 &&
-    cards.every((card) =>
-      selectedCards.has(card.card_id)
-    );
+    cards.length > 0 && cards.every((card) => selectedCards.has(card.card_id));
 
   const visibleRows = useMemo(() => {
     const cardById = new Map(cards.map((card) => [card.card_id, card]));
@@ -242,27 +209,32 @@ export default function CardsAndCombos({
     const fatigueForCards = (recipe: TrainingCard[]) => {
       const sum = recipe.reduce(
         (total, card) =>
-          total + Array.from({ length: 9 }, (_, index) =>
-            Number(card[`skill_${String(index + 1).padStart(2, "0")}` as keyof TrainingCard] ?? 0)
+          total +
+          Array.from({ length: 9 }, (_, index) =>
+            Number(
+              card[
+                `skill_${String(index + 1).padStart(
+                  2,
+                  "0",
+                )}` as keyof TrainingCard
+              ] ?? 0,
+            ),
           ).reduce((a, b) => a + b, 0),
-        0
+        0,
       );
 
       if (recipe.length === 1) return Math.max(0, sum * 10);
-      if (recipe.length === 2) return Math.max(0, Math.trunc(sum * 20 / 3));
+      if (recipe.length === 2) return Math.max(0, Math.trunc((sum * 20) / 3));
       if (recipe.length === 3) return Math.max(0, Math.trunc(sum * 5));
       return 0;
     };
 
-    const specialFilterActive =
-      twOnly || matchActionsOnly;
+    const specialFilterActive = twOnly || matchActionsOnly;
 
     const singleRows: ResultRow[] =
       showSingleCards && !specialFilterActive
         ? cards
-            .filter((card) =>
-              selectedCards.has(card.card_id)
-            )
+            .filter((card) => selectedCards.has(card.card_id))
             .map((card) => ({
               kind: "card" as const,
               id: card.card_id,
@@ -275,11 +247,7 @@ export default function CardsAndCombos({
 
     const comboRows: ResultRow[] = combos
       .filter((combo) => {
-        if (
-          !requiredCards(combo).every((id) =>
-            selectedCards.has(id)
-          )
-        ) {
+        if (!requiredCards(combo).every((id) => selectedCards.has(id))) {
           return false;
         }
 
@@ -289,10 +257,7 @@ export default function CardsAndCombos({
           return false;
         }
 
-        if (
-          matchActionsOnly &&
-          !isEnabled(flags.has_match_actions)
-        ) {
+        if (matchActionsOnly && !hasMatchAction(combo)) {
           return false;
         }
 
@@ -306,14 +271,12 @@ export default function CardsAndCombos({
         fatigue: fatigueForCards(
           requiredCards(combo)
             .map((id) => cardById.get(id))
-            .filter((card): card is TrainingCard => card !== undefined)
+            .filter((card): card is TrainingCard => card !== undefined),
         ),
         data: combo,
       }));
 
-    const search = query
-      .trim()
-      .toLocaleLowerCase("en");
+    const search = query.trim().toLocaleLowerCase("en");
 
     const matches = (row: ResultRow) => {
       if (!search) return true;
@@ -322,18 +285,13 @@ export default function CardsAndCombos({
         row.kind === "card"
           ? [row.name]
           : requiredCards(row.data).map(
-              (id) =>
-                cardNames.get(id) ?? `Card #${id}`
+              (id) => cardNames.get(id) ?? `Card #${id}`,
             );
 
       return (
-        row.name
-          .toLocaleLowerCase("en")
-          .includes(search) ||
+        row.name.toLocaleLowerCase("en").includes(search) ||
         recipeNames.some((name) =>
-          name
-            .toLocaleLowerCase("en")
-            .includes(search)
+          name.toLocaleLowerCase("en").includes(search),
         ) ||
         (CATEGORIES[row.category] ?? "")
           .toLocaleLowerCase("en")
@@ -346,20 +304,13 @@ export default function CardsAndCombos({
 
     if (showCardsFirst && !sort.startsWith("direction:")) {
       return [
-        ...filteredCards.sort((a, b) =>
-          sortRows(a, b, sort)
-        ),
-        ...filteredCombos.sort((a, b) =>
-          sortRows(a, b, sort)
-        ),
+        ...filteredCards.sort((a, b) => sortRows(a, b, sort)),
+        ...filteredCombos.sort((a, b) => sortRows(a, b, sort)),
       ];
     }
 
-    return [
-      ...filteredCards,
-      ...filteredCombos,
-    ].sort((a, b) =>
-      sortRows(a, b, sort)
+    return [...filteredCards, ...filteredCombos].sort((a, b) =>
+      sortRows(a, b, sort),
     );
   }, [
     cards,
@@ -390,11 +341,7 @@ export default function CardsAndCombos({
 
   function toggleAllCards() {
     setSelectedCards(
-      allSelected
-        ? new Set()
-        : new Set(
-            cards.map((card) => card.card_id)
-          )
+      allSelected ? new Set() : new Set(cards.map((card) => card.card_id)),
     );
   }
 
@@ -417,9 +364,7 @@ export default function CardsAndCombos({
           className={styles.selectAll}
           onClick={toggleAllCards}
         >
-          {allSelected
-            ? "Deselect all cards"
-            : "Select all cards"}
+          {allSelected ? "Deselect all cards" : "Select all cards"}
         </button>
       </header>
 
@@ -430,10 +375,7 @@ export default function CardsAndCombos({
         imageUrls={cardImageUrls}
       />
 
-      <section
-        className={styles.tableArea}
-        aria-label="Training results"
-      >
+      <section className={styles.tableArea} aria-label="Training results">
         <ComboFilters
           query={query}
           onQueryChange={setQuery}
@@ -451,12 +393,18 @@ export default function CardsAndCombos({
         />
 
         <div className={styles.tableTipp}>
-          <p><strong>Shooting: </strong>(Accuracy + Power) / 2</p>
-          <p><strong>Technique: </strong>(Dribbling + Tackling + Ball Control) / 3</p>
+          <p>
+            <strong>Shooting: </strong>(Accuracy + Power) / 2
+          </p>
+          <p>
+            <strong>Technique: </strong>(Dribbling + Tackling + Ball Control) /
+            3
+          </p>
         </div>
 
         <ComboTable
           rows={visibleRows}
+          matchActionLabels={matchActionLabels}
           cardNames={cardNames}
           cardImageUrls={cardImageUrls}
           comboImageUrls={comboImageUrls}

@@ -800,6 +800,8 @@
   flex-shrink: 0;
   object-fit: contain;
   image-rendering: pixelated;
+  transform: translateY(5px);
+  z-index: 2;
 }
 
 .track {
