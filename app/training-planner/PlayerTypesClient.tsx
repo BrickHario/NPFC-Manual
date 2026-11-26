@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   combineTrainingPots,
   getGroupedTrainingFatigue,
+  getPlayerTrainingMatchActions,
   getTrainingGroups,
   resolveTrainingSelection,
 } from "./training-types";
@@ -31,6 +32,7 @@ import {
   calculateAttributes,
   calculateWeeklyRecovery,
   type Language,
+  type MatchActionLabel,
 } from "../../lib/utils";
 import {
   calculatePlayerPosition,
@@ -108,6 +110,7 @@ function applyExtraValues(
 
 const TRAINING_STORAGE_KEY = "npfc-player-training-orders-v1";
 const POSITION_STORAGE_KEY = "npfc-player-type-positions-v1";
+const MOVEMENT_POSITION_STORAGE_KEY = "npfc-player-movement-positions-v1";
 const SELECTED_PLAYER_STORAGE_KEY = "npfc-selected-player-v1";
 
 type Position = { x: number; y: number };
@@ -125,6 +128,7 @@ type PlayerTypesClientProps = {
   initialLanguage: Language;
   initialPlayers: PlayerTypeSelection[];
   goalkeeperIds: number[];
+  matchActionLabels: readonly (readonly [number, MatchActionLabel])[];
 };
 
 function isImportedPlayer(player: PlayerEntry): player is ImportedSavePlayer {
@@ -308,11 +312,11 @@ function readTrainingOrders(): TrainingOrders {
   }
 }
 
-function readPositions(): Record<string, Position> {
+function readPositions(
+  storageKey = POSITION_STORAGE_KEY,
+): Record<string, Position> {
   try {
-    const value: unknown = JSON.parse(
-      localStorage.getItem(POSITION_STORAGE_KEY) ?? "{}",
-    );
+    const value: unknown = JSON.parse(localStorage.getItem(storageKey) ?? "{}");
 
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       return {};
@@ -353,13 +357,21 @@ export default function PlayerTypesClient({
   initialLanguage,
   initialPlayers,
   goalkeeperIds,
+  matchActionLabels,
 }: PlayerTypesClientProps) {
   const router = useRouter();
   const dbCurves = usePotentialCurves();
+  const matchActionLookup = useMemo(
+    () => new Map(matchActionLabels),
+    [matchActionLabels],
+  );
 
   const [players, setPlayers] = useState<PlayerEntry[]>(initialPlayers);
 
   const [positions, setPositions] = useState<Record<string, Position>>({});
+  const [movementPositions, setMovementPositions] = useState<
+    Record<string, Position>
+  >({});
 
   const [selectedPlayerKey, setSelectedPlayerKey] = useState<string | null>(
     null,
@@ -383,6 +395,7 @@ export default function PlayerTypesClient({
   useEffect(() => {
     setTrainingOrders(readTrainingOrders());
     setPositions(readPositions());
+    setMovementPositions(readPositions(MOVEMENT_POSITION_STORAGE_KEY));
 
     const savedSelection = localStorage.getItem(SELECTED_PLAYER_STORAGE_KEY);
 
@@ -418,6 +431,15 @@ export default function PlayerTypesClient({
 
     localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(positions));
   }, [positions, storageLoaded]);
+
+  useEffect(() => {
+    if (!storageLoaded) return;
+
+    localStorage.setItem(
+      MOVEMENT_POSITION_STORAGE_KEY,
+      JSON.stringify(movementPositions),
+    );
+  }, [movementPositions, storageLoaded]);
 
   useEffect(() => {
     const savedIds = getSavedPlayerIds();
@@ -569,6 +591,27 @@ export default function PlayerTypesClient({
     [players, storageLoaded],
   );
 
+  const handleMovementPositionChange = useCallback(
+    (id: number | null, axis: "x" | "y", value: number) => {
+      if (!storageLoaded || !Number.isFinite(value)) return;
+
+      const key = id === null ? "dummy" : String(id);
+      const player = players.find((entry) => String(entry.id) === key);
+
+      if (player && isImportedPlayer(player)) return;
+
+      setMovementPositions((current) => ({
+        ...current,
+        [key]: {
+          x: current[key]?.x ?? 0,
+          y: current[key]?.y ?? 0,
+          [axis]: clampCoordinate(value),
+        },
+      }));
+    },
+    [players, storageLoaded],
+  );
+
   const trainingCatalog = useMemo(
     () =>
       new Map(trainings.map((entry) => [`${entry.kind}:${entry.id}`, entry])),
@@ -585,6 +628,7 @@ export default function PlayerTypesClient({
               name: "Dummy",
               imageUrl: "/Dummy.png",
               skills: Array<number>(10).fill(0),
+              matchActions: [],
             },
           ],
     [players],
@@ -679,8 +723,9 @@ export default function PlayerTypesClient({
       const developmentWeeks = imported ? player.developmentWeeks : 0;
 
       let finalSkillPoints = [...initialSkillPoints];
-      const initialExtraValues: [number, number] =
-        imported && player.extraValues ? [...player.extraValues] : [0, 0];
+      const initialExtraValues: [number, number] = imported
+        ? [...(player.extraValues ?? [0, 0])]
+        : [movementPositions[key]?.x ?? 0, movementPositions[key]?.y ?? 0];
       let finalExtraValues: [number, number] = [...initialExtraValues];
       const movementPath: [number, number][] = [];
       let fatigue = Math.max(
@@ -785,6 +830,12 @@ export default function PlayerTypesClient({
         name: player.name,
         imageUrl: player.imageUrl,
         isImported: imported,
+        matchActions: getPlayerTrainingMatchActions(
+          id === null ? [] : player.matchActions ?? [],
+          trainingsForPlayer,
+          trainingCatalog,
+        ),
+        matchActionsNeedImport: imported && player.matchActions === undefined,
         fatigue,
         weeklyRecovery: calculateWeeklyRecovery(finalSkillPoints),
         potentialPercent: getPotentialPercent(
@@ -810,9 +861,7 @@ export default function PlayerTypesClient({
         finalExtraValues,
         movementPath,
         movementDataAvailable:
-          id === null ||
-          (imported && player.extraValues !== undefined) ||
-          appliedTrainings > 0,
+          !imported || player.extraValues !== undefined || appliedTrainings > 0,
         startPots,
         startPosition,
         path,
@@ -822,6 +871,7 @@ export default function PlayerTypesClient({
     displayPlayers,
     players.length,
     positions,
+    movementPositions,
     trainingOrders,
     trainingCatalog,
     language,
@@ -863,6 +913,7 @@ export default function PlayerTypesClient({
 
           <TypePlayers
             players={playerViews}
+            matchActionLookup={matchActionLookup}
             chartMode={chartMode}
             selectedPlayerKey={activePlayerKey}
             onSelectPlayer={(key) => {
@@ -872,6 +923,7 @@ export default function PlayerTypesClient({
             }}
             onRemovePlayer={handleRemovePlayer}
             onPositionChange={handlePositionChange}
+            onMovementPositionChange={handleMovementPositionChange}
             clampCoordinate={clampCoordinate}
             getPlayerType={getPlayerType}
           />

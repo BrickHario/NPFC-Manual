@@ -9,6 +9,8 @@ import {
   calculateAttributes,
   getFatigueColor,
   getFatigueProgress,
+  getMatchActionLabelStyle,
+  type MatchActionLabel,
   rankImages,
 } from "../../lib/utils";
 
@@ -16,6 +18,8 @@ export type PlayerDisplay = {
   id: number | null;
   name: string;
   isImported?: boolean;
+  matchActions: number[];
+  matchActionsNeedImport?: boolean;
   developmentWeeks?: number;
   trainingCount?: number;
   potentialOffsetWeeks?: number | null;
@@ -46,11 +50,17 @@ export type PlayerDisplay = {
 
 type TypePlayersProps = {
   players: PlayerDisplay[];
+  matchActionLookup: ReadonlyMap<number, MatchActionLabel>;
   chartMode: "types" | "movement";
   selectedPlayerKey: string | null;
   onSelectPlayer: (key: string) => void;
   onRemovePlayer: (id: number) => void;
   onPositionChange: (id: number | null, axis: "x" | "y", value: number) => void;
+  onMovementPositionChange: (
+    id: number | null,
+    axis: "x" | "y",
+    value: number,
+  ) => void;
   clampCoordinate: (value: number) => number;
   getPlayerType: (x: number, y: number) => string;
 };
@@ -139,11 +149,13 @@ function getAttributeImage(name: string, index: number): string {
 
 export function TypePlayers({
   players,
+  matchActionLookup,
   chartMode,
   selectedPlayerKey,
   onSelectPlayer,
   onRemovePlayer,
   onPositionChange,
+  onMovementPositionChange,
   clampCoordinate,
   getPlayerType,
 }: TypePlayersProps) {
@@ -193,6 +205,16 @@ export function TypePlayers({
           );
 
           const potentialPercent = player.potentialPercent;
+          const isMovement = chartMode === "movement";
+          const inputX = isMovement
+            ? player.initialExtraValues?.[0] ?? 0
+            : player.x;
+          const inputY = isMovement
+            ? player.initialExtraValues?.[1] ?? 0
+            : player.y;
+          const onCoordinateChange = isMovement
+            ? onMovementPositionChange
+            : onPositionChange;
 
           return (
             <li
@@ -293,6 +315,38 @@ export function TypePlayers({
                     }}
                   />
                 </div>
+                <div
+                  className={styles.matchActionGrid}
+                  aria-label="Match Actions"
+                >
+                  {player.matchActionsNeedImport ? (
+                    <span className={styles.matchActionHint}>
+                      Re-import save
+                    </span>
+                  ) : player.matchActions.length === 0 ? (
+                    <span className={styles.matchActionHint}>
+                      No Match Actions
+                    </span>
+                  ) : null}
+                  {[...new Set(player.matchActions)]
+                    .sort((a, b) => a - b)
+                    .map((id) => {
+                      const action = matchActionLookup.get(id);
+                      const title =
+                        action?.title ?? `Unmapped Match Action ID ${id}`;
+
+                      return (
+                        <span
+                          key={id}
+                          style={action?.style ?? getMatchActionLabelStyle(0)}
+                          title={title}
+                          aria-label={title}
+                        >
+                          {action?.label ?? id}
+                        </span>
+                      );
+                    })}
+                </div>
                 <div className={styles.typeComparison}>
                   <div className={styles.typeComparisonRow}>
                     <span
@@ -308,7 +362,7 @@ export function TypePlayers({
                     </span>
                     <div className={styles.vectorColumn}>
                       <div className={styles.coordinatesRow}>
-                        {chartMode === "movement" ? (
+                        {isMovement && player.isImported ? (
                           <span
                             className={styles.resultCoordinates}
                             title="Before training: X = Defensive Movement, Y = Offensive Movement"
@@ -332,19 +386,26 @@ export function TypePlayers({
                                 min={0}
                                 max={100}
                                 step={1}
-                                value={player.x}
+                                value={inputX}
                                 onChange={(event) => {
                                   const value =
                                     event.currentTarget.valueAsNumber;
                                   if (Number.isFinite(value)) {
-                                    onPositionChange(
+                                    onCoordinateChange(
                                       player.id,
                                       "x",
                                       clampCoordinate(value),
                                     );
                                   }
                                 }}
-                                aria-label={`${player.name} X-Koordinate`}
+                                aria-label={`${player.name} ${
+                                  isMovement
+                                    ? "Defensive Movement"
+                                    : "X-Koordinate"
+                                }`}
+                                title={
+                                  isMovement ? "Defensive Movement" : undefined
+                                }
                               />
                             </label>
 
@@ -356,19 +417,26 @@ export function TypePlayers({
                                 min={0}
                                 max={100}
                                 step={1}
-                                value={player.y}
+                                value={inputY}
                                 onChange={(event) => {
                                   const value =
                                     event.currentTarget.valueAsNumber;
                                   if (Number.isFinite(value)) {
-                                    onPositionChange(
+                                    onCoordinateChange(
                                       player.id,
                                       "y",
                                       clampCoordinate(value),
                                     );
                                   }
                                 }}
-                                aria-label={`${player.name} Y-Koordinate`}
+                                aria-label={`${player.name} ${
+                                  isMovement
+                                    ? "Offensive Movement"
+                                    : "Y-Koordinate"
+                                }`}
+                                title={
+                                  isMovement ? "Offensive Movement" : undefined
+                                }
                               />
                             </label>
                           </>
@@ -558,33 +626,39 @@ export function TypePlayers({
                       );
                     })}
                 </div>
-                <div
-                  className={`${styles.skillsGrid} ${styles.individualSkillsGrid}`}
-                  aria-label="Individual skills before and after training"
-                >
-                  {INDIVIDUAL_SKILLS.map(({ index, name, icon }) => (
-                    <div className={styles.skillItem} key={index} title={name}>
-                      <Image
-                        src={icon}
-                        alt={name}
-                        width={15}
-                        height={15}
-                        unoptimized
-                        className={styles.skillIcon}
-                      />
-                      <IndividualGrade
-                        name={name}
-                        points={player.initialSkillPoints[index]}
-                        phase="Before training"
-                      />
-                      <span className={styles.downArrow}>⌄</span>
-                      <IndividualGrade
-                        name={name}
-                        points={player.finalSkillPoints[index]}
-                        phase="After training"
-                      />
-                    </div>
-                  ))}
+                <div className={styles.additionalSkillsRow}>
+                  <div
+                    className={`${styles.skillsGrid} ${styles.individualSkillsGrid}`}
+                    aria-label="Individual skills before and after training"
+                  >
+                    {INDIVIDUAL_SKILLS.map(({ index, name, icon }) => (
+                      <div
+                        className={styles.skillItem}
+                        key={index}
+                        title={name}
+                      >
+                        <Image
+                          src={icon}
+                          alt={name}
+                          width={15}
+                          height={15}
+                          unoptimized
+                          className={styles.skillIcon}
+                        />
+                        <IndividualGrade
+                          name={name}
+                          points={player.initialSkillPoints[index]}
+                          phase="Before training"
+                        />
+                        <span className={styles.downArrow}>⌄</span>
+                        <IndividualGrade
+                          name={name}
+                          points={player.finalSkillPoints[index]}
+                          phase="After training"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </li>

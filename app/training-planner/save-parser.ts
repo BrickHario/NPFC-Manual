@@ -5,6 +5,7 @@ export type ImportedSavePlayer = {
   skillPoints: number[];
   typeWeights: number[];
   extraValues?: [number, number];
+  matchActions?: number[];
   position: number;
   foot: "L" | "R";
   savedTypeIndex: number;
@@ -76,6 +77,51 @@ export function getFatigueLevel(fatigue: number | null): 0 | 1 | 2 | null {
   if (fatigue === null) return null;
 
   return fatigue < 400 ? 0 : fatigue < 700 ? 1 : 2;
+}
+
+export type SavedPlayerMatchActions = {
+  playerId: number;
+  rosterSlot: number;
+  matchActions: number[];
+};
+
+export function readSavedPlayerMatchActions(
+  view: DataView,
+  rosterSlot: number,
+): SavedPlayerMatchActions | null {
+  if (
+    !Number.isInteger(rosterSlot) ||
+    rosterSlot < 0 ||
+    rosterSlot >= SLOT_COUNT
+  ) {
+    return null;
+  }
+
+  const base = ROSTER_OFFSET + rosterSlot * SLOT_SIZE;
+
+  if (base + 0x7a >= view.byteLength) return null;
+
+  const playerId = view.getUint16(base, true);
+
+  if (playerId >= EMPTY_PLAYER_ID) return null;
+
+  const actionFlags = view.getUint16(base + 0x78, true);
+  const celebrationFlags = view.getUint8(base + 0x7a);
+  const matchActions: number[] = [];
+
+  for (let id = 1; id <= 16; id++) {
+    if ((actionFlags & (1 << (id - 1))) !== 0) {
+      matchActions.push(id);
+    }
+  }
+
+  for (let id = 17; id <= 24; id++) {
+    if ((celebrationFlags & (1 << (id - 17))) !== 0) {
+      matchActions.push(id);
+    }
+  }
+
+  return { playerId, rosterSlot, matchActions };
 }
 
 export function parseSave(buffer: ArrayBuffer, fileName: string): ParsedSave {
@@ -179,6 +225,7 @@ export function parseSave(buffer: ArrayBuffer, fileName: string): ParsedSave {
       skillPoints,
       typeWeights,
       extraValues,
+      matchActions: readSavedPlayerMatchActions(view, slot)?.matchActions ?? [],
       position: positionAndFoot & 0x0f,
       foot: (positionAndFoot & 0x10) !== 0 ? "L" : "R",
       savedTypeIndex: view.getUint8(base + 0x68),
@@ -274,6 +321,11 @@ export function readImportedPlayers(): ImportedSavePlayer[] {
           item.typeWeights.every(
             (n) => Number.isInteger(n) && n >= 0 && n <= 255,
           ) &&
+          (item.matchActions === undefined ||
+            (Array.isArray(item.matchActions) &&
+              item.matchActions.every(
+                (n) => Number.isInteger(n) && n >= 1 && n <= 24,
+              ))) &&
           (item.extraValues === undefined ||
             (Array.isArray(item.extraValues) &&
               item.extraValues.length === 2 &&

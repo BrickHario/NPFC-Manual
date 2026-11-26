@@ -1,4 +1,3 @@
-
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
@@ -6,10 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import PlayerTypesClient from "./PlayerTypesClient";
 import PotentialCurvesProvider from "./PotentialCurvesProvider";
 import { calculateTrainingFatigue } from "./training-types";
-import type {
-  TrainingEntry,
-  TrainingNames,
-} from "./training-types";
+import type { TrainingEntry, TrainingNames } from "./training-types";
 import {
   PLAYER_SELECTION_COOKIE,
   parsePlayerIds,
@@ -17,7 +13,13 @@ import {
 } from "./player-selection";
 import { LoadingBig } from "../Loading";
 import styles from "./TrainingSelectFilter.module.css";
-import { getPosition, type Language } from "../../lib/utils";
+import {
+  buildMatchActionLabels,
+  buildMatchActionLookup,
+  getMatchActionLabel,
+  getPosition,
+  type Language,
+} from "../../lib/utils";
 
 export const metadata: Metadata = {
   title: "Training Planner",
@@ -46,6 +48,7 @@ type TrainingRow = {
   card2_id?: number | null;
   card3_id?: number | null;
   has_match_actions?: boolean | number | null;
+  category_id?: number | null;
   gk_only?: boolean | number | null;
   xtra_01: number | null;
   xtra_02: number | null;
@@ -90,12 +93,12 @@ type PlayerSkillsRow = {
 
 const skillColumns = Array.from(
   { length: 10 },
-  (_, index) => `skill_${String(index + 1).padStart(2, "0")}`
+  (_, index) => `skill_${String(index + 1).padStart(2, "0")}`,
 );
 
 const potColumns = Array.from(
   { length: 12 },
-  (_, index) => `pot_${String(index + 1).padStart(2, "0")}`
+  (_, index) => `pot_${String(index + 1).padStart(2, "0")}`,
 );
 
 const trainingSelect =
@@ -106,26 +109,23 @@ const playerSkillsSelect =
 
 function getPotChanges(row: TrainingRow): number[] {
   return potColumns.map((column) =>
-    Number(row[column as keyof TrainingRow] ?? 0)
+    Number(row[column as keyof TrainingRow] ?? 0),
   );
 }
 
 function getSkillChanges(row: TrainingRow): number[] {
   return skillColumns.map((column) =>
-    Number(row[column as keyof TrainingRow] ?? 0)
+    Number(row[column as keyof TrainingRow] ?? 0),
   );
 }
 
 function getPlayerSkills(row: PlayerSkillsRow): number[] {
   return skillColumns.map((column) =>
-    Number(row[column as keyof PlayerSkillsRow] ?? 0)
+    Number(row[column as keyof PlayerSkillsRow] ?? 0),
   );
 }
 
-function namesOf(
-  row: NameRow | undefined,
-  fallback: string
-): TrainingNames {
+function namesOf(row: NameRow | undefined, fallback: string): TrainingNames {
   const english = row?.english_name?.trim() || fallback;
 
   return {
@@ -175,17 +175,15 @@ async function PlayerTypesData({
   const supabase = await createClient();
 
   const initialLanguage = normalizeLanguage(
-    cookieStore.get("npfc-language")?.value
+    cookieStore.get("npfc-language")?.value,
   );
 
   const storedIds = parsePlayerIds(
-    cookieStore.get(PLAYER_SELECTION_COOKIE)?.value
+    cookieStore.get(PLAYER_SELECTION_COOKIE)?.value,
   );
 
   const requestedId =
-    typeof params.playerId === "string"
-      ? Number(params.playerId)
-      : null;
+    typeof params.playerId === "string" ? Number(params.playerId) : null;
 
   const playerIds = [...storedIds];
 
@@ -217,26 +215,28 @@ async function PlayerTypesData({
     supabase
       .from("CardNames")
       .select(
-        "card_id,english_name,german_name,spanish_name,italian_name,french_name"
+        "card_id,english_name,german_name,spanish_name,italian_name,french_name",
       )
       .order("card_id"),
 
     supabase
       .from("Combos")
-      .select(`combo_id,card1_id,card2_id,card3_id,has_match_actions,gk_only,${trainingSelect}` as const)
+      .select(
+        `combo_id,card1_id,card2_id,card3_id,has_match_actions,gk_only,category_id,${trainingSelect}` as const,
+      )
       .order("combo_id"),
 
     supabase
       .from("ComboNames")
       .select(
-        "combo_id,english_name,german_name,spanish_name,italian_name,french_name"
+        "combo_id,english_name,german_name,spanish_name,italian_name,french_name",
       )
       .order("combo_id"),
 
     playerIds.length > 0
       ? supabase
           .from("Player")
-          .select("id_player,name,Potential_Curves(*)")
+          .select("id_player,name,match_actions,Potential_Curves(*)")
           .in("id_player", playerIds)
       : Promise.resolve({ data: [], error: null }),
 
@@ -280,30 +280,57 @@ async function PlayerTypesData({
   if (error) {
     return (
       <main>
-        <p role="alert">
-          Unable to load data: {error.message}
-        </p>
+        <p role="alert">Unable to load data: {error.message}</p>
       </main>
     );
   }
 
   const cardNames = new Map(
-    ((cardNamesResult.data ?? []) as CardNameRow[]).map(
-      (row) => [row.card_id, row]
-    )
+    ((cardNamesResult.data ?? []) as CardNameRow[]).map((row) => [
+      row.card_id,
+      row,
+    ]),
   );
 
   const comboNames = new Map(
-    ((comboNamesResult.data ?? []) as ComboNameRow[]).map(
-      (row) => [row.combo_id, row]
-    )
+    ((comboNamesResult.data ?? []) as ComboNameRow[]).map((row) => [
+      row.combo_id,
+      row,
+    ]),
+  );
+
+  const matchActionCombos = ((combosResult.data ?? []) as TrainingRow[]).map(
+    (row) => ({
+      combo_id: Number(row.combo_id),
+      category_id: Number(row.category_id),
+      has_match_actions: row.has_match_actions,
+    }),
+  );
+
+  const comboMatchActionLabels = buildMatchActionLabels(matchActionCombos);
+
+  const matchActionLabels = Array.from(
+    buildMatchActionLookup(matchActionCombos),
+    ([id, action]) => {
+      const name = namesOf(comboNames.get(action.comboId), action.title)[
+        initialLanguage
+      ];
+
+      return [
+        id,
+        {
+          ...action,
+          title: `${action.label}: ${name}`,
+        },
+      ] as const;
+    },
   );
 
   const cardSkillMap = new Map(
     ((cardsResult.data ?? []) as TrainingRow[]).map((row) => [
       Number(row.card_id),
       getSkillChanges(row),
-    ])
+    ]),
   );
 
   const cards: TrainingEntry[] = (
@@ -319,7 +346,9 @@ async function PlayerTypesData({
       xtra_02: Number(row.xtra_02 ?? 0),
       random_01: Number(row.random_01 ?? 0),
       skillChanges: getSkillChanges(row),
-      fatigueChange: calculateTrainingFatigue([{ skillPoints: getSkillChanges(row) }]),
+      fatigueChange: calculateTrainingFatigue([
+        { skillPoints: getSkillChanges(row) },
+      ]),
       names: namesOf(cardNames.get(id), `Card #${id}`),
       imageUrl: `/card-images/${String(id).padStart(4, "0")}.png`,
       potChanges: getPotChanges(row),
@@ -330,8 +359,9 @@ async function PlayerTypesData({
     (combosResult.data ?? []) as TrainingRow[]
   ).map((row) => {
     const id = Number(row.combo_id);
-    const requiredCardIds = [row.card1_id, row.card2_id, row.card3_id]
-      .filter((cardId): cardId is number => cardId !== null && cardId !== undefined);
+    const requiredCardIds = [row.card1_id, row.card2_id, row.card3_id].filter(
+      (cardId): cardId is number => cardId !== null && cardId !== undefined,
+    );
     const ingredientSkills = requiredCardIds
       .map((cardId) => cardSkillMap.get(cardId))
       .filter((values): values is number[] => values !== undefined);
@@ -343,14 +373,24 @@ async function PlayerTypesData({
       xtra_01: Number(row.xtra_01 ?? 0),
       xtra_02: Number(row.xtra_02 ?? 0),
       hasMatchActions:
-        row.has_match_actions === true ||
-        row.has_match_actions === 1,
+        row.has_match_actions === true || row.has_match_actions === 1,
+      matchActionLabel: getMatchActionLabel(
+        {
+          combo_id: id,
+          category_id: Number(row.category_id),
+          has_match_actions: row.has_match_actions,
+        },
+        comboMatchActionLabels,
+      ),
       names: namesOf(comboNames.get(id), `Combo #${id}`),
       skillChanges: getSkillChanges(row),
       requiredCardIds,
-      fatigueChange: ingredientSkills.length === requiredCardIds.length
-        ? calculateTrainingFatigue(ingredientSkills.map((skillPoints) => ({ skillPoints })))
-        : 0,
+      fatigueChange:
+        ingredientSkills.length === requiredCardIds.length
+          ? calculateTrainingFatigue(
+              ingredientSkills.map((skillPoints) => ({ skillPoints })),
+            )
+          : 0,
       imageUrl: `/combo-images/${String(id).padStart(4, "0")}.png`,
       potChanges: getPotChanges(row),
     };
@@ -360,19 +400,22 @@ async function PlayerTypesData({
     (playersResult.data ?? []).map((player) => [
       Number(player.id_player),
       player,
-    ])
+    ]),
   );
 
   const skillsMap = new Map(
-    ((skillsResult.data ?? []) as PlayerSkillsRow[]).map(
-      (skills) => [Number(skills.id_player), skills]
-    )
+    ((skillsResult.data ?? []) as PlayerSkillsRow[]).map((skills) => [
+      Number(skills.id_player),
+      skills,
+    ]),
   );
 
   const playerCurves: Record<number, number[]> = {};
   for (const row of playersResult.data ?? []) {
     const relation = row.Potential_Curves;
-    const curve = getCurvePoints(Array.isArray(relation) ? relation[0] : relation);
+    const curve = getCurvePoints(
+      Array.isArray(relation) ? relation[0] : relation,
+    );
     if (curve) playerCurves[Number(row.id_player)] = curve;
   }
 
@@ -382,7 +425,7 @@ async function PlayerTypesData({
   };
 
   const initialPlayers: PlayerTypeSelection[] = playerIds
-    .map((id) => {
+    .map((id): PlayerTypeSelection | null => {
       const player = playerMap.get(id);
       const skills = skillsMap.get(id);
 
@@ -393,12 +436,14 @@ async function PlayerTypesData({
         name: player.name,
         imageUrl: `/player-images/${String(id).padStart(4, "0")}.png`,
         skills: getPlayerSkills(skills),
+        matchActions: Array.isArray(player.match_actions)
+          ? player.match_actions.filter(
+              (id): id is number => Number.isInteger(id) && id >= 1 && id <= 24,
+            )
+          : [],
       };
     })
-    .filter(
-      (player): player is PlayerTypeSelection =>
-        player !== null
-    );
+    .filter((player): player is PlayerTypeSelection => player !== null);
 
   return (
     <PotentialCurvesProvider value={initialPotentialCurves}>
@@ -406,7 +451,11 @@ async function PlayerTypesData({
         trainings={[...cards, ...combos]}
         initialLanguage={initialLanguage}
         initialPlayers={initialPlayers}
-        goalkeeperIds={[...(positionsFirstResult.data ?? []), ...(positionsSecondResult.data ?? [])]
+        matchActionLabels={matchActionLabels}
+        goalkeeperIds={[
+          ...(positionsFirstResult.data ?? []),
+          ...(positionsSecondResult.data ?? []),
+        ]
           .filter((player) => getPosition(player.id_position) === "GK")
           .map((player) => Number(player.id_player))}
       />

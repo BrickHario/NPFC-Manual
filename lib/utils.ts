@@ -496,6 +496,7 @@ export function getMatchActionLabelStyle(categoryId: number) {
 export function buildMatchActionLabels(combos: readonly MatchActionCombo[]): Map<number, string> {
   const labels = new Map<number, string>();
   const counts = new Map<string, number>();
+  const actionLabels = new Map<number, string>();
 
   const matchCombos = combos
     .filter(hasMatchAction)
@@ -504,10 +505,22 @@ export function buildMatchActionLabels(combos: readonly MatchActionCombo[]): Map
   for (const combo of matchCombos) {
     if (labels.has(combo.combo_id)) continue;
 
+    const actionId = COMBO_MATCH_ACTION_IDS[combo.combo_id];
+    const existingLabel = actionId === undefined ? undefined : actionLabels.get(actionId);
+
+    if (existingLabel !== undefined) {
+      labels.set(combo.combo_id, existingLabel);
+      continue;
+    }
+
     const prefix = MATCH_ACTION_CATEGORIES[combo.category_id]?.prefix ?? "C";
     const number = (counts.get(prefix) ?? 0) + 1;
     counts.set(prefix, number);
-    labels.set(combo.combo_id, `${prefix}${number}`);
+
+    const label = `${prefix}${number}`;
+    labels.set(combo.combo_id, label);
+
+    if (actionId !== undefined) actionLabels.set(actionId, label);
   }
 
   return labels;

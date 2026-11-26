@@ -1,3 +1,4 @@
+import { COMBO_MATCH_ACTION_IDS, type MatchActionLabel } from "../../lib/utils";
 
 export type TrainingKind = "card" | "combo";
 
@@ -20,6 +21,7 @@ export type TrainingEntry = {
   kind: TrainingKind;
   id: number;
   hasMatchActions: boolean;
+  matchActionLabel?: MatchActionLabel | null;
   gkOnly?: boolean;
   names: TrainingNames;
   imageUrl: string;
@@ -32,7 +34,9 @@ export type TrainingEntry = {
   requiredCardIds?: number[];
 };
 
-export function getTrainingGroups(selected: SelectedTraining[]): SelectedTraining[][] {
+export function getTrainingGroups(
+  selected: SelectedTraining[],
+): SelectedTraining[][] {
   const groups: SelectedTraining[][] = [];
 
   for (const item of selected) {
@@ -57,16 +61,24 @@ export function getTrainingGroups(selected: SelectedTraining[]): SelectedTrainin
 
 export function combineTrainingPots(entries: TrainingEntry[]): number[] {
   return Array.from({ length: 12 }, (_, index) => {
-    const sum = entries.reduce((total, entry) => total + (entry.potChanges[index] ?? 0), 0);
+    const sum = entries.reduce(
+      (total, entry) => total + (entry.potChanges[index] ?? 0),
+      0,
+    );
     return Math.max(-30, Math.min(30, sum));
   });
 }
 
-export function calculateTrainingFatigue(cards: { skillPoints: number[] }[]): number {
-  const sum = cards.reduce((total, card) =>
-    total + card.skillPoints.slice(0, 9).reduce((a, b) => a + b, 0), 0);
+export function calculateTrainingFatigue(
+  cards: { skillPoints: number[] }[],
+): number {
+  const sum = cards.reduce(
+    (total, card) =>
+      total + card.skillPoints.slice(0, 9).reduce((a, b) => a + b, 0),
+    0,
+  );
   if (cards.length === 1) return Math.max(0, Math.trunc(sum * 10));
-  if (cards.length === 2) return Math.max(0, Math.trunc(sum * 20 / 3));
+  if (cards.length === 2) return Math.max(0, Math.trunc((sum * 20) / 3));
   if (cards.length === 3) return Math.max(0, Math.trunc(sum * 5));
   return 0;
 }
@@ -75,28 +87,40 @@ export function getGroupedTrainingFatigue(entries: TrainingEntry[]): number {
   if (entries.length === 1 && entries[0].kind === "combo") {
     return entries[0].fatigueChange;
   }
-  return calculateTrainingFatigue(entries.map((entry) => ({ skillPoints: entry.skillChanges })));
+  return calculateTrainingFatigue(
+    entries.map((entry) => ({ skillPoints: entry.skillChanges })),
+  );
 }
 
-export function canUseTraining(entry: TrainingEntry, isGoalkeeper: boolean): boolean {
+export function canUseTraining(
+  entry: TrainingEntry,
+  isGoalkeeper: boolean,
+): boolean {
   return entry.kind !== "combo" || !entry.gkOnly || isGoalkeeper;
 }
 
 export function resolveTrainingSelection(
   selected: SelectedTraining[],
   catalog: ReadonlyMap<string, TrainingEntry>,
-  isGoalkeeper: boolean
+  isGoalkeeper: boolean,
 ): SelectedTraining[] {
-  let nextInstanceId = Math.max(-1, ...selected.map((item) => item.instanceId)) + 1;
-  let nextGroupId = Math.max(-1, ...selected.map((item) => item.groupId ?? -1)) + 1;
+  let nextInstanceId =
+    Math.max(-1, ...selected.map((item) => item.instanceId)) + 1;
+  let nextGroupId =
+    Math.max(-1, ...selected.map((item) => item.groupId ?? -1)) + 1;
 
   return selected.flatMap((item) => {
     const entry = catalog.get(`${item.kind}:${item.id}`);
     if (!entry || canUseTraining(entry, isGoalkeeper)) return [item];
 
     const ids = entry.requiredCardIds ?? [];
-    if (ids.length < 2 || ids.length > 3 || new Set(ids).size !== ids.length ||
-        !ids.every((id) => catalog.has(`card:${id}`))) return [];
+    if (
+      ids.length < 2 ||
+      ids.length > 3 ||
+      new Set(ids).size !== ids.length ||
+      !ids.every((id) => catalog.has(`card:${id}`))
+    )
+      return [];
 
     const groupId = nextGroupId++;
     return ids.map((id, index) => ({
@@ -106,4 +130,24 @@ export function resolveTrainingSelection(
       groupId,
     }));
   });
+}
+
+export function getPlayerTrainingMatchActions(
+  initialActions: readonly number[],
+  selected: readonly SelectedTraining[],
+  catalog: ReadonlyMap<string, TrainingEntry>,
+): number[] {
+  const actions = new Set(initialActions);
+
+  for (const item of selected) {
+    if (item.kind !== "combo") continue;
+
+    const entry = catalog.get(`combo:${item.id}`);
+    if (!entry?.hasMatchActions) continue;
+
+    const actionId = COMBO_MATCH_ACTION_IDS[item.id];
+    if (actionId !== undefined) actions.add(actionId);
+  }
+
+  return [...actions].sort((a, b) => a - b);
 }
