@@ -64,7 +64,7 @@
   display: grid;
   place-items: center;
   box-sizing: border-box;
-  font-size: clamp(8px, 3.1cqw, 16px);
+  font-size: clamp(7px, 3.1cqw, 15px);
   font-weight: 800;
   line-height: 1;
   color: #111;

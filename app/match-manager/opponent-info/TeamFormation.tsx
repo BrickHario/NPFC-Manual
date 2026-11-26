@@ -595,14 +595,30 @@ export default function TeamFormation({
               <div className={labels.benchPitch}>
                 <div
                   className={labels.benchGrid}
-                  style={
-                    benchRowCount > 3
-                      ? {
-                          gridTemplateRows: `repeat(${benchRowCount}, 5.73cqw)`,
-                          backgroundImage: `repeating-linear-gradient(to right, rgba(40, 90, 40, 0.58) 0, rgba(40, 90, 40, 0.58) 1px, transparent 1px, transparent calc(100% / 15)), repeating-linear-gradient(to bottom, rgba(40, 90, 40, 0.58) 0, rgba(40, 90, 40, 0.58) 1px, transparent 1px, transparent calc(100% / ${benchRowCount}))`,
-                        }
-                      : undefined
-                  }
+                  style={{
+                    gridTemplateRows: `repeat(${benchRowCount}, 5.73cqw)`,
+                    backgroundImage: `
+    repeating-linear-gradient(
+      to right,
+      rgba(40, 90, 40, 0.58) 0,
+      rgba(40, 90, 40, 0.58) 1px,
+      transparent 1px,
+      transparent calc(100% / 15)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(40, 90, 40, 0.58) 0,
+      rgba(40, 90, 40, 0.58) 1px,
+      transparent 1px,
+      transparent calc(100% / ${benchRowCount})
+    ),
+    linear-gradient(
+      to bottom,
+      transparent ${(2 / benchRowCount) * 100}%,
+      rgba(160, 160, 160, 0.5) ${(2 / benchRowCount) * 100}%
+    )
+  `,
+                  }}
                 >
                   {benchPlayers.map((player, index) => (
                     <div
