@@ -13,6 +13,8 @@ type Props = {
   selectedPositions: string[];
   selectedMarkets: string[];
   selectedTiers: string[];
+  matchActionOptions: { value: string; label: string }[];
+  selectedMatchActions: string[];
   selectedFoot: string;
   search: string;
   sort: string;
@@ -38,10 +40,12 @@ function MultiFilter({
   selected,
   open,
   onToggle,
+  optionLabels,
 }: {
   label: string;
   name: string;
   options: string[];
+  optionLabels?: Record<string, string>;
   selected: string[];
   open: boolean;
   onToggle: () => void;
@@ -61,7 +65,9 @@ function MultiFilter({
       open={open}
       data-marketplace-multifilter
       data-open={open}
-      className={styles.multiFilter}
+      className={`${styles.multiFilter}${
+        name === "matchAction" ? ` ${styles.matchActionFilter}` : ""
+      }`}
     >
       <summary
         className={`${styles.control} ${styles.filterSummary}`}
@@ -91,7 +97,7 @@ function MultiFilter({
                 ? MARKET_LABELS[marketKey(option)] ?? option
                 : name === "tier" && option === "Silber"
                 ? "Silver"
-                : option}
+                : optionLabels?.[option] ?? option}
             </span>
           </label>
         ))}
@@ -175,6 +181,8 @@ export default function MarketplaceFilters({
   selectedPositions,
   selectedMarkets,
   selectedTiers,
+  matchActionOptions,
+  selectedMatchActions,
   selectedFoot,
   search,
   sort,
@@ -385,6 +393,23 @@ export default function MarketplaceFilters({
         }}
       />
 
+      <MultiFilter
+        label="Match Actions"
+        name="matchAction"
+        options={matchActionOptions.map((option) => option.value)}
+        optionLabels={Object.fromEntries(
+          matchActionOptions.map((option) => [option.value, option.label]),
+        )}
+        selected={selectedMatchActions}
+        open={openDropdown === "matchAction"}
+        onToggle={() => {
+          setShowSuggestions(false);
+          setOpenDropdown(
+            openDropdown === "matchAction" ? null : "matchAction",
+          );
+        }}
+      />
+
       <div className={styles.priceGroup}>
         <input
           className={`${styles.control} ${styles.priceInput}`}
@@ -478,6 +503,8 @@ export default function MarketplaceFilters({
           { value: "consistency_asc", label: "Consistency ↑" },
           { value: "action_learning_desc", label: "Action Learning ↓" },
           { value: "action_learning_asc", label: "Action Learning ↑" },
+          { value: "match_actions_desc", label: "Most Match Actions" },
+          { value: "match_actions_asc", label: "Least Match Actions" },
           ...skillNames.flatMap((skill, index) => [
             { value: `skill:${index}:desc`, label: `${skill} ↓` },
             { value: `skill:${index}:asc`, label: `${skill} ↑` },

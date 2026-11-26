@@ -17,7 +17,6 @@
   font-family: var(--font-body);
 }
 
-
 .control {
   box-sizing: border-box;
   height: 44px;
@@ -32,11 +31,8 @@
   font-weight: 600;
   line-height: 1.2;
   box-shadow: 3px 3px 0 var(--dark);
-  transition:
-    background var(--anim),
-    border-color var(--anim),
-    box-shadow var(--anim),
-    transform var(--anim);
+  transition: background var(--anim), border-color var(--anim),
+    box-shadow var(--anim), transform var(--anim);
 }
 
 .control:hover {
@@ -266,9 +262,7 @@
   letter-spacing: 0.4px;
   box-shadow: 3px 3px 0 var(--dark);
   cursor: pointer;
-  transition:
-    background var(--anim),
-    box-shadow var(--anim),
+  transition: background var(--anim), box-shadow var(--anim),
     transform var(--anim);
 }
 
@@ -455,4 +449,19 @@
   .sortFilter {
     width: auto;
   }
+}
+
+.matchActionFilter .filterMenu {
+  width: max-content;
+  min-width: 220px;
+  max-width: min(300px, calc(100vw - 40px));
+  box-sizing: border-box;
+}
+
+.matchActionFilter .optionLabel {
+  white-space: normal;
+}
+
+.matchActionFilter .checkbox {
+  flex-shrink: 0;
 }
