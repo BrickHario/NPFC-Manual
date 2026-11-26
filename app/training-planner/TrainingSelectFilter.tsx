@@ -216,6 +216,22 @@ function getVectorLabel(dx: number, dy: number) {
   return `X ${signed(dx)} / Y ${signed(dy)}`;
 }
 
+function TrainingMatchActionLabel({ entry }: { entry: TrainingEntry }) {
+  const action = entry.kind === "combo" ? entry.matchActionLabel : null;
+
+  if (!action) return null;
+
+  return (
+    <span
+      className={styles.matchActionLabel}
+      style={action.style}
+      title={action.title}
+    >
+      {action.label}
+    </span>
+  );
+}
+
 function entryKey(entry: { kind: TrainingKind; id: number }) {
   return `${entry.kind}:${entry.id}`;
 }
@@ -948,7 +964,9 @@ export default function TrainingSelectFilter({
                 }
               >
                 <span
-                  className={styles.availableImage}
+                  className={`${styles.availableImage} ${
+                    entry.matchActionLabel ? styles.hasMatchActionLabel : ""
+                  }`}
                   style={{ position: "relative" }}
                 >
                   <span
@@ -970,6 +988,7 @@ export default function TrainingSelectFilter({
                     +{entry.fatigueChange}
                   </span>
                   <Image src={entry.imageUrl} alt="" width={150} height={98} />
+                  <TrainingMatchActionLabel entry={entry} />
 
                   <span className={styles.availableName}>
                     {entry.names[language]}
@@ -1156,7 +1175,13 @@ export default function TrainingSelectFilter({
                       )}
 
                       <div className={styles.trainingCard}>
-                        <span className={styles.availableImage}>
+                        <span
+                          className={`${styles.availableImage} ${
+                            entry.matchActionLabel
+                              ? styles.hasMatchActionLabel
+                              : ""
+                          }`}
+                        >
                           <Image
                             src={entry.imageUrl}
                             alt=""
@@ -1164,6 +1189,7 @@ export default function TrainingSelectFilter({
                             height={98}
                             draggable={false}
                           />
+                          <TrainingMatchActionLabel entry={entry} />
 
                           <span className={styles.availableName}>
                             {entry.names[language]}

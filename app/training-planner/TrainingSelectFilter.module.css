@@ -1,4 +1,3 @@
-
 .trainingPanel {
   grid-column: 3;
   grid-row: 2;
@@ -59,11 +58,8 @@
   font-weight: 600;
   line-height: 1.2;
   box-shadow: 3px 3px 0 var(--dark);
-  transition:
-    background var(--anim),
-    border-color var(--anim),
-    box-shadow var(--anim),
-    transform var(--anim);
+  transition: background var(--anim), border-color var(--anim),
+    box-shadow var(--anim), transform var(--anim);
 }
 
 .control:hover {
@@ -434,9 +430,7 @@
   min-width: 154px;
   cursor: grab;
   user-select: none;
-  transition:
-    transform 0.15s ease,
-    opacity 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 .selectedItem:active {
@@ -499,9 +493,7 @@
   line-height: 1;
   box-shadow: 2px 2px 0 var(--dark);
   cursor: pointer;
-  transition:
-    transform var(--anim),
-    background var(--anim);
+  transition: transform var(--anim), background var(--anim);
 }
 
 .removeButton:hover {
@@ -587,7 +579,6 @@
   }
 }
 
-
 .selectedHeader {
   display: flex;
   align-items: center;
@@ -611,9 +602,7 @@
   white-space: nowrap;
   cursor: pointer;
   box-shadow: 3px 3px 0 var(--dark);
-  transition:
-    background var(--anim),
-    transform var(--anim),
+  transition: background var(--anim), transform var(--anim),
     box-shadow var(--anim);
 }
 
@@ -632,7 +621,6 @@
   outline: 3px solid var(--color-highlight);
   outline-offset: 2px;
 }
-
 
 .trainingInfoButton {
   top: auto;
@@ -672,3 +660,17 @@
   transform: none;
 }
 
+.availableImage .matchActionLabel {
+  position: absolute;
+  left: 3px;
+  bottom: 3px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.hasMatchActionLabel .availableVector {
+  left: 30px;
+  width: calc(100% - 30px);
+  padding: 0 2px;
+  font-size: 11px;
+}
