@@ -462,6 +462,7 @@ type OpponentMetadata = {
   key: string;
   players: AssignedPlayer[];
   error: string;
+  matchActionError?: string;
 };
 
 function useOpponentMetadata(team: ImportedTeam | null, teamId: number) {
@@ -480,7 +481,7 @@ function useOpponentMetadata(team: ImportedTeam | null, teamId: number) {
 
     const ids = key.split(":")[1].split(",").filter(Boolean).map(Number);
 
-    const cacheKey = `npfc-opponent-metadata-v1:${key}`;
+    const cacheKey = `npfc-opponent-metadata-v2:${key}`;
 
     async function loadMetadata() {
       if (ids.length === 0) {
@@ -498,7 +499,15 @@ function useOpponentMetadata(team: ImportedTeam | null, teamId: number) {
         if (cached) {
           const players: unknown = JSON.parse(cached);
 
-          if (Array.isArray(players)) {
+          if (
+            Array.isArray(players) &&
+            players.every(
+              (player) =>
+                player &&
+                (player.match_actions === null ||
+                  Array.isArray(player.match_actions)),
+            )
+          ) {
             if (!controller.signal.aborted) {
               setMetadata({
                 key,
@@ -534,17 +543,72 @@ function useOpponentMetadata(team: ImportedTeam | null, teamId: number) {
 
         if (controller.signal.aborted) return;
 
-        const players: AssignedPlayer[] = result.players;
+        let players: AssignedPlayer[] = result.players;
+        let matchActionError = "";
+
+        const missingIds = ids.filter((id) => {
+          const player = players.find((entry) => entry.id_player === id);
+          return !player || player.match_actions === undefined;
+        });
+
+        if (missingIds.length > 0) {
+          try {
+            const actionsResponse = await fetch(
+              "/api/match-manager/match-actions",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ids: missingIds }),
+                signal: controller.signal,
+              },
+            );
+            const actionsResult = await actionsResponse.json();
+
+            if (!actionsResponse.ok || !Array.isArray(actionsResult.players)) {
+              throw new Error(
+                actionsResult.error || "Match Actions lookup failed",
+              );
+            }
+
+            const actionsById = new Map<number, number[] | null>(
+              actionsResult.players.map(
+                (entry: {
+                  id_player: number;
+                  match_actions: number[] | null;
+                }) => [entry.id_player, entry.match_actions],
+              ),
+            );
+
+            players = players.map((player) => ({
+              ...player,
+              match_actions:
+                player.match_actions === undefined
+                  ? actionsById.get(player.id_player) ?? null
+                  : player.match_actions,
+            }));
+          } catch (error) {
+            if (controller.signal.aborted) return;
+            matchActionError =
+              error instanceof Error
+                ? error.message
+                : "Match Actions lookup failed";
+          }
+        }
+
+        if (controller.signal.aborted) return;
 
         setMetadata({
           key,
           players,
           error: "",
+          matchActionError,
         });
 
-        try {
-          localStorage.setItem(cacheKey, JSON.stringify(players));
-        } catch {}
+        if (!matchActionError) {
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify(players));
+          } catch {}
+        }
       } catch (error) {
         if (controller.signal.aborted) return;
 
@@ -1040,6 +1104,7 @@ export function ImportedTeamPlayers({
 
   const ownPlayers: AssignedPlayer[] = team.players.map((player) => ({
     id_player: player.id,
+    match_actions: player.matchActions,
     name: player.name,
     id_position: getOwnPositionId(player.position) ?? -1,
     fatigue: player.fatigue,
@@ -1069,6 +1134,7 @@ export function ImportedTeamPlayers({
 
   const opponents: AssignedPlayer[] = (roster ?? []).map((player) => ({
     id_player: player.id,
+    match_actions: lookup.get(player.id)?.match_actions,
     name: lookup.get(player.id)?.name ?? `Player #${player.id}`,
     id_position: lookup.get(player.id)?.id_position ?? -1,
     fatigue: player.fatigue,
@@ -1094,6 +1160,10 @@ export function ImportedTeamPlayers({
         playerPreference={playerPreference}
       />
 
+      {team.players.some((player) => !Array.isArray(player.matchActions)) && (
+        <p role="status">Re-import save to display your Match Actions.</p>
+      )}
+
       <PlayersOnTeam
         language={language}
         title={team.name}
@@ -1109,6 +1179,9 @@ export function ImportedTeamPlayers({
       ) : (
         <>
           {current.error && <p role="alert">{current.error}</p>}
+          {current.matchActionError && (
+            <p role="alert">{current.matchActionError}</p>
+          )}
 
           <PlayersOnTeam
             language={language}

@@ -368,10 +368,14 @@ export default function TeamFormation({
         <div
           style={{
             display: "flex",
+            flexWrap: "wrap",
             alignItems: "stretch",
             justifyContent: "center",
             gap: 6,
             width: "100%",
+            minWidth: 0,
+            maxWidth: "100%",
+            boxSizing: "border-box",
             marginBottom: 14,
             containerType: "inline-size",
           }}
@@ -379,10 +383,10 @@ export default function TeamFormation({
           <div
             className={chartStyles.chartSwitch}
             style={{
-              flex: "1 1 500px",
-              minWidth: 500,
-              maxWidth: 500,
-              width: "auto",
+              flex: "1 1 240px",
+              minWidth: 0,
+              maxWidth: "min(500px, 100%)",
+              width: "100%",
               margin: 0,
               boxSizing: "border-box",
             }}

@@ -15,6 +15,12 @@ import {
   rankImages,
   PLAYER_TYPE_NAMES,
   PLAYER_TYPE_COLORS,
+  MATCH_ACTION_NAMES,
+  COMBO_MATCH_ACTION_IDS,
+  buildMatchActionLookup,
+  getMarketplaceMatchActionLookup,
+  getPlayerMatchActionLabels,
+  getMatchActionLabelStyle,
   type Language,
 } from "@/lib/utils";
 import {
@@ -57,6 +63,7 @@ export type PlayerExperience = {
 
 export type AssignedPlayer = {
   id_player: number;
+  match_actions?: number[] | null;
   shirtNumber?: number | null;
   fatigue?: number | null;
   typeIndex?: number | null;
@@ -79,6 +86,66 @@ type Props = {
   title?: string;
   emptyMessage?: string;
 };
+
+const MATCH_ACTION_CATEGORY_IDS: Readonly<Record<number, number>> = {
+  1: 2,
+  2: 9,
+  3: 9,
+  4: 8,
+  5: 4,
+  6: 2,
+  7: 2,
+  8: 2,
+  9: 2,
+  10: 2,
+  11: 7,
+  12: 7,
+  13: 9,
+  14: 6,
+  17: 3,
+  18: 3,
+  19: 3,
+  20: 3,
+  21: 3,
+  22: 3,
+};
+
+const marketplaceMatchActionLookup = getMarketplaceMatchActionLookup(
+  buildMatchActionLookup(
+    Object.entries(COMBO_MATCH_ACTION_IDS).map(([comboId, actionId]) => ({
+      combo_id: Number(comboId),
+      category_id: MATCH_ACTION_CATEGORY_IDS[actionId] ?? -1,
+      has_match_actions: true,
+    })),
+  ),
+);
+
+function MatchActionDots({ actions }: { actions?: number[] | null }) {
+  const ids = [...new Set(Array.isArray(actions) ? actions : [])]
+    .filter((id) => Number.isInteger(id) && id >= 1 && id <= 24)
+    .sort((a, b) => a - b);
+
+  if (ids.length === 0) return null;
+
+  return (
+    <div className={labels.matchActionDots} aria-label="Match Actions">
+      {ids.map((id) => (
+        <span
+          key={id}
+          className={labels.matchActionDot}
+          style={{
+            backgroundColor: getMatchActionLabelStyle(
+              MATCH_ACTION_CATEGORY_IDS[id] ?? -1,
+            ).backgroundColor,
+          }}
+          role="img"
+          aria-label={MATCH_ACTION_NAMES[id] ?? `Match Action ${id}`}
+          title={MATCH_ACTION_NAMES[id] ?? `Match Action ${id}`}
+        />
+      ))}
+    </div>
+  );
+}
 
 const POSITIONS: Record<number, TeamPlayerPosition> = {
   0: "GK",
@@ -437,7 +504,14 @@ export default function PlayersOnTeam({
                             {typeName ?? "—"}
                           </div>
                         )}
-                        <div className={styles.playerPortraitSkills}>
+                        <div
+                          className={`${styles.playerPortraitSkills}${
+                            imported ? ` ${labels.portraitWithActions}` : ""
+                          }`}
+                        >
+                          {imported && (
+                            <MatchActionDots actions={player.match_actions} />
+                          )}
                           <div
                             className={labels.card}
                             style={
@@ -459,6 +533,14 @@ export default function PlayersOnTeam({
                               showRosterLabels={showLabels}
                               shirtNumber={player.shirtNumber}
                               foot={player.foot}
+                              matchActionLabels={
+                                imported
+                                  ? []
+                                  : getPlayerMatchActionLabels(
+                                      player.match_actions,
+                                      marketplaceMatchActionLookup,
+                                    )
+                              }
                             />
                             {unavailable && (
                               <Image

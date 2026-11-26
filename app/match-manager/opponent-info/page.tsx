@@ -110,7 +110,9 @@ async function getAssignedPlayers(teamId: number): Promise<AssignedPlayer[]> {
 
   const { data, error } = await supabase
     .from("Player")
-    .select("id_player, name, id_position, price, team_id, Player_Skills(*)")
+    .select(
+      "id_player, name, id_position, price, team_id, match_actions, Player_Skills(*)",
+    )
     .eq("team_id", teamId)
     .order("id_player");
 
@@ -124,7 +126,9 @@ async function getCandidatePlayers(): Promise<AssignedPlayer[]> {
 
   const { data, error } = await supabase
     .from("Player")
-    .select("id_player, name, id_position, price, team_id, Player_Skills(*)")
+    .select(
+      "id_player, name, id_position, price, team_id, match_actions, Player_Skills(*)",
+    )
     .is("team_id", null)
     .gte("id_player", 0)
     .lt("id_player", 792)

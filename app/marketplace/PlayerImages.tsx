@@ -40,7 +40,7 @@ const chipStyle: CSSProperties = {
 
 const rosterBadgeStyle: CSSProperties = {
   position: "absolute",
-  top: 29,
+  top: 24,
   zIndex: 8,
   display: "grid",
   placeItems: "center",

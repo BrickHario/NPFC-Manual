@@ -188,3 +188,30 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+.portraitWithActions {
+  position: relative;
+  padding-left: 0;
+  box-sizing: border-box;
+}
+
+.matchActionDots {
+  display: grid;
+  grid-template-columns: 7px;
+  grid-auto-rows: 7px;
+  gap: 2px;
+  align-content: start;
+  justify-content: start;
+  align-self: flex-start;
+  flex: 0 0 7px;
+  margin-right: 3px;
+}
+
+.matchActionDot {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: none;
+}

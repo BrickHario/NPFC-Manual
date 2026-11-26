@@ -58,6 +58,7 @@ export type SavedPlayerExperience = {
 };
 
 export type SavedOwnPlayer = ImportedSavePlayer & {
+  matchActions?: number[];
   lineupRank: number | null;
   availability: PlayerAvailability | null;
   shirtNumber: number | null;
@@ -132,6 +133,33 @@ const PLAYER_SIZE = 0x98;
 const EMPTY_PLAYER_ID = 1016;
 
 const STORAGE_KEY = "npfc-imported-team-v12";
+
+export function readOwnPlayerMatchActions(
+  view: DataView,
+  rosterSlot: number,
+): number[] | undefined {
+  if (!Number.isInteger(rosterSlot) || rosterSlot < 0 || rosterSlot >= 25) {
+    return undefined;
+  }
+
+  const base = SAVE_ROSTER_OFFSET + rosterSlot * PLAYER_SIZE;
+  if (base + 0x7a >= view.byteLength) return undefined;
+  if (view.getUint16(base, true) >= EMPTY_PLAYER_ID) return undefined;
+
+  const actionFlags = view.getUint16(base + 0x78, true);
+  const celebrationFlags = view.getUint8(base + 0x7a);
+  const matchActions: number[] = [];
+
+  for (let id = 1; id <= 16; id++) {
+    if ((actionFlags & (1 << (id - 1))) !== 0) matchActions.push(id);
+  }
+
+  for (let id = 17; id <= 24; id++) {
+    if ((celebrationFlags & (1 << (id - 17))) !== 0) matchActions.push(id);
+  }
+
+  return matchActions;
+}
 
 function experienceGrade(points: number): string {
   if (points >= 1000) return "S";
@@ -426,6 +454,10 @@ export function parseTeamSave(
       const slotIndex = slotById.get(player.id);
       return {
         ...player,
+        matchActions:
+          slotIndex === undefined
+            ? undefined
+            : readOwnPlayerMatchActions(view, slotIndex),
         lineupRank:
           slotIndex === undefined || !validOwnOrder
             ? null

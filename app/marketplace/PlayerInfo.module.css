@@ -1119,6 +1119,7 @@
   gap: 5px;
   min-width: 0;
   text-align: center;
+  align-self: flex-start;
 }
 
 .matchActionTitle {
